@@ -4,7 +4,7 @@ credentials: &credentials
   - AWS Credentials
 
 orbs:
-  aws-sam-serverless: circleci/aws-sam-serverless@3.2.0
+  sam: circleci/aws-sam-serverless@3.2.0
 
 workflows:
   version: 2
@@ -14,9 +14,9 @@ workflows:
       - sam/deploy:
           context: *credentials
           stack-name: pharos-api-dev
-          parameter-overrides: "CorsAllow=https://dev-pharos-frontend.talusanalytics.com/"
-          template: "./template.yaml"
-          aws-region: "us-east-2"
+          parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+          template: ./template.yaml
+          aws-region: us-east-2
           filters:
             branches:
               only:
