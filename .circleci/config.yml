@@ -12,12 +12,25 @@ workflows:
     jobs:
       # dev
       - deploy:
-        stack-name: pharos-api-dev
-        parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
-        filters:
-          branches:
-            only:
-              - dev
+          stack-name: pharos-api-dev
+          parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+          context: *credentials
+          filters:
+            branches:
+              only:
+                - dev
+
+      # - deploy:
+      #     # Examples:
+      #     # bucket: 's3://dev-projectname'
+      #     # distribution: 'E31RXXXXXXXXXX'
+      #     bucket: "s3://dev-pharos-frontend"
+      #     distribution: "EWN5TGLCXWM1V"
+      #     context: *credentials
+      #     filters:
+      #       branches:
+      #         only:
+      #           - dev
 
 jobs:
   deploy:
@@ -34,7 +47,6 @@ jobs:
 
     steps:
       - sam/deploy:
-          context: *credentials
           stack-name: <<parameters.stack-name>>
           parameter-overrides: <<parameters.parameter-overrides>>
           template: ./template.yaml
