@@ -12,6 +12,8 @@ workflows:
     jobs:
       # dev
       - deploy:
+        stack-name: pharos-api-dev
+        parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
         filters:
           branches:
             only:
@@ -24,22 +26,15 @@ jobs:
     docker:
       - image: cimg/node:lts
 
-    # resource_class: xlarge
-
     parameters:
-      # bucket:
-      #   type: string
-      # distribution:
-      #   type: string
+      stack-name:
+        type: string
+      parameter-overrides:
+        type: string
 
     steps:
-      - run:
-          name: Set AWS Region
-          command: AWS_REGION=us-east-2
-
       - sam/deploy:
           context: *credentials
-          stack-name: pharos-api-dev
-          parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+          stack-name: <<parameters.stack-name>>
+          parameter-overrides: <<parameters.parameter-overrides>>
           template: ./template.yaml
-          aws-region: ${AWS_REGION}
