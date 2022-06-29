@@ -1,9 +1,14 @@
 import json
+import os
 
 # import requests
 
+CORS_ALLOW = os.environ["CORS_ALLOW"]
+
 
 def lambda_handler(event, context):
+
+    print("\n\n\nfunction called")
 
     """Sample pure Lambda function
 
@@ -32,18 +37,24 @@ def lambda_handler(event, context):
     if post_data["id"] == "1234":
         return {
             "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
             "body": json.dumps(
                 {
                     "token": "12-309oij13120-8254",
                     "username": "dev user",
                     "email": "devs@talusanalytics.com",
-                    "userID": "5431"
+                    "researcherID": "5431",
                 }
             ),
         }
 
     return {
         "statusCode": 401,
+        "headers": {
+            "Access-Control-Allow-Origin": CORS_ALLOW,
+        },
         "body": json.dumps(
             {
                 "message": "User does not exist",

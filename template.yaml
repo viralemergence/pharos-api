@@ -5,12 +5,22 @@ Description: >
 
   Sample SAM Template for pharos-api
 
+Parameters:
+  CorsAllow:
+    Type: String
+    Default: "http://localhost:8000"
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 3
     Tracing: Active
+    Runtime: python3.9
+    Architectures:
+      - x86_64
+    Handler: app.lambda_handler
   Api:
+    Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
     TracingEnabled: True
 
 Resources:
@@ -18,10 +28,9 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: auth/
-      Handler: app.lambda_handler
-      Runtime: python3.9
-      Architectures:
-        - x86_64
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
