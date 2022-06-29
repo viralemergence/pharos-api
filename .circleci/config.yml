@@ -11,14 +11,24 @@ workflows:
   build:
     jobs:
       # dev
-      - deploy:
+      - sam/deploy:
           stack-name: pharos-api-dev
           parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+          template: ./template.yaml
           context: *credentials
           filters:
             branches:
               only:
                 - dev
+
+      # - deploy:
+      #     stack-name: pharos-api-dev
+      #     parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+      #     context: *credentials
+      #     filters:
+      #       branches:
+      #         only:
+      #           - dev
 
       # - deploy:
       #     # Examples:
@@ -31,22 +41,21 @@ workflows:
       #       branches:
       #         only:
       #           - dev
+# jobs:
+#   deploy:
+#     working_directory: ~/repo
 
-jobs:
-  deploy:
-    working_directory: ~/repo
+#     docker:
+#       - image: cimg/node:lts
 
-    docker:
-      - image: cimg/node:lts
+#     parameters:
+#       stack-name:
+#         type: string
+#       parameter-overrides:
+#         type: string
 
-    parameters:
-      stack-name:
-        type: string
-      parameter-overrides:
-        type: string
-
-    steps:
-      - sam/deploy:
-          stack-name: <<parameters.stack-name>>
-          parameter-overrides: <<parameters.parameter-overrides>>
-          template: ./template.yaml
+#     steps:
+#       - sam/deploy:
+#           stack-name: <<parameters.stack-name>>
+#           parameter-overrides: <<parameters.parameter-overrides>>
+#           template: ./template.yaml
