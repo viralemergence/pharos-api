@@ -11,19 +11,20 @@ workflows:
   build:
     jobs:
       # dev
-      steps:
-        - run:
-            name: Set AWS Region
-            command: AWS_REGION=us-east-2
+      deploy:
+        steps:
+          - run:
+              name: Set AWS Region
+              command: AWS_REGION=us-east-2
 
-        - sam/deploy:
-            context: *credentials
-            stack-name: pharos-api-dev
-            parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
-            template: ./template.yaml
-            aws-region: ${AWS_REGION}
+          - sam/deploy:
+              context: *credentials
+              stack-name: pharos-api-dev
+              parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
+              template: ./template.yaml
+              aws-region: ${AWS_REGION}
 
-      filters:
-        branches:
-          only:
-            - dev
+        filters:
+          branches:
+            only:
+              - dev
