@@ -27,19 +27,19 @@ Globals:
     TracingEnabled: True
 
 Resources:
-  # UsersTable:
-  #   Type: AWS::DynamoDB::Table
-  #   Properties:
-  #     AttributeDefinitions:
-  #       - AttributeName: "researcherID"
-  #         AttributeType: "S"
-  #     KeySchema:
-  #       - AttributeName: "researcherID"
-  #         KeyType: "HASH"
-  #     ProvisionedThroughput:
-  #       ReadCapacityUnits: 5
-  #       WriteCapacityUnits: 5
-  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "researcherID"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "researcherID"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
