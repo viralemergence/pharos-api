@@ -19,7 +19,7 @@ workflows:
               only:
                 - dev
 
-      # prod
+      # review
       - deploy:
           config-env: review
           context: *credentials

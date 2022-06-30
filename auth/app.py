@@ -31,6 +31,8 @@ def lambda_handler(event, context):
 
     post_data = json.loads(event.get("body", "{}"))
 
+    print("hi")
+
     # Fake auth response for valid user
     allowed_users = ["1234", "developer"]
     if post_data["id"] in allowed_users:
