@@ -11,7 +11,6 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 
 
 def lambda_handler(event, context):
-
     try:
         post_data = json.loads(event.get("body", "{}"))
         researcherID = uuid.uuid4().hex
