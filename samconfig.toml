@@ -11,3 +11,16 @@ capabilities = "CAPABILITY_IAM"
 disable_rollback = true
 parameter_overrides = "CorsAllow=\"https://dev-pharos-frontend.talusanalytics.com\""
 image_repositories = []
+
+[prod]
+[prod.deploy]
+[prod.deploy.parameters]
+stack_name = "pharos-api-prod"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-c378ct86r2s3"
+s3_prefix = "pharos-api-prod"
+region = "us-east-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com/\""
+image_repositories = []
