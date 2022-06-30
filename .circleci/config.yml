@@ -39,4 +39,8 @@ jobs:
     steps:
       - checkout
       - sam/install
-      - run: sam deploy --config-env <<parameters.config-env>> --no-confirm-changeset
+      - run: |
+          sam deploy \
+            --config-env <<parameters.config-env>> \
+            --template-file ./template.yaml \
+            --no-confirm-changeset
