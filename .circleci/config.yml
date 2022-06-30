@@ -21,12 +21,12 @@ workflows:
 
       # prod
       - deploy:
-          config-env: prod
+          config-env: review
           context: *credentials
           filters:
             branches:
               only:
-                - prod
+                - reveiw
 
 jobs:
   deploy:
