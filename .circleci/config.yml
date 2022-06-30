@@ -11,51 +11,28 @@ workflows:
   build:
     jobs:
       # dev
-      - sam/deploy:
-          stack-name: pharos-api-dev
-          parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
-          template: ./template.yaml
+      - deploy:
+          config-env: dev
           context: *credentials
           filters:
             branches:
               only:
                 - dev
 
-      # - deploy:
-      #     stack-name: pharos-api-dev
-      #     parameter-overrides: CorsAllow=https://dev-pharos-frontend.talusanalytics.com
-      #     context: *credentials
-      #     filters:
-      #       branches:
-      #         only:
-      #           - dev
+jobs:
+  deploy:
+    working_directory: ~/repo
 
-      # - deploy:
-      #     # Examples:
-      #     # bucket: 's3://dev-projectname'
-      #     # distribution: 'E31RXXXXXXXXXX'
-      #     bucket: "s3://dev-pharos-frontend"
-      #     distribution: "EWN5TGLCXWM1V"
-      #     context: *credentials
-      #     filters:
-      #       branches:
-      #         only:
-      #           - dev
-# jobs:
-#   deploy:
-#     working_directory: ~/repo
+    docker:
+      - image: cimg/node:lts
 
-#     docker:
-#       - image: cimg/node:lts
+    parameters:
+      config-env:
+        type: string
 
-#     parameters:
-#       stack-name:
-#         type: string
-#       parameter-overrides:
-#         type: string
+    executor: sam/default
 
-#     steps:
-#       - sam/deploy:
-#           stack-name: <<parameters.stack-name>>
-#           parameter-overrides: <<parameters.parameter-overrides>>
-#           template: ./template.yaml
+    steps:
+      - checkout
+      - sam/install
+      - run: sam deploy --config-env <<parameters.config-env>>
