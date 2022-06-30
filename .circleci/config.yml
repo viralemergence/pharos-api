@@ -21,16 +21,11 @@ workflows:
 
 jobs:
   deploy:
-    working_directory: ~/repo
-
-    docker:
-      - image: cimg/node:lts
+    executor: sam/default
 
     parameters:
       config-env:
         type: string
-
-    executor: sam/default
 
     steps:
       - checkout
