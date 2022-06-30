@@ -9,6 +9,9 @@ Parameters:
   CorsAllow:
     Type: String
     Default: "http://localhost:8000"
+  UsersTableName:
+    Type: String
+    Default: "users"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -24,19 +27,57 @@ Globals:
     TracingEnabled: True
 
 Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "researcherID"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "researcherID"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: True
+      TableName: !Ref UsersTableName
+
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: auth/
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /auth
             Method: post
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME: !Ref UsersTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTableName
+
+  CreateUserFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: create_user/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /create-user
+            Method: post
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME: !Ref UsersTableName
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTableName
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

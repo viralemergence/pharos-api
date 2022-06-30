@@ -22,5 +22,5 @@ region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com/\""
+parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com\""
 image_repositories = []
