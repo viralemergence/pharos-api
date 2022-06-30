@@ -8,8 +8,6 @@ CORS_ALLOW = os.environ["CORS_ALLOW"]
 
 def lambda_handler(event, context):
 
-    print("\n\n\nfunction called")
-
     """Sample pure Lambda function
 
     Parameters
