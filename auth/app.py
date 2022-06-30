@@ -32,7 +32,8 @@ def lambda_handler(event, context):
     post_data = json.loads(event.get("body", "{}"))
 
     # Fake auth response for valid user
-    if post_data["id"] == "1234":
+    allowed_users = ["1234", "developer"]
+    if post_data["id"] in allowed_users:
         return {
             "statusCode": 200,
             "headers": {
