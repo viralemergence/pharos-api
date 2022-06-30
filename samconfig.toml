@@ -8,7 +8,7 @@ s3_prefix = "pharos-api-dev"
 region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-disable_rollback = true
+disable_rollback = false
 parameter_overrides = "CorsAllow=\"https://dev-pharos-frontend.talusanalytics.com\""
 image_repositories = []
 
@@ -21,6 +21,6 @@ s3_prefix = "pharos-api-prod"
 region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-disable_rollback = true
+disable_rollback = false
 parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com\""
 image_repositories = []
