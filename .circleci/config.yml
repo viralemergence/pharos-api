@@ -19,6 +19,15 @@ workflows:
               only:
                 - dev
 
+      # prod
+      - deploy:
+          config-env: prod
+          context: *credentials
+          filters:
+            branches:
+              only:
+                - prod
+
 jobs:
   deploy:
     executor: sam/default
