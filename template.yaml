@@ -11,7 +11,7 @@ Parameters:
     Default: "http://localhost:8000"
   UsersTableName:
     Type: String
-    Default: "users"
+    Default: !Join ["-", [!Ref AWS::StackName, "users"]]
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -27,21 +27,19 @@ Globals:
     TracingEnabled: True
 
 Resources:
-  # UsersTable:
-  #   Type: AWS::DynamoDB::Table
-  #   Properties:
-  #     AttributeDefinitions:
-  #       - AttributeName: "researcherID"
-  #         AttributeType: "S"
-  #     KeySchema:
-  #       - AttributeName: "researcherID"
-  #         KeyType: "HASH"
-  #     ProvisionedThroughput:
-  #       ReadCapacityUnits: 5
-  #       WriteCapacityUnits: 5
-  #     SSESpecification:
-  #       SSEEnabled: True
-  #     TableName: !Ref UsersTableName
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "researcherID"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "researcherID"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Ref UsersTableName
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -84,11 +82,11 @@ Outputs:
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PharosApi:
-    Description: "Fake stand-in auth endpoint:"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth/"
-  AuthFunction:
-    Description: "Fake Auth Lambda Function ARN"
-    Value: !GetAtt AuthFunction.Arn
-  AuthFunctionIamRole:
-    Description: "Implicit IAM Role created for Fake Auth function"
-    Value: !GetAtt AuthFunction.Arn
+    Description: "API Endpoint:"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  UsersTableName:
+    Description: "Users Table Name"
+    Value: !Ref UsersTableName
+  # AuthFunctionIamRole:
+  #   Description: "Implicit IAM Role created for Fake Auth function"
+  #   Value: !GetAtt AuthFunction.Arn
