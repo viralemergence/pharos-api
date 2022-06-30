@@ -10,9 +10,8 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 
 
 def lambda_handler(event, context):
-    post_data = json.loads(event.get("body", "{}"))
-
     try:
+        post_data = json.loads(event.get("body", "{}"))
         users_response = USERS_TABLE.get_item(
             Key={"researcherID": post_data["researcherID"]}
         )
