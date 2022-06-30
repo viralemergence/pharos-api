@@ -11,7 +11,7 @@ Parameters:
     Default: "http://localhost:8000"
   UsersTableName:
     Type: String
-    Default: !Join ["-", [!Ref AWS::StackName, "users"]]
+    Default: "users"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -39,7 +39,7 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
-      TableName: !Ref UsersTableName
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -54,10 +54,11 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME: !Ref UsersTableName
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref UsersTableName
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -72,10 +73,11 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME: !Ref UsersTableName
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref UsersTableName
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -86,7 +88,7 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   UsersTableName:
     Description: "Users Table Name"
-    Value: !Ref UsersTableName
+    Value: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
   # AuthFunctionIamRole:
   #   Description: "Implicit IAM Role created for Fake Auth function"
   #   Value: !GetAtt AuthFunction.Arn
