@@ -35,7 +35,7 @@ def lambda_handler(event, context):
         }
 
     return {
-        "statusCode": 500,
+        "statusCode": 403,
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
