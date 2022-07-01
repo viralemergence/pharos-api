@@ -22,6 +22,7 @@ def lambda_handler(event, context):
             Key={"researcherID": post_data["researcherID"]}
         )
 
+        # Exit if user is not in the database.
         if "Item" not in users_response:
             return {
                 "statusCode": 403,
@@ -34,11 +35,12 @@ def lambda_handler(event, context):
     except Exception as e:
         print(e) #TODO: log
    
+    # TODO: Integrate with S3 bucket 
     s3location = "s3://something"
 
     try:
-        date = datetime.utcnow()
-        datasetid = int(datetime.timestamp(date)), # Unique to researcher
+        date = datetime.utcnow() # Date should be standardized to UTC
+        datasetid = int(datetime.timestamp(date)), # Create a unique timestamp for dataset id. Could be repeated for different researchers
 
         response = DATASETS_TABLE.put_item(
             Item = {
