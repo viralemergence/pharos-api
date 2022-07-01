@@ -13,27 +13,37 @@ DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 def lambda_handler(event, context):
 
-    # TODO: Verify researcher id is in USERS_TABLE
-    """ try:
-        post_data = json.loads(event.get("body", "{}"))
+    post_data = json.loads(event.get("body", "{}"))
+
+    # Verify researcher id is in USERS_TABLE
+    try:
 
         users_response = USERS_TABLE.get_item(
             Key={"researcherID": post_data["researcherID"]}
         )
-    except:
-        pass
-    """
 
-    post_data = json.loads(event.get("body", "{}"))
+        if "Item" not in users_response:
+            return {
+                "statusCode": 403,
+                "headers": {
+                    "Access-Control-Allow-Origin": CORS_ALLOW,
+                },
+                "body": json.dumps({"message": "User does not exist"}),
+            }
+
+    except Exception as e:
+        print(e) #TODO: log
+   
     s3location = "s3://something"
 
     try:
         date = datetime.utcnow()
+        datasetid = int(datetime.timestamp(date)), # Unique to researcher
 
         response = DATASETS_TABLE.put_item(
             Item = {
                 "researcherID" : post_data["researcherID"],
-                "datasetID" : int(datetime.timestamp(date)), # Unique to researcher
+                "datasetID" : datasetid,
                 "name" : post_data["dataset_name"],
                 "samples_taken" : post_data["samples_taken"],
                 "detection_run" : post_data["detection_run"],
@@ -54,5 +64,5 @@ def lambda_handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": json.dumps(response),
+            "body": datasetid,
         }
