@@ -1,8 +1,8 @@
-import os
-import json
-import uuid
 import boto3
-
+import json
+import os
+import uuid
+from datetime import datetime
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -12,21 +12,47 @@ DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
 def lambda_handler(event, context):
-    print("HELLO WORLD")
 
-    # Double check user exists
-    # users_response = USERS_TABLE.get_item(Key={"researcherID": "109312098lkjasdf"})
+    # TODO: Verify researcher id is in USERS_TABLE
+    """ try:
+        post_data = json.loads(event.get("body", "{}"))
 
-    resercherID = uuid.uuid4().hex
+        users_response = USERS_TABLE.get_item(
+            Key={"researcherID": post_data["researcherID"]}
+        )
+    except:
+        pass
+    """
 
-    datasets_table_response = DATASETS_TABLE.put_item(
-        Item={"researcherID": resercherID, "name": "test data"}
-    )
+    post_data = json.loads(event.get("body", "{}"))
+    s3location = "s3://something"
+
+    try:
+        date = datetime.utcnow()
+
+        response = DATASETS_TABLE.put_item(
+            Item = {
+                "researcherID" : post_data["researcherID"],
+                "datasetID" : int(datetime.timestamp(date)), # Unique to researcher
+                "name" : post_data["dataset_name"],
+                "samples_taken" : post_data["samples_taken"],
+                "detection_run" : post_data["detection_run"],
+                "versions" : [
+                    {
+                        "uri" : s3location,
+                        "date" : str(date) # DyanamoDb does not support date types
+                    }
+                ]
+            }
+        )
+    
+    except Exception as e:
+        print(e) # This should be logged
 
     return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": CORS_ALLOW,
-        },
-        "body": json.dumps(datasets_table_response),
-    }
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
+            "body": json.dumps(response),
+        }
