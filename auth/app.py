@@ -22,7 +22,7 @@ def lambda_handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": json.dumps({"exception": e}),
+            "body": json.dumps({"exception": str(e)}),
         }
 
     if "Item" in users_response:

@@ -50,9 +50,13 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "researcherID"
           AttributeType: "S"
-      KeySchema:
+        - AttributeName: "datasetID"
+          AttributeType: "N"
+      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
         - AttributeName: "researcherID"
-          KeyType: "HASH"
+          KeyType: "HASH" # Partition key
+        - AttributeName: "datasetID"
+          KeyType: "RANGE" # Sort Key
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
@@ -116,6 +120,7 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
   ListDatasetFunction:
@@ -127,7 +132,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /list-datasets
-            Method: get
+            Method: post # Should be get but fails, maybe something with permissions
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -138,6 +143,7 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
 Outputs:

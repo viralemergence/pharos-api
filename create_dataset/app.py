@@ -17,14 +17,13 @@ def lambda_handler(event, context):
 
     # Verify researcher id is in USERS_TABLE
     try:
-
         users_response = USERS_TABLE.get_item(
             Key={"researcherID": post_data["researcherID"]}
         )
 
         # Exit if user is not in the database.
         if "Item" not in users_response:
-            return {
+           return {
                 "statusCode": 403,
                 "headers": {
                     "Access-Control-Allow-Origin": CORS_ALLOW,
@@ -33,14 +32,20 @@ def lambda_handler(event, context):
             }
 
     except Exception as e:
-        print(e) #TODO: log
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
+            "body": json.dumps({"message": str(e)}),
+        } # This should be logged
    
     # TODO: Integrate with S3 bucket 
     s3location = "s3://something"
 
     try:
         date = datetime.utcnow() # Date should be standardized to UTC
-        datasetid = int(datetime.timestamp(date)), # Create a unique timestamp for dataset id. Could be repeated for different researchers
+        datasetid = int(datetime.timestamp(date)) # Create a unique timestamp for dataset id. Could be repeated for different researchers
 
         response = DATASETS_TABLE.put_item(
             Item = {
@@ -59,12 +64,18 @@ def lambda_handler(event, context):
         )
     
     except Exception as e:
-        print(e) # This should be logged
+        return {
+            "statusCode": 403,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
+            "body": json.dumps({"message": str(e)}),
+        } # This should be logged
 
     return {
             "statusCode": 200,
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": datasetid,
+            "body": json.dumps({"datasetID": datasetid}),
         }
