@@ -146,6 +146,29 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
+  UpdateDatasetFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: update_dataset/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /update-dataset
+            Method: post # Should be get but fails, maybe something with permissions
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
