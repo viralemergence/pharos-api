@@ -22,7 +22,7 @@ def lambda_handler(event, context):
 
         # Exit if user is not in the database.
         if "Item" not in users_response:
-           return {
+            return {
                 "statusCode": 403,
                 "headers": {
                     "Access-Control-Allow-Origin": CORS_ALLOW,
@@ -37,31 +37,33 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
             "body": json.dumps({"message": str(e)}),
-        } # This should be logged
-   
-    # TODO: Integrate with S3 bucket 
+        }  # This should be logged
+
+    # TODO: Integrate with S3 bucket
     s3location = "s3://something"
 
     try:
-        date = datetime.utcnow() # Date should be standardized to UTC
-        datasetid = int(datetime.timestamp(date)) # Create a unique timestamp for dataset id. Could be repeated for different researchers
+        date = datetime.utcnow()  # Date should be standardized to UTC
+        datasetid = int(
+            datetime.timestamp(date)
+        )  # Create a unique timestamp for dataset id. Could be repeated for different researchers
 
         response = DATASETS_TABLE.put_item(
-            Item = {
-                "researcherID" : post_data["researcherID"],
-                "datasetID" : datasetid,
-                "name" : post_data["dataset_name"],
-                "samples_taken" : post_data["samples_taken"],
-                "detection_run" : post_data["detection_run"],
-                "versions" : [
+            Item={
+                "researcherID": post_data["researcherID"],
+                "datasetID": datasetid,
+                "name": post_data["dataset_name"],
+                "samples_taken": post_data["samples_taken"],
+                "detection_run": post_data["detection_run"],
+                "versions": [
                     {
-                        "uri" : s3location,
-                        "date" : str(date) # DyanamoDb does not support date types
+                        "uri": s3location,
+                        "date": str(date),  # DyanamoDb does not support date types
                     }
-                ]
+                ],
             }
         )
-    
+
     except Exception as e:
         return {
             "statusCode": 403,
@@ -69,12 +71,12 @@ def lambda_handler(event, context):
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
             "body": json.dumps({"message": str(e)}),
-        } # This should be logged
+        }  # This should be logged
 
     return {
-            "statusCode": 200,
-            "headers": {
-                "Access-Control-Allow-Origin": CORS_ALLOW,
-            },
-            "body": json.dumps({"datasetID": datasetid}),
-        }
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": CORS_ALLOW,
+        },
+        "body": json.dumps({"datasetID": datasetid}),
+    }
