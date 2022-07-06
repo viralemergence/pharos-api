@@ -48,21 +48,29 @@ def lambda_handler(event, context):
             datetime.timestamp(date)
         )  # Create a unique timestamp for dataset id. Could be repeated for different researchers
 
-        response = DATASETS_TABLE.put_item(
-            Item={
-                "researcherID": post_data["researcherID"],
-                "datasetID": datasetid,
-                "name": post_data["dataset_name"],
-                "samples_taken": post_data["samples_taken"],
-                "detection_run": post_data["detection_run"],
-                "versions": [
-                    {
-                        "uri": s3location,
-                        "date": str(date),  # DyanamoDb does not support date types
-                    }
-                ],
-            }
-        )
+        item = {
+            "researcherID": post_data["researcherID"],
+            "datasetID": datasetid,
+            "name": post_data["dataset_name"],
+            "samples_taken": post_data["samples_taken"],
+            "detection_run": post_data["detection_run"],
+            "versions": [
+                {
+                    "uri": s3location,
+                    "date": str(date),  # DyanamoDb does not support date types
+                }
+            ],
+        }
+
+        response = DATASETS_TABLE.put_item(Item=item)
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
+            "body": json.dumps(item),
+        }
 
     except Exception as e:
         return {
@@ -72,11 +80,3 @@ def lambda_handler(event, context):
             },
             "body": json.dumps({"message": str(e)}),
         }  # This should be logged
-
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": CORS_ALLOW,
-        },
-        "body": json.dumps({"datasetID": datasetid}),
-    }
