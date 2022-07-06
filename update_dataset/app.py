@@ -9,8 +9,18 @@ CORS_ALLOW = os.environ["CORS_ALLOW"]
 USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
+# from typing import Any, TypedDict
 
-def lambda_handler(event, context) -> "POST":
+# class Headers(TypedDict):
+#     "Access-Control-Allow-Origin": str
+
+# class POST(TypedDict):
+#     statusCode: int
+#     headers: Any
+#     body: Any
+
+
+def lambda_handler(event, context):  #  -> "POST":
 
     post_data = json.loads(event.get("body", "{}"))
 
