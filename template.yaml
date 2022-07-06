@@ -32,6 +32,7 @@ Globals:
 Resources:
   UsersTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "researcherID"
@@ -46,6 +47,7 @@ Resources:
 
   DatasetsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "researcherID"
