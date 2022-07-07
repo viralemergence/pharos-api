@@ -39,9 +39,6 @@ def lambda_handler(event, context):
             "body": json.dumps({"message": str(e)}),
         }  # This should be logged
 
-    # TODO: Integrate with S3 bucket
-    s3location = "s3://something"
-
     try:
         date = datetime.utcnow()  # Date should be standardized to UTC
 
@@ -51,12 +48,7 @@ def lambda_handler(event, context):
         item = {
             "datasetID": datasetid,
             **post_data,
-            "versions": [
-                {
-                    "uri": s3location,
-                    "date": str(date),  # DyanamoDb does not support date types
-                }
-            ],
+            "versions": [],
         }
 
         response = DATASETS_TABLE.put_item(Item=item)
