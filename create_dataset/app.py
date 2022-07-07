@@ -44,16 +44,13 @@ def lambda_handler(event, context):
 
     try:
         date = datetime.utcnow()  # Date should be standardized to UTC
-        datasetid = int(
-            datetime.timestamp(date)
-        )  # Create a unique timestamp for dataset id. Could be repeated for different researchers
+
+        # Create a unique timestamp for dataset id. Could be repeated for different researchers
+        datasetid = int(datetime.timestamp(date))
 
         item = {
-            "researcherID": post_data["researcherID"],
             "datasetID": datasetid,
-            "name": post_data["dataset_name"],
-            "samples_taken": post_data["samples_taken"],
-            "detection_run": post_data["detection_run"],
+            **post_data,
             "versions": [
                 {
                     "uri": s3location,
