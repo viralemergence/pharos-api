@@ -71,9 +71,10 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: s3:ObjectCreated:Put
+      #NotificationConfiguration:
+      #  LambdaConfigurations:
+      #    - Event: s3:ObjectCreated:Put
+      #    - Function: UploadDatasetFunction
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -161,15 +162,15 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
-  UpdateDatasetFunction:
+  UploadDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: update_dataset/
+      CodeUri: upload_version/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /update-dataset
+            Path: /upload-version
             Method: post
       Environment:
         Variables:
@@ -178,31 +179,14 @@ Resources:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          DATASETS_S3_BUCKET:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-
-  UploadDatasetFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      CodeUri: upload_dataset/
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /upload-dataset
-            Method: post
-      Code:
-        S3Bucket: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          DATASETS_S3_BUCKET:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-      Policies:
         - S3CrudPolicy:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
