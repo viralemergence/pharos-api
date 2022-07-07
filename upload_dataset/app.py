@@ -1,6 +1,7 @@
 import boto3
 import json
 import uuid
+import os
 
 S3CLIENT = boto3.client("s3")
 CORS_ALLOW = os.environ["CORS_ALLOW"]

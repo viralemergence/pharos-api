@@ -69,18 +69,11 @@ Resources:
 
   DatasetsS3:
     Type: AWS::S3::Bucket
-    #DependsOn: ExampleInvokePermission # Not sure
     Properties:
       BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:Put
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: txt
-            Function: !GetAtt [ExampleLambdaFunction, Arn]
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -177,7 +170,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /update-dataset
-            Method: post # Should be get but fails, maybe something with permissions
+            Method: post
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -196,16 +189,23 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       CodeUri: upload_dataset/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /upload-dataset
+            Method: post
       Code:
-        S3Bucket:
-          Ref: LambdaArtifactBucketName
-        S3Key: emailnotification-1.0.0.jar
-      FunctionName: example-lambda-function
-      Handler: com.xxx.Example::handleRequest
-      Role: arn:aws:iam::057351434671:role/lambda_sqs
-      #Runtime: java8
-      Timeout: "300"
-      MemorySize: 512
+        S3Bucket: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          DATASETS_S3_BUCKET:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      Policies:
+        - S3CrudPolicy:
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
