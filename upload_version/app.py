@@ -76,7 +76,7 @@ def lambda_handler(event, context):
                 "datasetID": post_data["datasetID"],  # Sort Key
             },
             # Append to version list
-            UpdateExpression="SET versions = list_append(versions,:d)",  
+            UpdateExpression="SET versions = list_append(versions,:d)",
             ExpressionAttributeValues={":d": [dataset]},
             ReturnValues="UPDATED_NEW",
         )
@@ -95,5 +95,5 @@ def lambda_handler(event, context):
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
-        "body": json.dumps( {"key": key} ),
+        "body": json.dumps({"key": key}),
     }
