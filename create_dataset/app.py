@@ -49,7 +49,6 @@ def lambda_handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": {},
         }
 
     except Exception as e:
