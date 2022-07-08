@@ -3,6 +3,8 @@ import json
 import os
 from datetime import datetime
 
+# TODO: Change name to save_dataset, don't forget to change in template.yaml
+
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -47,7 +49,7 @@ def lambda_handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": json.dumps(item),
+            "body": {},
         }
 
     except Exception as e:
