@@ -44,7 +44,7 @@ def lambda_handler(event, context):
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
-        "body": json.dumps(
-            {"datasets": response["Items"]}, cls=DecimalEncoder
-        ),  # Returns a dictionary with a list of datasets
+        "body": json.dumps(response["Items"], cls=DecimalEncoder
+        ),  # Returns a dictionary with a list of dataset in a project
+        # this functionality will be change to datasets per project
     }

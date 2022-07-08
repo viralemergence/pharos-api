@@ -14,7 +14,7 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
-def lambda_handler(event, context):  #  -> "POST":
+def lambda_handler(event, context):
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -50,7 +50,7 @@ def lambda_handler(event, context):  #  -> "POST":
         response = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
             Key=key,
-            Body=(bytes(json.dumps(post_data["raw"]).encode("UTF-8"))),
+            Body=(bytes(json.dumps(post_data["rows"]).encode("UTF-8"))),
         )
 
     except Exception as e:
@@ -66,16 +66,17 @@ def lambda_handler(event, context):  #  -> "POST":
             ),
         }
 
-    dataset = {"uri": key, "date": str(datetime.utcnow())}
+    dataset = {"key": key, "date": post_data["date"]}
 
     # Update version
     try:
         response = DATASETS_TABLE.update_item(
             Key={
                 "researcherID": post_data["researcherID"],  # Partition Key
-                "datasetID": int(post_data["datasetID"]),  # Sort Key
+                "datasetID": post_data["datasetID"],  # Sort Key
             },
-            UpdateExpression="SET versions = list_append(versions,:d)",  # Append to version list
+            # Append to version list
+            UpdateExpression="SET versions = list_append(versions,:d)",  
             ExpressionAttributeValues={":d": [dataset]},
             ReturnValues="UPDATED_NEW",
         )
@@ -94,5 +95,5 @@ def lambda_handler(event, context):  #  -> "POST":
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
-        "body": json.dumps({"dataset": dataset}),
+        "body": json.dumps( {"key": key} ),
     }

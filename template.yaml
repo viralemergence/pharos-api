@@ -56,7 +56,7 @@ Resources:
         - AttributeName: "researcherID"
           AttributeType: "S"
         - AttributeName: "datasetID"
-          AttributeType: "N"
+          AttributeType: "S"
       KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
         - AttributeName: "researcherID"
           KeyType: "HASH" # Partition key
@@ -71,10 +71,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-      #NotificationConfiguration:
-      #  LambdaConfigurations:
-      #    - Event: s3:ObjectCreated:Put
-      #    - Function: UploadDatasetFunction
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction

@@ -40,18 +40,7 @@ def lambda_handler(event, context):
         }  # This should be logged
 
     try:
-        date = datetime.utcnow()  # Date should be standardized to UTC
-
-        # Create a unique timestamp for dataset id. Could be repeated for different researchers
-        datasetid = int(datetime.timestamp(date))
-
-        item = {
-            "datasetID": datasetid,
-            **post_data,
-            "versions": [],
-        }
-
-        response = DATASETS_TABLE.put_item(Item=item)
+        response = DATASETS_TABLE.put_item(Item=post_data)
 
         return {
             "statusCode": 200,
