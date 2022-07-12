@@ -187,6 +187,28 @@ Resources:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
+  DatasetsS3Policy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: LambdaDatasetsAccess
+            Action:
+              - s3:GetObject
+              # - s3:PutObject
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:aws:s3:::"
+                - !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+                - /*
+            Principal:
+              AWS:
+                - !GetAtt UploadVersionFunctionRole.Arn
+                # - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/UploadVersionFunctionRole"
+
   ReadVersionFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
