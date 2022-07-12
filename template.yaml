@@ -188,31 +188,9 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-        - S3CrudPolicy:
-            BucketName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-
-  # DatasetsS3Policy:
-  #   Type: AWS::S3::BucketPolicy
-  #   Properties:
-  #     Bucket: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-  #     PolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Sid: LambdaDatasetsAccess
-  #           Action:
-  #             - s3:GetObject
-  #             - s3:PutObject
-  #             - s3:DeleteObject
-  #           Effect: Allow
-  #           Resource: !Join
-  #             - ""
-  #             - - "arn:aws:s3:::"
-  #               - !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-  #               - /*
-  #           Principal:
-  #             AWS:
-  #               - !GetAtt UploadVersionFunctionRole.Arn
+        # - S3CrudPolicy:
+        #     BucketName:
+        #       !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   ReadVersionFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -239,9 +217,30 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-        - S3CrudPolicy:
-            BucketName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+        # - S3CrudPolicy:
+        #     BucketName:
+        #       !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+
+  DatasetsS3Policy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: S3AccessPermissions
+            Action:
+              - s3:*
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:aws:s3:::"
+                - !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+                - /*
+            Principal:
+              AWS:
+                - !GetAtt ReadVersionFunctionRole.Arn
+                # - !GetAtt UploadVersionFunctionRole.Arn
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
