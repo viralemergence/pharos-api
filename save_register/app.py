@@ -28,18 +28,14 @@ def lambda_handler(event, _):
         if "Item" not in users_response:
             return {
                 "statusCode": 403,
-                "headers": {
-                    "Access-Control-Allow-Origin": CORS_ALLOW,
-                },
+                "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
                 "body": json.dumps({"message": "User does not exist"}),
             }
 
     except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
-            "headers": {
-                "Access-Control-Allow-Origin": CORS_ALLOW,
-            },
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
             "body": json.dumps({"message": str(e)}),
         }  # This should be logged
 
@@ -52,32 +48,24 @@ def lambda_handler(event, _):
         md5hash = str(hashlib.md5(data_string).hexdigest())
         key = f'{post_data["registerID"]}/{md5hash}.json'
 
-        response = S3CLIENT.put_object(  # pylint: disable=unused-variable
+        response = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
-            Key=key,
             Body=(data_string),
+            Key=key,
         )
 
         return {
             # sending the status code on so that the
             # response actually reflects the success of saving
             "statusCode": response["HttpHTTPStatusCode"],
-            "headers": {
-                "Access-Control-Allow-Origin": CORS_ALLOW,
-            },
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
         }
 
     except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 403,
-            "headers": {
-                "Access-Control-Allow-Origin": CORS_ALLOW,
-            },
-            "body": json.dumps(
-                {
-                    "exception": str(e),
-                }
-            ),
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+            "body": json.dumps({"exception": str(e)}),
         }
 
     # dataset = {"key": key, "date": post_data["date"]}
