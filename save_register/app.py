@@ -1,9 +1,10 @@
-import boto3
+from datetime import datetime
+import hashlib
 import json
 import os
-from datetime import datetime
 import uuid
-import hashlib
+
+import boto3
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -47,9 +48,8 @@ def lambda_handler(event, context):
     # Storing data to S3 BUCKET
     try:
 
-        md5hash = str(hashlib.md5( post_data["rows"].encode("utf-8").hexdigest() ))
+        md5hash = str(hashlib.md5(post_data["rows"].encode("utf-8").hexdigest()))
         key = f'{post_data["registerID"]}/{md5hash}.json'
-        
 
         response = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
