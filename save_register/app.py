@@ -1,8 +1,6 @@
-from datetime import datetime
 import hashlib
 import json
 import os
-import uuid
 
 import boto3
 
@@ -16,7 +14,7 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
-def lambda_handler(event, context):
+def lambda_handler(event):
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -36,7 +34,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "User does not exist"}),
             }
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
@@ -51,13 +49,13 @@ def lambda_handler(event, context):
         md5hash = str(hashlib.md5(post_data["rows"].encode("utf-8").hexdigest()))
         key = f'{post_data["registerID"]}/{md5hash}.json'
 
-        response = S3CLIENT.put_object(
+        response = S3CLIENT.put_object(  # pylint: disable=unused-variable
             Bucket=DATASETS_S3_BUCKET,
             Key=key,
             Body=(bytes(json.dumps(post_data["rows"]).encode("UTF-8"))),
         )
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 403,
             "headers": {
