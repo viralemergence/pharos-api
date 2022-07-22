@@ -1,7 +1,7 @@
-import boto3
 import json
 import os
-from datetime import datetime
+
+import boto3
 
 # TODO: Change name to save_dataset, don't forget to change in template.yaml
 
@@ -12,7 +12,7 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -32,7 +32,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"message": "User does not exist"}),
             }
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
@@ -45,13 +45,13 @@ def lambda_handler(event, context):
         response = DATASETS_TABLE.put_item(Item=post_data)
 
         return {
-            "statusCode": 200,
+            "statusCode": response["ResponseMetadata"]["HTTPStatusCode"],
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
         }
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 403,
             "headers": {
