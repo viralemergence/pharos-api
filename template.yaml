@@ -230,7 +230,8 @@ Resources:
   #       Statement:
   #         - Sid: S3AccessPermissions
   #           Action:
-  #             - s3:*
+  #             - s3:GetObject
+  #             - s3:PutObject
   #           Effect: Allow
   #           Resource: !Join
   #             - ""
