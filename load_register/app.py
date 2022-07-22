@@ -1,13 +1,14 @@
-import boto3
 import json
 import os
+
+import boto3
 
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
-def lambda_handler(event, context):
+def lambda_handler(event, _):
 
     post_data = post_data = json.loads(event.get("body", "{}"))
 
@@ -43,8 +44,7 @@ def lambda_handler(event, context):
         key = response['Contents'].sort(key=lambda item:item['LastModified'], reverse=True)[0]['Key']
 
         response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
