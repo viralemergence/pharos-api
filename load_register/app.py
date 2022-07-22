@@ -4,9 +4,11 @@ import os
 import boto3
 
 S3CLIENT = boto3.client("s3")
+DYNAMODB = boto3.resource("dynamodb")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+
 
 def lambda_handler(event, _):
 
@@ -15,8 +17,10 @@ def lambda_handler(event, _):
     # Verify researcherID and datasetID exist
     try:
         users_response = DATASETS_TABLE.get_item(
-            Key={"researcherID": post_data["researcherID"],
-            "datasetID": post_data["datasetID"]}
+            Key={
+                "researcherID": post_data["researcherID"],
+                "datasetID": post_data["datasetID"],
+            }
         )
 
         # Exit if user is not in the database.
@@ -34,14 +38,14 @@ def lambda_handler(event, _):
             "body": json.dumps({"message": str(e)}),
         }  # This should be logged
 
-
     try:
         response = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET,
-            prefix= f'{post_data["datasetID"]}/'
+            Bucket=DATASETS_S3_BUCKET, prefix=f'{post_data["datasetID"]}/'
         )
 
-        key = response['Contents'].sort(key=lambda item:item['LastModified'], reverse=True)[0]['Key']
+        key = response["Contents"].sort(
+            key=lambda item: item["LastModified"], reverse=True
+        )[0]["Key"]
 
         response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
     except Exception as e:  # pylint: disable=broad-except
