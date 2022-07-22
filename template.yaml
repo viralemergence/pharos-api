@@ -163,15 +163,15 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
-  UploadVersionFunction:
+  SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: upload_version/
+      CodeUri: save_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /upload-version
+            Path: /save-register
             Method: post
       Environment:
         Variables:
@@ -192,15 +192,15 @@ Resources:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
-  ReadVersionFunction:
+  LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: read_version/
+      CodeUri: load_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /read-version
+            Path: /load-register
             Method: post
       Environment:
         Variables:
