@@ -1,8 +1,9 @@
-import boto3
-from boto3.dynamodb.conditions import Key
+from decimal import Decimal
 import json
 import os
-from decimal import Decimal
+
+import boto3
+from boto3.dynamodb.conditions import Key
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -18,7 +19,7 @@ class DecimalEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -30,7 +31,7 @@ def lambda_handler(event, context):
             )  # Query only by partition key
         )
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
@@ -44,7 +45,8 @@ def lambda_handler(event, context):
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
-        "body": json.dumps(response["Items"], cls=DecimalEncoder
+        "body": json.dumps(
+            response["Items"], cls=DecimalEncoder
         ),  # Returns a dictionary with a list of dataset in a project
         # this functionality will be change to datasets per project
     }
