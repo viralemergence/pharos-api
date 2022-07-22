@@ -10,7 +10,7 @@ good-names = [
 ]
 
 [tool.pylint.messages_control]
-disable = "C0116, C0114"
+disable = "C0116, C0115, C0114"
 
 [tool.pylint.format]
 max-line-length = "100"
