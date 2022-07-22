@@ -7,6 +7,11 @@ good-names = [
     "i",
     "e",
     "logger",
+    # variables we want to match with
+    # the frontend (TS) conventions
+    "researcherID",
+    "datasetID",
+    "datapointID",
 ]
 
 [tool.pylint.messages_control]

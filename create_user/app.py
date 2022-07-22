@@ -10,7 +10,7 @@ CORS_ALLOW = os.environ["CORS_ALLOW"]
 USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _):
     try:
         post_data = json.loads(event.get("body", "{}"))
         researcherID = uuid.uuid4().hex
@@ -37,7 +37,7 @@ def lambda_handler(event, context):
             ),
         }
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
