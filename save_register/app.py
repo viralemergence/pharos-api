@@ -57,7 +57,7 @@ def lambda_handler(event, _):
         return {
             # sending the status code on so that the
             # response actually reflects the success of saving
-            "statusCode": response["HttpHTTPStatusCode"],
+            "statusCode": response["ResponseMetadata"]["HTTPStatusCode"],
             "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
         }
 
