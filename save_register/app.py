@@ -3,6 +3,7 @@ import json
 import os
 from datetime import datetime
 import uuid
+import hashlib
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -45,7 +46,10 @@ def lambda_handler(event, context):
 
     # Storing data to S3 BUCKET
     try:
-        key = str(uuid.uuid3(uuid.uuid4(), post_data["researcherID"])) + ".json"
+
+        md5hash = str(hashlib.md5( post_data["rows"].encode("utf-8").hexdigest() ))
+        key = f'{post_data["registerID"]}/{md5hash}.json'
+        
 
         response = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
@@ -66,34 +70,34 @@ def lambda_handler(event, context):
             ),
         }
 
-    dataset = {"key": key, "date": post_data["date"]}
+    # dataset = {"key": key, "date": post_data["date"]}
 
-    # Update version
-    try:
-        response = DATASETS_TABLE.update_item(
-            Key={
-                "researcherID": post_data["researcherID"],  # Partition Key
-                "datasetID": post_data["datasetID"],  # Sort Key
-            },
-            # Append to version list
-            UpdateExpression="SET versions = list_append(versions,:d)",
-            ExpressionAttributeValues={":d": [dataset]},
-            ReturnValues="UPDATED_NEW",
-        )
+    # # Update version
+    # try:
+    #     response = DATASETS_TABLE.update_item(
+    #         Key={
+    #             "researcherID": post_data["researcherID"],  # Partition Key
+    #             "datasetID": post_data["datasetID"],  # Sort Key
+    #         },
+    #         # Append to version list
+    #         UpdateExpression="SET versions = list_append(versions,:d)",
+    #         ExpressionAttributeValues={":d": [dataset]},
+    #         ReturnValues="UPDATED_NEW",
+    #     )
 
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "headers": {
-                "Access-Control-Allow-Origin": CORS_ALLOW,
-            },
-            "body": json.dumps({"message": str(e)}),
-        }  # This should be logged
+    # except Exception as e:
+    #     return {
+    #         "statusCode": 500,
+    #         "headers": {
+    #             "Access-Control-Allow-Origin": CORS_ALLOW,
+    #         },
+    #         "body": json.dumps({"message": str(e)}),
+    #     }  # This should be logged
 
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": CORS_ALLOW,
-        },
-        "body": json.dumps({"key": key}),
-    }
+    # return {
+    #     "statusCode": 200,
+    #     "headers": {
+    #         "Access-Control-Allow-Origin": CORS_ALLOW,
+    #     },
+    #     "body": json.dumps({"key": key}),
+    # }

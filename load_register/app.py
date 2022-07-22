@@ -12,7 +12,10 @@ def lambda_handler(event, context):
     post_data = post_data = json.loads(event.get("body", "{}"))
 
     try:
-        response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=post_data["key"])
+
+        key = f'{post_data["registerID"]}/{post_data["key"]}'
+
+        response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
     except Exception as e:
         return {
             "statusCode": 500,
