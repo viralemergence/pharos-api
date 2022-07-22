@@ -12,7 +12,7 @@ def validate(name, payload):
     return module.test(payload)
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -31,7 +31,7 @@ def lambda_handler(event, context):
                 },
                 "body": json.dumps({"message": "User does not exist"}),
             }
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
             "headers": {
