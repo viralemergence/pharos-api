@@ -1,0 +1,16 @@
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.pylint.BASIC]
+good-names = [
+    "i",
+    "e",
+    "logger",
+]
+
+[tool.pylint.messages_control]
+# disable = "C0330, C0326, C0116, C0114, E0401"
+
+[tool.pylint.format]
+max-line-length = "100"
