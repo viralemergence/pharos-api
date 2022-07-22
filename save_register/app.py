@@ -68,6 +68,13 @@ def lambda_handler(event):
             ),
         }
 
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": CORS_ALLOW,
+        },
+    }
+
     # dataset = {"key": key, "date": post_data["date"]}
 
     # # Update version
