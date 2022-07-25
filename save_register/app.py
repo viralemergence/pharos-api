@@ -14,11 +14,6 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
-foo = "foo"
-if foo:
-    pass
-
-
 def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
