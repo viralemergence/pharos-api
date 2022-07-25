@@ -40,14 +40,15 @@ def lambda_handler(event, _):
 
     try:
         response = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, prefix=f'{post_data["datasetID"]}/'
+            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
         )
 
-        key = response["Contents"].sort(
-            key=lambda item: item["LastModified"], reverse=True
-        )[0]["Key"]
+        response["Contents"].sort(key=lambda item: item["LastModified"], reverse=True)
 
-        response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
+        key = response["Contents"][0]["Key"]
+
+        register = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
+
     except Exception as e:  # pylint: disable=broad-except
         return {
             "statusCode": 500,
@@ -62,5 +63,5 @@ def lambda_handler(event, _):
         "headers": {
             "Access-Control-Allow-Origin": CORS_ALLOW,
         },
-        "body": json.dumps({"response": response["Body"].read().decode("UTF-8")}),
+        "body": json.dumps({"response": register["Body"].read().decode("UTF-8")}),
     }
