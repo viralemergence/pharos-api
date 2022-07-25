@@ -46,7 +46,7 @@ def lambda_handler(event, _):
         data_string = bytes(json.dumps(post_data["data"]).encode("UTF-8"))
 
         md5hash = str(hashlib.md5(data_string).hexdigest())
-        key = f'{post_data["datsetID"]}/{md5hash}.json'
+        key = f'{post_data["datasetID"]}/{md5hash}.json'
 
         response = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
