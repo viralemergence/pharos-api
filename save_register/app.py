@@ -59,6 +59,7 @@ def lambda_handler(event, _):
             # response actually reflects the success of saving
             "statusCode": response["ResponseMetadata"]["HTTPStatusCode"],
             "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+            "body": json.dumps(post_data["data"]),
         }
 
     except Exception as e:  # pylint: disable=broad-except
