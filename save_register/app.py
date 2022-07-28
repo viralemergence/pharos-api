@@ -6,6 +6,7 @@ import boto3
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
+N_VERSIONS = os.environ["N_VERSIONS"]
 
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
@@ -48,16 +49,48 @@ def lambda_handler(event, _):
         md5hash = str(hashlib.md5(data_string).hexdigest())
         key = f'{post_data["datasetID"]}/{md5hash}.json'
 
-        response = S3CLIENT.put_object(
+        save = S3CLIENT.put_object(
             Bucket=DATASETS_S3_BUCKET,
             Body=(data_string),
             Key=key,
         )
 
+    except Exception as e:  # pylint: disable=broad-except
+        return {
+            "statusCode": 403,
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+            "body": json.dumps({"exception": str(e)}),
+        }
+
+    try:
+        # Verify the new register has been saved
+        S3CLIENT.head_object(Bucket=DATASETS_S3_BUCKET, Key=key)
+    except Exception as e:  # pylint: disable=broad-except
+        return {
+            "statusCode": 403,
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+            "body": json.dumps({"exception": str(e)}),
+        }
+
+    try:
+
+        # Check the number of files inside the folder
+        dataset_list = S3CLIENT.list_objects_v2(
+            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
+        )
+
+        length = len(dataset_list["Contents"])
+
+        # Delete the oldest element of the list if greater than n_versions
+        if length > int(N_VERSIONS):
+            dataset_list["Contents"].sort(key=lambda item: item["LastModified"])
+            delkey = dataset_list["Contents"][0]["Key"]
+            response = S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
+
         return {
             # sending the status code on so that the
             # response actually reflects the success of saving
-            "statusCode": response["ResponseMetadata"]["HTTPStatusCode"],
+            "statusCode": save["ResponseMetadata"]["HTTPStatusCode"],
             "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
             "body": json.dumps(post_data["data"]),
         }
