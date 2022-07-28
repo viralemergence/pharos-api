@@ -1,7 +1,8 @@
-import os
 import json
-import boto3
+import os
 import uuid
+
+import boto3
 
 
 DYNAMODB = boto3.resource("dynamodb")
@@ -13,7 +14,12 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 def lambda_handler(event, _):
     try:
         post_data = json.loads(event.get("body", "{}"))
-        researcherID = uuid.uuid4().hex
+
+        # allow creation of user with a
+        # set researcherID for debugging
+        researcherID = post_data.get("researcherID")
+        if not researcherID:
+            researcherID = uuid.uuid4().hex
 
         users_response = USERS_TABLE.put_item(
             Item={
