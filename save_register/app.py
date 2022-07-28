@@ -15,6 +15,14 @@ USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
+def error_response(e):
+    return {
+        "statusCode": 403,
+        "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+        "body": json.dumps({"exception": str(e)}),
+    }
+
+
 def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
@@ -56,21 +64,14 @@ def lambda_handler(event, _):
         )
 
     except Exception as e:  # pylint: disable=broad-except
-        return {
-            "statusCode": 403,
-            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-            "body": json.dumps({"exception": str(e)}),
-        }
+        return error_response(e)
 
     try:
         # Verify the new register has been saved
         S3CLIENT.head_object(Bucket=DATASETS_S3_BUCKET, Key=key)
+
     except Exception as e:  # pylint: disable=broad-except
-        return {
-            "statusCode": 403,
-            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-            "body": json.dumps({"exception": str(e)}),
-        }
+        return error_response(e)
 
     try:
 
@@ -96,11 +97,7 @@ def lambda_handler(event, _):
         }
 
     except Exception as e:  # pylint: disable=broad-except
-        return {
-            "statusCode": 403,
-            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-            "body": json.dumps({"exception": str(e)}),
-        }
+        return error_response(e)
 
     # dataset = {"key": key, "date": post_data["date"]}
 
