@@ -18,6 +18,9 @@ Parameters:
   DatasetsS3Bucket:
     Type: String
     Default: "data"
+  NVersions:
+    Type: String
+    Default: "50"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -176,6 +179,7 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          N_VERSIONS: !Ref NVersions
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:

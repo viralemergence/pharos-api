@@ -1,6 +1,6 @@
 #!/bin/bash
 
-api='http://localhost:3000'
+api=$PHAROS_API
 
 
 while [[ "$#" > 0 ]];
