@@ -5,7 +5,8 @@ import boto3
 # This import is recognized by linting
 # You can run this function locally
 # Not recognized by aws, because the template specifies the path as app.lambda_handler
-from ..utils import utils
+from auth import check_auth
+from format import format_response
 
 S3CLIENT = boto3.client("s3")
 DYNAMODB = boto3.resource("dynamodb")
@@ -43,9 +44,9 @@ def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
 
-    authorized = utils.check_auth(post_data["researcherID"])
+    authorized = check_auth(post_data["researcherID"])
     if not authorized:
-        return utils.format_response(403, "Not Authorized")
+        return format_response(403, "Not Authorized")
 
     try:
         response = S3CLIENT.list_objects_v2(
@@ -57,9 +58,9 @@ def lambda_handler(event, _):
         key = response["Contents"][0]["Key"]
 
         register = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-        return utils.format_response(
+        return format_response(
             200, {"response": register["Body"].read().decode("UTF-8")}
         )
 
     except Exception as e:  # pylint: disable=broad-except
-        return utils.format_response(403, e)
+        return format_response(403, e)
