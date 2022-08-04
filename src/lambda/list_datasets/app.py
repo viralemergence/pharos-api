@@ -1,14 +1,13 @@
 from decimal import Decimal
 import json
 import os
-
 import boto3
 from boto3.dynamodb.conditions import Key
+from format import format_response  # pylint: disable=import-error
+
 
 DYNAMODB = boto3.resource("dynamodb")
 CORS_ALLOW = os.environ["CORS_ALLOW"]
-
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
@@ -31,22 +30,16 @@ def lambda_handler(event, _):
             )  # Query only by partition key
         )
 
-    except Exception as e:  # pylint: disable=broad-except
         return {
-            "statusCode": 500,
+            "statusCode": 200,
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": json.dumps({"message": str(e)}),
-        }  # This should be logged
+            "body": json.dumps(
+                response["Items"], cls=DecimalEncoder
+            ),  # Returns a dictionary with a list of dataset in a project
+            # this functionality will be change to datasets per project
+        }
 
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": CORS_ALLOW,
-        },
-        "body": json.dumps(
-            response["Items"], cls=DecimalEncoder
-        ),  # Returns a dictionary with a list of dataset in a project
-        # this functionality will be change to datasets per project
-    }
+    except Exception as e:  # pylint: disable=broad-except
+        return format_response(500, {"message": str(e)})
