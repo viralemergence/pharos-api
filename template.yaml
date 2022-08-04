@@ -45,7 +45,7 @@ Resources:
   Libraries:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      ContentUri: libraries/
+      ContentUri: src/libraries/
       CompatibleRuntimes:
         - python3.9
       RetentionPolicy: Delete
@@ -114,13 +114,15 @@ Resources:
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: auth/
+      CodeUri: src/lambda/auth/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /auth
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -133,13 +135,15 @@ Resources:
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: create_user/
+      CodeUri: src/lambda/create_user/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /create-user
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -152,13 +156,15 @@ Resources:
   SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: save_dataset/
+      CodeUri: src/lambda/save_dataset/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /save-dataset
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -176,13 +182,15 @@ Resources:
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: list_datasets/
+      CodeUri: src/lambda/list_datasets/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -200,13 +208,15 @@ Resources:
   SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: save_register/
+      CodeUri: src/lambda/save_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /save-register
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -230,7 +240,7 @@ Resources:
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: load_register/
+      CodeUri: src/lambda/load_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -261,13 +271,15 @@ Resources:
   SaveProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: save_project/
+      CodeUri: src/lambda/save_project/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /save-project
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -285,13 +297,15 @@ Resources:
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: list_projects/
+      CodeUri: src/lambda/list_projects/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /list-projects
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
