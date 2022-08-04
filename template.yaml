@@ -113,6 +113,7 @@ Resources:
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn: UsersTable
     Properties:
       CodeUri: src/lambda/auth/
       Events:
@@ -134,6 +135,7 @@ Resources:
 
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn: UsersTable
     Properties:
       CodeUri: src/lambda/create_user/
       Events:
@@ -155,6 +157,9 @@ Resources:
 
   SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
     Properties:
       CodeUri: src/lambda/save_dataset/
       Events:
@@ -181,6 +186,9 @@ Resources:
 
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
     Properties:
       CodeUri: src/lambda/list_datasets/
       Events:
@@ -207,6 +215,10 @@ Resources:
 
   SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/save_register/
       Events:
@@ -239,6 +251,10 @@ Resources:
 
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/load_register/
       Events:
@@ -270,6 +286,9 @@ Resources:
 
   SaveProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - ProjectsTable
     Properties:
       CodeUri: src/lambda/save_project/
       Events:
@@ -285,7 +304,7 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
+          PROJECTS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
@@ -296,6 +315,9 @@ Resources:
 
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - ProjectsTable
     Properties:
       CodeUri: src/lambda/list_projects/
       Events:
@@ -311,9 +333,14 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   # DatasetsS3Policy:
   #   Type: AWS::S3::BucketPolicy
