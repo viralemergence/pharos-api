@@ -21,6 +21,12 @@ Parameters:
   NVersions:
     Type: String
     Default: "50"
+  ProjectsTableName:
+    Type: "String"
+    Default: "projects"
+  LayerName:
+    Type: "String"
+    Default: "layer"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -36,6 +42,16 @@ Globals:
     TracingEnabled: True
 
 Resources:
+  Libraries:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: libraries/
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Delete
+      Description: Provides the base backend shared library and dependencies
+      LayerName: !Join ["-", [!Ref AWS::StackName, !Ref LayerName]]
+
   UsersTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -69,6 +85,21 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "projectID"
+          AttributeType: "S"
+      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+        - AttributeName: "projectID"
+          KeyType: "HASH" # Partition key
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   DatasetsS3:
     Type: AWS::S3::Bucket
@@ -206,6 +237,8 @@ Resources:
           Properties:
             Path: /load-register
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -224,6 +257,49 @@ Resources:
         - S3CrudPolicy:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+
+  SaveProjectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: save_project/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /save-project
+            Method: post
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+
+  ListProjectsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: list_projects/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /list-projects
+            Method: post
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
   # DatasetsS3Policy:
   #   Type: AWS::S3::BucketPolicy
