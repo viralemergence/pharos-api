@@ -118,15 +118,15 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
-  CreateDatasetFunction:
+  SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: create_dataset/
+      CodeUri: save_dataset/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /create-dataset
+            Path: /save-dataset
             Method: post
       Environment:
         Variables:
