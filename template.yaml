@@ -21,6 +21,12 @@ Parameters:
   NVersions:
     Type: String
     Default: "50"
+  ProjectsTableName:
+    Type: "String"
+    Default: "projects"
+  LayerName:
+    Type: "String"
+    Default: "layer"
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -36,6 +42,16 @@ Globals:
     TracingEnabled: True
 
 Resources:
+  Libraries:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: src/libraries/
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Delete
+      Description: Provides the base backend shared library and dependencies
+      LayerName: !Join ["-", [!Ref AWS::StackName, !Ref LayerName]]
+
   UsersTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -70,6 +86,21 @@ Resources:
         WriteCapacityUnits: 5
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "projectID"
+          AttributeType: "S"
+      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+        - AttributeName: "projectID"
+          KeyType: "HASH" # Partition key
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+
   DatasetsS3:
     Type: AWS::S3::Bucket
     Properties:
@@ -82,14 +113,17 @@ Resources:
 
   AuthFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn: UsersTable
     Properties:
-      CodeUri: auth/
+      CodeUri: src/lambda/auth/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /auth
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -101,14 +135,17 @@ Resources:
 
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn: UsersTable
     Properties:
-      CodeUri: create_user/
+      CodeUri: src/lambda/create_user/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /create-user
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -120,14 +157,19 @@ Resources:
 
   SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
     Properties:
-      CodeUri: save_dataset/
+      CodeUri: src/lambda/save_dataset/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /save-dataset
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -144,14 +186,19 @@ Resources:
 
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
     Properties:
-      CodeUri: list_datasets/
+      CodeUri: src/lambda/list_datasets/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -168,14 +215,20 @@ Resources:
 
   SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
+      - DatasetsS3
     Properties:
-      CodeUri: save_register/
+      CodeUri: src/lambda/save_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /save-register
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -198,14 +251,20 @@ Resources:
 
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - DatasetsTable
+      - DatasetsS3
     Properties:
-      CodeUri: load_register/
+      CodeUri: src/lambda/load_register/
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /load-register
             Method: post
+      Layers:
+        - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -224,6 +283,64 @@ Resources:
         - S3CrudPolicy:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+
+  SaveProjectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - ProjectsTable
+    Properties:
+      CodeUri: src/lambda/save_project/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /save-project
+            Method: post
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+
+  ListProjectsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+      - ProjectsTable
+    Properties:
+      CodeUri: src/lambda/list_projects/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /list-projects
+            Method: post
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   # DatasetsS3Policy:
   #   Type: AWS::S3::BucketPolicy

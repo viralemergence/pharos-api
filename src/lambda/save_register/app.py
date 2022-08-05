@@ -1,40 +1,14 @@
 import hashlib
 import json
 import os
-
 import boto3
+from auth import check_auth  # pylint: disable=no-name-in-module
+from format import format_response  # pylint: disable=import-error
 
-DYNAMODB = boto3.resource("dynamodb")
-CORS_ALLOW = os.environ["CORS_ALLOW"]
+
 N_VERSIONS = os.environ["N_VERSIONS"]
-
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
-
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
-DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
-
-
-def format_response(code, body):
-    return {
-        "statusCode": code,
-        "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-        "body": json.dumps(body),
-    }
-
-
-def check_auth(researcherID):
-    # Verify researcher id is in USERS_TABLE - Authentication FAKE
-    try:
-        users_response = USERS_TABLE.get_item(Key={"researcherID": researcherID})
-        # Exit if user is not in the database.
-        if "Item" not in users_response:
-            return False
-
-    except Exception:  # pylint: disable=broad-except
-        return False
-
-    return True
 
 
 def lambda_handler(event, _):
