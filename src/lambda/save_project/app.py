@@ -19,15 +19,19 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        PROJECTS_TABLE.put_item(Item=post_data["projectID"])
-        USERS_TABLE.update_item(
-            Key={"researcherID": post_data["researcherID"]},
-            UpdateExpression="SET projects = list_append(some_attr, :i)",
-            ExpressionAttributeValues={
-                ":i": [post_data["projectID"]],
-            },
-            ReturnValues="UPDATED_NEW",
-        )
+        PROJECTS_TABLE.put_item(Item=post_data)
+
+        # Update project set for every author in the project
+        for author in post_data["authors"]:
+            researcher = author["researcherID"]
+            USERS_TABLE.update_item(
+                Key={"researcherID": researcher},
+                # Dynamodb docs specify ADD for sets
+                UpdateExpression="ADD projects = :i)",
+                # Need to indicate it is a string set - SS
+                ExpressionAttributeValues={":i": {"SS": post_data["projectID"]}},
+                ReturnValues="UPDATED_NEW",
+            )
         return format_response(200, "")
 
     except Exception as e:  # pylint: disable=broad-except
