@@ -24,7 +24,7 @@ def lambda_handler(event, _):
                 "organization": post_data["organization"],
                 "email": post_data["email"],
                 "name": post_data["name"],
-                "projects": [],
+                "projects": set(),
             }
         )
 
