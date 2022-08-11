@@ -24,7 +24,7 @@ def lambda_handler(event, _):
                 "organization": post_data["organization"],
                 "email": post_data["email"],
                 "name": post_data["name"],
-                "projects": set(),
+                "projects": set([""]),
             }
         )
 
@@ -37,4 +37,4 @@ def lambda_handler(event, _):
         )
 
     except Exception as e:  # pylint: disable=broad-except
-        return format_response(500, e)
+        return format_response(500, str(e))
