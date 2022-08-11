@@ -34,7 +34,17 @@ def lambda_handler(event, _):
             Key={"projectID": post_data["projectID"]}
         )
 
-        return format_response(200, user_response["Item"]["datasets"])
+        response = []
+
+        for datasetid in user_response["Item"]["datasetIDs"]:
+            dataset = DATASETS_TABLE.query(
+                KeyConditionExpression=Key("researcherID").eq(post_data["researcherID"])
+                & Key("datasetID").eq(datasetid)
+            )
+
+            response.append(dataset["Items"][0])
+
+        return format_response(200, str(response))
 
     except Exception as e:
         return format_response(403, str(e))
