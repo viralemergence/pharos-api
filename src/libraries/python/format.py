@@ -21,6 +21,13 @@ def format_response(code, body):
     except TypeError:
         body_string = str(body)
 
+    print(
+        {
+            "statusCode": code,
+            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+            "body": body_string,
+        }
+    )
     return {
         "statusCode": code,
         "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
