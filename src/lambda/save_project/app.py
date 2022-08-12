@@ -27,7 +27,7 @@ def lambda_handler(event, _):
             USERS_TABLE.update_item(
                 Key={"researcherID": researcher},
                 # Dynamodb docs specify ADD for sets
-                UpdateExpression="ADD projects :i",
+                UpdateExpression="ADD projectIDs :i",
                 # Need to indicate it is a string set - SS
                 ExpressionAttributeValues={":i": set([post_data["projectID"]])},
             )
