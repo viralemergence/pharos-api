@@ -6,9 +6,9 @@ from auth import check_auth
 from format import format_response
 
 
-N_VERSIONS = os.environ["N_VERSIONS"]
-S3CLIENT = boto3.client("s3")
-DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+# This function should save each row of the register and the dataset
+DYNAMODB = boto3.resource("dynamodb")
+DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
@@ -20,26 +20,15 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        # Create a unique key by combining the datasetID and the register hash
-        encoded_data = bytes(json.dumps(post_data["data"]).encode("UTF-8"))
-        md5hash = str(hashlib.md5(encoded_data).hexdigest())
-        key = f'{post_data["datasetID"]}/{md5hash}.json'
 
-        # Save new register object to S3 bucket
-        S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
+        register = post_data["register"]
 
-        # Check the number of files inside the folder
-        dataset_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
-        )
+        # When code exits with block, batch writer will send the data to DynamoDB.
+        # Only allows 25 put_items
 
-        length = len(dataset_list["Contents"])
-
-        # Delete the oldest element of the list if greater than n_versions
-        if length > int(N_VERSIONS):
-            dataset_list["Contents"].sort(key=lambda item: item["LastModified"])
-            delkey = dataset_list["Contents"][0]["Key"]
-            S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
+        with DATASETS_TABLE.batch_write() as batch:
+            for record in register:
+                batch.put_item(Item=record)
 
         return format_response(200, post_data["data"])
 
