@@ -1,11 +1,12 @@
 import json
 import os
-
 import boto3
+from boto3.dynamodb.conditions import Key
 from auth import check_auth
 from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
+USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 PROJECTS_TABLE = os.environ["PROJECTS_TABLE_NAME"]
 
 
@@ -17,27 +18,19 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        print(
-            {
-                "Keys": [
-                    {"projectID": {"S": projectID}}
-                    for projectID in post_data["projectIDs"]
-                ]
-            }
-        )
+
+        user = USERS_TABLE.get_item(Key={"researcherID": post_data["researcherID"]})
+        projectids = user["Item"]["projectIDs"]
 
         projects = DYNAMODB.batch_get_item(
             RequestItems={
                 PROJECTS_TABLE: {
-                    "Keys": [
-                        {"projectID": {"S": projectID}}
-                        for projectID in post_data["projectIDs"]
-                    ]
+                    "Keys": [{"projectID": projectID} for projectID in projectids]
                 }
             }
         )
-        return format_response(200, projects)
+        return format_response(200, projects["Responses"][PROJECTS_TABLE])
 
     except Exception as e:  # pylint: disable=broad-except
-        print(e)
+
         return format_response(403, e)
