@@ -16,9 +16,9 @@ def lambda_handler(event, _):
         )
 
     except Exception as e:  # pylint: disable=broad-except
-        return format_response(500, str(e))
+        return format_response(500, e)
 
     if "Item" in users_response:
-        return format_response(200, str(users_response["Item"]))
+        return format_response(200, users_response["Item"])
 
     return format_response(500, {"message": "User does not exist"})

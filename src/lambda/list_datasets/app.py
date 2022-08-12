@@ -44,10 +44,10 @@ def lambda_handler(event, _):
 
             response.append(dataset["Items"][0])
 
-        return format_response(200, str(response))
+        return format_response(200, response)
 
     except Exception as e:
-        return format_response(403, str(e))
+        return format_response(403, e)
 
     ## Old code - might reuse it for branch
 
