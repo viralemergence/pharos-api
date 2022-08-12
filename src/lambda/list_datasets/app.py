@@ -14,10 +14,10 @@ PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
 
 
 class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
 
 
 def lambda_handler(event, _):
