@@ -2,8 +2,8 @@ import json
 import os
 import boto3
 
-from auth import check_auth  # pylint: disable=no-name-in-module
-from format import format_response  # pylint: disable=import-error
+from auth import check_auth
+from format import format_response
 
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]

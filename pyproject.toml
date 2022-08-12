@@ -3,6 +3,7 @@ line-length = 88
 target-version = ['py39']
 
 [tool.pylint.BASIC]
+ignored-modules='format, auth'
 good-names = [
     "i",
     "e",

@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 import boto3
-from format import format_response  # pylint: disable=import-error
+from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
 USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])

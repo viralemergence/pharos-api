@@ -1,7 +1,7 @@
 import os
 import json
 import boto3
-from format import format_response  # pylint: disable=import-error
+from format import format_response
 
 
 DYNAMODB = boto3.resource("dynamodb")
