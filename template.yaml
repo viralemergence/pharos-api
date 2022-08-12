@@ -72,14 +72,14 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       AttributeDefinitions:
-        - AttributeName: "researcherID"
-          AttributeType: "S"
         - AttributeName: "datasetID"
+          AttributeType: "S"
+        - AttributeName: "recordID"
           AttributeType: "S"
       KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-        - AttributeName: "researcherID"
-          KeyType: "HASH" # Partition key
         - AttributeName: "datasetID"
+          KeyType: "HASH" # Partition key
+        - AttributeName: "recordID"
           KeyType: "RANGE" # Sort Key
       ProvisionedThroughput:
         ReadCapacityUnits: 5
