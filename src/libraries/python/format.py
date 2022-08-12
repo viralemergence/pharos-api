@@ -16,7 +16,7 @@ class SetEncoder(json.JSONEncoder):
 
 def format_response(code, body):
     try:
-        body_string = (json.dumps(body, cls=SetEncoder),)
+        body_string = json.dumps(body, cls=SetEncoder)
 
     except TypeError:
         body_string = str(body)
