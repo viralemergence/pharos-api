@@ -24,7 +24,9 @@ def lambda_handler(event, _):
 
         projects = DYNAMODB.batch_get_item(
             RequestItems={
-                PROJECTS_TABLE: {"Keys": [{"projectID": pID} for pID in projectids]}
+                PROJECTS_TABLE: {
+                    "Keys": [{"projectID": projectID} for projectID in projectids]
+                }
             }
         )
         return format_response(200, projects["Responses"][PROJECTS_TABLE])
