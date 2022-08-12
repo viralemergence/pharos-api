@@ -15,8 +15,14 @@ class SetEncoder(json.JSONEncoder):
 
 
 def format_response(code, body):
+    try:
+        body_string = (json.dumps(body, cls=SetEncoder),)
+
+    except TypeError:
+        body_string = str(body)
+
     return {
         "statusCode": code,
         "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-        "body": json.dumps(body, cls=SetEncoder),
+        "body": body_string,
     }
