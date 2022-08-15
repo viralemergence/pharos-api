@@ -175,14 +175,14 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -202,18 +202,11 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
           PROJECTS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
