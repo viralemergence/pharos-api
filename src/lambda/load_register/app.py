@@ -5,8 +5,8 @@ from boto3.dynamodb.conditions import Key
 from auth import check_auth
 from format import format_response
 
-S3CLIENT = boto3.client("s3")
-DATASETS_TABLE = os.environ["DATASETS_TABLE_NAME"]
+DYNAMODB = boto3.resource("dynamodb")
+DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
