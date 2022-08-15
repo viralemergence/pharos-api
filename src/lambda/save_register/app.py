@@ -18,6 +18,11 @@ def split(register: list, bin_size=25) -> list:
 
 
 def lambda_handler(event, _):
+    """
+    When code exits with block, batch writer will send the data to DynamoDB.
+    Batch write only allows 25 put_items operations or 16mb size uploads per batch.
+    TODO: manage upload size
+    """
     post_data = json.loads(event.get("body", "{}"))
 
     # Placeholder check user authorization
@@ -29,19 +34,35 @@ def lambda_handler(event, _):
 
         register = post_data["register"]
 
-        # Need to coerce register to list
-        register_list = list(register.values())
+        # Coerce register to list of tuples [ (recordID, record), ... ]
+        register_list = list(register.items())
 
-        # When code exits with block, batch writer will send the data to DynamoDB.
-        # Only allows 25 put_items
-        bins = split(register_list)
+        # Split register in bins of size <= 25.
+        bins = split(register_list)  # List of lists
 
-        for bin_ in bins:
-            with DATASETS_TABLE.batch_write() as batch:
-                for record in bin_:
-                    batch.put_item(Item=record)
+        for bin_ in bins:  # Iterate over lists
+            with DATASETS_TABLE.batch_writer() as batch:
+                for record in bin_:  # Iterate over tuples
+                    batch.put_item(
+                        Item={
+                            "datasetID": post_data["datasetID"],
+                            "recordID": record[0],
+                            "record": record[1],
+                        }
+                    )
 
-        return format_response(200, post_data["data"])
+        # Update meta information
+        meta = {}  # something
+
+        DATASETS_TABLE.put_item(
+            Item={
+                "datasetID": post_data["datasetID"],
+                "recordID": "_meta",
+                "record": meta,
+            }
+        )
+
+        return format_response(200, "Succesful upload")
 
     except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, e)
+        return format_response(403, str(e))
