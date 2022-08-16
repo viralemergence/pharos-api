@@ -40,7 +40,7 @@ def lambda_handler(event, _):
         for datasetid in project["Item"]["datasetIDs"]:
             dataset = DATASETS_TABLE.query(
                 KeyConditionExpression=Key("datasetID").eq(datasetid)
-                & Key("recordID").eq("_meta")  # Not sure if this should be hard coded
+                & Key("recordID").eq("_meta")
             )
             # Unpack query and append
             response.append(dataset["Items"][0])
