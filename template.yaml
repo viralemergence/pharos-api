@@ -175,11 +175,16 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
           PROJECTS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
@@ -202,11 +207,18 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
           PROJECTS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
