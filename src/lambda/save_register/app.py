@@ -65,4 +65,4 @@ def lambda_handler(event, _):
         return format_response(200, "Succesful upload")
 
     except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, str(e))
+        return format_response(403, e)
