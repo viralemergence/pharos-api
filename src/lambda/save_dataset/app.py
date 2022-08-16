@@ -7,6 +7,7 @@ from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
 PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
+DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
@@ -26,7 +27,16 @@ def lambda_handler(event, _):
             ExpressionAttributeValues={":i": set([post_data["datasetID"]])},
         )
 
-        return format_response(200, "")
+        # Add dataset
+        DATASETS_TABLE.put_item(
+            Item={
+                "datasetID": post_data["datasetID"],
+                "recordID": "_meta",
+                "record": post_data["_meta"],
+            }
+        )
+
+        return format_response(200, "Succesful Upload")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
