@@ -18,7 +18,7 @@ Parameters:
   DatasetsS3Bucket:
     Type: String
     Default: "data"
-  NVersions:
+  NVersions: # TODO: We do not need this anymore
     Type: String
     Default: "50"
   ProjectsTableName:
@@ -27,6 +27,12 @@ Parameters:
   LayerName:
     Type: "String"
     Default: "layer"
+  DBProxyName:
+    Type: "String"
+    Default: "proxy"
+  DatabaseUserName:
+    Type: "String"
+    Default: database-user
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -42,6 +48,66 @@ Globals:
     TracingEnabled: True
 
 Resources:
+  DBProxy: # At some point we might want to add vpc security groups for the proxy
+    Type: AWS::RDS::DBProxy
+    Properties:
+      Auth:
+        - AuthScheme: SECRETS
+          IAMAuth: REQUIRED
+          SecretArn: !Ref DatabaseUser
+      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref DBProxyName]]
+      EngineFamily: POSTGRESQL
+      IdleClientTimeout: 600 # The number of seconds that a connection to the proxy can be inactive before the proxy disconnects it
+      DebugLogging: True # Includes detailed information about SQL statements in its logs. This information helps you to debug issues involving SQL behavior or the performance and scalability of the proxy connections.
+      RequireTLS: True
+      RoleArn: !GetAtt: DBProxyRole.arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
+      VpcSubnetIds: # TODO The target subnet will be the one where the DB instance is located.
+
+  DatabaseUser: # In order for RDS to authenticate with your database you need to reference credentials stored in Secrets Manager.
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseUserName]]
+      Description: Application user for serverless app
+      GenerateSecretString:
+        SecretStringTemplate: '{ "username": "DatabaseUser"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\' # Verify invalid characters in PSQL, remove spaces
+
+  DBProxyRole: #IAM role to be associated with the RDS Proxy.
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - rds.amazonaws.com
+      Policies:
+        - PolicyName: !Join ["-", [!Ref AWS::StackName, DBProxyPolicy]]
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DatabaseUser
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: "*"
+
+  ProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref DBProxyName]]
+      DBInstanceIdentifiers:
+        - !Ref: dbinstnce # TODO DB instance identifiers.
+      TargetGroupName: default
+      ConnectionPoolConfigurationInfo:
+        MaxConnectionsPercent: 70 # Limit to 70% of db max connections
+        MaxIdleConnectionsPercent: 12
+        ConnectionBorrowTimeout: 20 # The number of seconds for a proxy to wait for a connection to become available in the connection pool. Only applies when the proxy has opened its maximum number of connections and all connections are busy with client sessions.
+    DependsOn: DBProxy
+
   Libraries:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -242,7 +308,7 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          N_VERSIONS: !Ref NVersions
+          N_VERSIONS: !Ref NVersions # TODO: Remove
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
