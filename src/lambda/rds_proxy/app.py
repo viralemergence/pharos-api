@@ -4,7 +4,12 @@ from format import format_response
 
 RDS = boto3.client("rds")
 
+# This function might need to be async as per AWS documentation:
+# You must ensure that you have static or previously resolved credentials if you call this method synchronously (with no callback),
+# # otherwise it may not properly sign the request. If you cannot guarantee this (you are using an asynchronous credential provider,
+# # i.e., EC2 IAM roles), you should always call this method with an asynchronous callback.
 
+# IAM authentication is required, hence IAM token must be created
 def proxy_token(parameters):
     token = RDS.generate_db_auth_token(
         DBHostname=parameters["hostname"],
