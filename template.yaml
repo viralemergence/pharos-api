@@ -36,9 +36,9 @@ Parameters:
   SubnetIDs:
     Type: "String"
     Default: "subnet-ba874cd3,subnet-52ffe52a,subnet-7183bb3b"
-  DBInstance:
+  DBInstanceT:
     Type: "String"
-    Default: pharos-rds-testing
+    Default: pharos-testing-1019
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -60,14 +60,13 @@ Resources:
       Auth:
         - AuthScheme: SECRETS
           IAMAuth: REQUIRED
-          SecretArn: !Ref DatabaseUser # arn to secret
-          UserName: postgres # arn to db user - by stack ?
+          SecretArn: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}-user* # arn format: arn:aws:service:region:account-id:resource-type:resource-id
       DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
       EngineFamily: POSTGRESQL
       IdleClientTimeout: 600 # The number of seconds that a connection to the proxy can be inactive before the proxy disconnects it
       DebugLogging: True # Includes detailed information about SQL statements in its logs. This information helps you to debug issues involving SQL behavior or the performance and scalability of the proxy connections.
       RequireTLS: True
-      RoleArn: !GetAtt RDSProxyRole.Arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
+      RoleArn: !GetAtt RDSProxyRoleT.Arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
       VpcSubnetIds: !Split [",", !Ref SubnetIDs] # The target subnet will be the one where the DB instance is located.
       #VpcSecurityGroupIds: # TODO
 
@@ -90,48 +89,35 @@ Resources:
                 Action:
                   - secretsmanager:GetResourcePolicy
                   - secretsmanager:GetSecretValue
-                  # - secretsmanager:DescribeSecret
-                  # - secretsmanager:ListSecretVersionIds
-                Resource: "*" #!Ref DatabaseUser
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}-user*
 
   ProxyTargetGroup:
     Type: AWS::RDS::DBProxyTargetGroup
     Properties:
       DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
       DBInstanceIdentifiers:
-        - !Ref DBInstance # TODO DB instance identifiers.
+        - !Ref DBInstanceT # TODO DB instance identifiers.
       TargetGroupName: default
       ConnectionPoolConfigurationInfo:
         MaxConnectionsPercent: 70 # Limit to 70% of db max connections
         MaxIdleConnectionsPercent: 12
         ConnectionBorrowTimeout: 20 # The number of seconds for a proxy to wait for a connection to become available in the connection pool. Only applies when the proxy has opened its maximum number of connections and all connections are busy with client sessions.
-    DependsOn: RDSProxy
+    DependsOn: RDSProxyT
 
-  # Might be removed from template and implemented directly in Secret Manager
-  DatabaseUser: # In order for RDS to authenticate with your database you need to reference credentials stored in Secrets Manager.
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyUserName]]
-      Description: Application user for serverless app
-      SecretString: "Anothertest"
-      GenerateSecretString:
-        SecretStringTemplate: '{ "username": "DatabaseUser"}'
-        GenerateStringKey: "password"
-        PasswordLength: 30
-        ExcludeCharacters: '"@/\' # Verify invalid characters in PSQL, remove spaces
-
-  # By default RDS proxy connects to the writer instance,
-  # in order to connect to the read only replica, we need to create RDS proxy endpoint.
-  RDSProxyEndpoint:
-    Type: AWS::RDS::DBProxyEndpoint
-    DependsOn: RDSProxy
-    Properties:
-      DBProxyEndpointName:
-        !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyEndpointName]]
-      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
-      TargetRole: READ_ONLY
-  #     VpcSubnetIds: # TODO
-  #     VpcSecurityGroupIds: # TODO
+  # # Might be removed from template and implemented directly in Secret Manager
+  # DatabaseUser: # In order for RDS to authenticate with your database you need to reference credentials stored in Secrets Manager.
+  #   Type: AWS::SecretsManager::Secret
+  #   Properties:
+  #     Name: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyUserName]]
+  #     Description: Application user for serverless app
+  #     SecretString: "Anothertest"
+  #     GenerateSecretString:
+  #       SecretStringTemplate: '{ "username": "DatabaseUser"}'
+  #       GenerateStringKey: "password"
+  #       PasswordLength: 30
+  #       ExcludeCharacters: '"@/\' # Verify invalid characters in PSQL, remove spaces
 
   Libraries:
     Type: AWS::Serverless::LayerVersion
@@ -420,38 +406,37 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  # RDSFunction:
-  #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-  #   DependsOn:
-  #     - UsersTable
-  #   Properties:
-  #     CodeUri: src/lambda/rds_proxy/
-  #     VpcConfig: # TODO
-  #       # SecurityGroupIds:
-  #       SubnetIds: !Split [",", !Ref SubnetIDs]
-  #     Events:
-  #       Auth:
-  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-  #         Properties:
-  #           Path: /rds-proxy
-  #           Method: post
-  #     Layers:
-  #       - !Ref Libraries
-  #     Environment:
-  #       Variables:
-  #         CORS_ALLOW: !Ref CorsAllow
-  #         USERS_TABLE_NAME:
-  #           !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-  #     Policies:
-  #       - DynamoDBCrudPolicy:
-  #           TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-  #       - Statement:
-  #           - Sid: AllowDbConnect
-  #             Effect: Allow
-  #             Action:
-  #               - rds-db:connect
-  #             Resource:
-  #               - !Ref DBProxy
+  RDSFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - UsersTable
+    Properties:
+      CodeUri: src/lambda/rds_proxy/
+      # VpcConfig: # TODO
+      #   SecurityGroupIds: -
+      #   SubnetIds: - # !Split [",", !Ref SubnetIDs]
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /rds-proxy
+            Method: post
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - Statement:
+            - Sid: AllowDbConnect
+              Effect: Allow
+              Action:
+                - rds-db:connect
+              Resource: !Sub arn:aws:iam::560812044035:role/pharos-api-david-dev-register-test-RDSProxyRoleT-1I2BLJYB1KJZI #!Ref RDSProxyT
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
