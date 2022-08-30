@@ -3,9 +3,6 @@ from sqlalchemy import Column
 from sqlalchemy.types import Numeric, String, Text, Date
 from geoalchemy2 import Geometry
 
-# import postgis
-
-
 Base = declarative_base()
 
 
@@ -75,6 +72,3 @@ class AnimalTable(Base):
             mass=self.mass, \
             length=self.length, \
             health.notes=self.health_notes)>"
-
-
-# Base.metadata.create_all(engine)
