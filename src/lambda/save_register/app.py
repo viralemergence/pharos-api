@@ -50,17 +50,6 @@ def lambda_handler(event, _):
                         }
                     )
 
-        # Update meta information
-        meta = {}  # something
-
-        DATASETS_TABLE.put_item(
-            Item={
-                "datasetID": post_data["datasetID"],
-                "recordID": "_meta",
-                "record": meta,
-            }
-        )
-
         return format_response(200, "Succesful upload")
 
     except Exception as e:  # pylint: disable=broad-except
