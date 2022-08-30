@@ -36,7 +36,7 @@ Parameters:
   SubnetIDs:
     Type: "String"
     Default: "subnet-ba874cd3,subnet-52ffe52a,subnet-7183bb3b"
-  DBInstanceT:
+  DBInstance:
     Type: "String"
     Default: pharos-testing-1019
 
@@ -54,21 +54,22 @@ Globals:
     TracingEnabled: True
 
 Resources:
-  RDSProxy: # At some point we might want to add vpc security groups for the proxy
+  RDSProxy:
     Type: AWS::RDS::DBProxy
     Properties:
       Auth:
         - AuthScheme: SECRETS
-          IAMAuth: REQUIRED
-          SecretArn: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}-user* # arn format: arn:aws:service:region:account-id:resource-type:resource-id
+          IAMAuth: DISABLED # Try with rds for token authentication
+          SecretArn: !Sub arn:aws:secretsmanager:${AWS::Region}:560812044035:secret:pharos-api-david-dev-database-user-1019-AKKGDV # TODO
       DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
       EngineFamily: POSTGRESQL
       IdleClientTimeout: 600 # The number of seconds that a connection to the proxy can be inactive before the proxy disconnects it
       DebugLogging: True # Includes detailed information about SQL statements in its logs. This information helps you to debug issues involving SQL behavior or the performance and scalability of the proxy connections.
-      RequireTLS: True
-      RoleArn: !GetAtt RDSProxyRoleT.Arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
+      RequireTLS: True # Requiered if IAM auth is used
+      RoleArn: !GetAtt RDSProxyRole.Arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
       VpcSubnetIds: !Split [",", !Ref SubnetIDs] # The target subnet will be the one where the DB instance is located.
-      #VpcSecurityGroupIds: # TODO
+      VpcSecurityGroupIds:
+        - sg-93fb35fa
 
   RDSProxyRole: #IAM role to be associated with the RDS Proxy.
     Type: AWS::IAM::Role
@@ -91,33 +92,23 @@ Resources:
                   - secretsmanager:GetSecretValue
                   - secretsmanager:DescribeSecret
                   - secretsmanager:ListSecretVersionIds
-                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}-user*
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:560812044035:secret:pharos-api-david-dev-database-user-1019-AKKGDV # TODO
+              - Effect: Allow
+                Action: kms:Decrypt
+                Resource: "*"
 
   ProxyTargetGroup:
     Type: AWS::RDS::DBProxyTargetGroup
     Properties:
       DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
       DBInstanceIdentifiers:
-        - !Ref DBInstanceT # TODO DB instance identifiers.
+        - !Ref DBInstance # TODO DB instance identifiers.
       TargetGroupName: default
       ConnectionPoolConfigurationInfo:
-        MaxConnectionsPercent: 70 # Limit to 70% of db max connections
+        MaxConnectionsPercent: 30 # Limit to 30% of db max connections
         MaxIdleConnectionsPercent: 12
         ConnectionBorrowTimeout: 20 # The number of seconds for a proxy to wait for a connection to become available in the connection pool. Only applies when the proxy has opened its maximum number of connections and all connections are busy with client sessions.
-    DependsOn: RDSProxyT
-
-  # # Might be removed from template and implemented directly in Secret Manager
-  # DatabaseUser: # In order for RDS to authenticate with your database you need to reference credentials stored in Secrets Manager.
-  #   Type: AWS::SecretsManager::Secret
-  #   Properties:
-  #     Name: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyUserName]]
-  #     Description: Application user for serverless app
-  #     SecretString: "Anothertest"
-  #     GenerateSecretString:
-  #       SecretStringTemplate: '{ "username": "DatabaseUser"}'
-  #       GenerateStringKey: "password"
-  #       PasswordLength: 30
-  #       ExcludeCharacters: '"@/\' # Verify invalid characters in PSQL, remove spaces
+    DependsOn: RDSProxy
 
   Libraries:
     Type: AWS::Serverless::LayerVersion
@@ -408,13 +399,12 @@ Resources:
 
   RDSFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    DependsOn:
-      - UsersTable
     Properties:
       CodeUri: src/lambda/rds_proxy/
-      # VpcConfig: # TODO
-      #   SecurityGroupIds: -
-      #   SubnetIds: - # !Split [",", !Ref SubnetIDs]
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-93fb35fa
+        SubnetIds: !Split [",", !Ref SubnetIDs]
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -432,11 +422,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - Statement:
-            - Sid: AllowDbConnect
-              Effect: Allow
+            - Effect: Allow
               Action:
                 - rds-db:connect
-              Resource: !Sub arn:aws:iam::560812044035:role/pharos-api-david-dev-register-test-RDSProxyRoleT-1I2BLJYB1KJZI #!Ref RDSProxyT
+              Resource: !Sub arn:aws:rds-db:${AWS::Region}:560812044035:dbuser:prx-0cb4d9b556123bcba/*
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
