@@ -27,6 +27,14 @@ workflows:
             branches:
               only:
                 - review
+      # prod
+      - deploy:
+          config-env: prod
+          context: *credentials
+          filters:
+            branches:
+              only:
+                - prod
 
 jobs:
   deploy:

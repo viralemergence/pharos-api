@@ -21,6 +21,9 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 def lambda_handler(event, _):
+    """
+    List datasets per project
+    """
 
     post_data = json.loads(event.get("body", "{}"))
 
@@ -29,46 +32,25 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
+        # Get project
+        project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
 
-        user_response = PROJECTS_TABLE.get_item(
-            Key={"projectID": post_data["projectID"]}
-        )
-
-        response = []
-
-        for datasetid in user_response["Item"]["datasetIDs"]:
-            dataset = DATASETS_TABLE.query(
-                KeyConditionExpression=Key("researcherID").eq(post_data["researcherID"])
-                & Key("datasetID").eq(datasetid)
+        datasets = {}
+        # From the list of datasetIDs query for the records that contain '_meta' as sort key
+        for datasetid in project["Item"]["datasetIDs"]:
+            query = DATASETS_TABLE.query(
+                KeyConditionExpression=Key("datasetID").eq(datasetid)
+                & Key("recordID").eq("_meta")
             )
+            # we're assuming we only want the first result
+            # from the query since we know that there
+            # should only be one recordID:_meta PK:SK pair
+            dataset = query["Items"][0]
+            # Unpack query and append
 
-            response.append(dataset["Items"][0])
+            datasets[dataset["datasetID"]] = {**dataset, "status": "Saved"}
 
-        return format_response(200, response)
+        return format_response(200, datasets)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
-
-    ## Old code - might reuse it for branch
-
-    # try:
-    #     # This might have to change because it only queries by page (?).
-    #     response = DATASETS_TABLE.query(
-    #         KeyConditionExpression=Key("researcherID").eq(
-    #             post_data["researcherID"]
-    #         )  # Query only by partition key
-    #     )
-
-    #     return {
-    #         "statusCode": 200,
-    #         "headers": {
-    #             "Access-Control-Allow-Origin": CORS_ALLOW,
-    #         },
-    #         "body": json.dumps(
-    #             response["Items"], cls=DecimalEncoder
-    #         ),  # Returns a dictionary with a list of dataset in a project
-    #         # this functionality will be change to datasets per project
-    #     }
-
-    # except Exception as e:  # pylint: disable=broad-except
-    #     return format_response(500, {"message": str(e)})

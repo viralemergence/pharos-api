@@ -31,7 +31,7 @@ def lambda_handler(event, _):
                 # Need to indicate it is a string set - SS
                 ExpressionAttributeValues={":i": set([post_data["projectID"]])},
             )
-        return format_response(200, "")
+        return format_response(200, "Succesful upload")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)

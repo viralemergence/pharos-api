@@ -1,12 +1,12 @@
 import json
 import os
 import boto3
-
+from boto3.dynamodb.conditions import Key
 from auth import check_auth
 from format import format_response
 
-S3CLIENT = boto3.client("s3")
-DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+DYNAMODB = boto3.resource("dynamodb")
+DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
@@ -18,18 +18,17 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        response = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
+
+        response = DATASETS_TABLE.query(
+            KeyConditionExpression=Key("datasetID").eq(post_data["datasetID"])
         )
 
-        response["Contents"].sort(key=lambda item: item["LastModified"], reverse=True)
+        register = {}
+        for row in response["Items"]:
+            if row["recordID"] != "_meta":
+                register[row["recordID"]] = row["record"]
 
-        key = response["Contents"][0]["Key"]
-
-        register = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-        return format_response(
-            200, {"response": register["Body"].read().decode("UTF-8")}
-        )
+        return format_response(200, register)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
