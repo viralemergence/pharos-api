@@ -45,7 +45,8 @@ def lambda_handler(event, _):
             # we're assuming we only want the first result
             # from the query since we know that there
             # should only be one recordID:_meta PK:SK pair
-            dataset = query[0]
+            dataset = query["Items"][0]
+            print(query)
             # Unpack query and append
             print(dataset)
             print(dataset["datasetID"])
