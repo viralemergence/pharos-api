@@ -46,19 +46,9 @@ def lambda_handler(event, _):
             # from the query since we know that there
             # should only be one recordID:_meta PK:SK pair
             dataset = query["Items"][0]
-            print(query)
             # Unpack query and append
-            print(dataset)
-            print(dataset["datasetID"])
 
-            datasets[dataset["datasetID"]] = dataset["record"]
-
-            # response[dataset["datasetID"]] = {
-            #     **dataset["record"],
-            #     "status": "Saved",
-            # }
-
-        print(datasets)
+            datasets[dataset["datasetID"]] = {**dataset["record"], "status": "Saved"}
 
         return format_response(200, datasets)
 
