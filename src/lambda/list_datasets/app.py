@@ -35,15 +35,22 @@ def lambda_handler(event, _):
         # Get project
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
 
-        response = []
+        response = {}
         # From the list of datasetIDs query for the records that contain '_meta' as sort key
         for datasetid in project["Item"]["datasetIDs"]:
-            dataset = DATASETS_TABLE.query(
+            query = DATASETS_TABLE.query(
                 KeyConditionExpression=Key("datasetID").eq(datasetid)
                 & Key("recordID").eq("_meta")
             )
+            # we're assuming we only want the first result
+            # from the query since we know that there
+            # should only be one recordID:_meta PK:SK pair
+            dataset = query[0]
             # Unpack query and append
-            response.append(dataset["Items"][0])
+            response[dataset["datasetID"]] = {
+                **dataset["record"],
+                "status": "Saved",
+            }
 
         return format_response(200, response)
 
