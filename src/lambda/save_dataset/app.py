@@ -27,17 +27,13 @@ def lambda_handler(event, _):
         #     ExpressionAttributeValues={":i": set([post_data["datasetID"]])},
         # )
 
-        # Add dataset
-        record = post_data.copy()
-        record.pop("researcherID")
-        record.pop("projectID")
-        record.pop("datasetID")
+        # remove researcherID
+        post_data.pop("researcherID")
 
         DATASETS_TABLE.put_item(
             Item={
-                "datasetID": post_data["datasetID"],
                 "recordID": "_meta",
-                "record": record,
+                **post_data,
             }
         )
 
