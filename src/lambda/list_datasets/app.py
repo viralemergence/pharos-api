@@ -35,7 +35,7 @@ def lambda_handler(event, _):
         # Get project
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
 
-        response = {}
+        datasets = {}
         # From the list of datasetIDs query for the records that contain '_meta' as sort key
         for datasetid in project["Item"]["datasetIDs"]:
             query = DATASETS_TABLE.query(
@@ -47,12 +47,19 @@ def lambda_handler(event, _):
             # should only be one recordID:_meta PK:SK pair
             dataset = query[0]
             # Unpack query and append
-            response[dataset["datasetID"]] = {
-                **dataset["record"],
-                "status": "Saved",
-            }
+            print(dataset)
+            print(dataset["datasetID"])
 
-        return format_response(200, response)
+            datasets[dataset["datasetID"]] = dataset["record"]
+
+            # response[dataset["datasetID"]] = {
+            #     **dataset["record"],
+            #     "status": "Saved",
+            # }
+
+        print(datasets)
+
+        return format_response(200, datasets)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
