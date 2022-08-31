@@ -29,7 +29,8 @@ def lambda_handler(event, _):
 
         # Add dataset
         record = post_data.copy()
-        record.pop("recordID")
+        record.pop("researcherID")
+        record.pop("projectID")
 
         DATASETS_TABLE.put_item(
             Item={
