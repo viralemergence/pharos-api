@@ -48,7 +48,7 @@ def lambda_handler(event, _):
             dataset = query["Items"][0]
             # Unpack query and append
 
-            datasets[dataset["datasetID"]] = {**dataset["record"], "status": "Saved"}
+            datasets[dataset["datasetID"]] = {**dataset, "status": "Saved"}
 
         return format_response(200, datasets)
 
