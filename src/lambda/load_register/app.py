@@ -26,7 +26,7 @@ def lambda_handler(event, _):
         register = {}
         for row in response["Items"]:
             if row["recordID"] != "_meta":
-                register[row["recordID"]] = register[row["record"]]
+                register[row["recordID"]] = row["record"]
 
         return format_response(200, register)
 
