@@ -18,18 +18,12 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        # Append to set of datasetIDs
-        # PROJECTS_TABLE.update_item(
-        #     Key={"projectID": post_data["projectID"]},
-        #     # Dynamodb docs specify ADD for sets
-        #     UpdateExpression="ADD datasetIDs :i",
-        #     # Need to indicate it is a string set - SS
-        #     ExpressionAttributeValues={":i": set([post_data["datasetID"]])},
-        # )
 
-        # remove researcherID
+        # remove researcherID from post_data
         post_data.pop("researcherID")
 
+        # store in datasets table as a row with
+        # the "_meta" special-case sort key
         DATASETS_TABLE.put_item(
             Item={
                 "recordID": "_meta",
