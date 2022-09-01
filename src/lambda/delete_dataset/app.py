@@ -19,7 +19,7 @@ def lambda_handler(event, context):
             "headers": {
                 "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-            "body": json.dumps({"message": str(e)}),
+            "body": json.dumps({"message": e}),
         }  # This should be logged
 
     return

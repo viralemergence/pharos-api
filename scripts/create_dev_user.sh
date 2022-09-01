@@ -15,5 +15,5 @@ done
 
 
 curl -X POST $api/create-user \
-  -d '{"name":"Ryan Zimmerman", "email":"rzimmerman@talusanalytics.com", "organization":"Talus Analytics"}'\
+  -d '{"name":"David Rosado", "email":"drosado@talusanalytics.com", "organization":"Talus Analytics"}'\
 
