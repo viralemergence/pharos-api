@@ -27,6 +27,16 @@ workflows:
             branches:
               only:
                 - review
+
+      # staging
+      - deploy:
+          config-env: staging
+          context: *credentials
+          filters:
+            branches:
+              only:
+                - staging
+
       # prod
       - deploy:
           config-env: prod
