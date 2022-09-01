@@ -1,10 +1,13 @@
 import json
 import os
 import uuid
+
 import boto3
-from format import format_response
+
 
 DYNAMODB = boto3.resource("dynamodb")
+CORS_ALLOW = os.environ["CORS_ALLOW"]
+
 USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 
 
@@ -27,13 +30,28 @@ def lambda_handler(event, _):
             }
         )
 
-        return format_response(
-            200,
-            {
-                "researcherID": researcherID,
-                "table_response": users_response,
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
             },
-        )
+            "body": json.dumps(
+                {
+                    "researcherID": researcherID,
+                    "table_response": users_response,
+                }
+            ),
+        }
 
     except Exception as e:  # pylint: disable=broad-except
-        return format_response(500, e)
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": CORS_ALLOW,
+            },
+            "body": json.dumps(
+                {
+                    "exception": e,
+                }
+            ),
+        }
