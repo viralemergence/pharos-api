@@ -38,3 +38,15 @@ capabilities = "CAPABILITY_IAM"
 disable_rollback = false
 parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com\""
 image_repositories = []
+
+[staging]
+[staging.deploy]
+[staging.deploy.parameters]
+stack_name = "pharos-api-staging"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
+s3_prefix = "pharos-api-staging"
+region = "us-west-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"https://staging-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+image_repositories = []
