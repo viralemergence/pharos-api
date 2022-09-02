@@ -10,10 +10,10 @@ DYNAMODB = boto3.resource("dynamodb")
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
-def split(register: list, bin_size=25) -> list:
-    register_length = len(register)
-    for i in range(register_length):
-        yield register[i:bin_size]
+# def split(register: list, bin_size=25) -> list:
+#     register_length = len(register)
+#     for i in range(register_length):
+#         yield register[i:bin_size]
 
 
 def lambda_handler(event, _):
@@ -34,21 +34,21 @@ def lambda_handler(event, _):
         register = post_data["register"]
 
         # Coerce register to list of tuples [ (recordID, record), ... ]
-        register_list = list(register.items())
+        # register_list = list(register.items())
 
         # Split register in bins of size <= 25.
-        bins = split(register_list)  # List of lists
+        # bins = split(register_list)  # List of lists
 
-        for bin_ in bins:  # Iterate over lists
-            with DATASETS_TABLE.batch_writer() as batch:
-                for record in bin_:  # Iterate over tuples
-                    batch.put_item(
-                        Item={
-                            "datasetID": post_data["datasetID"],
-                            "recordID": record[0],
-                            "record": record[1],
-                        }
-                    )
+        # for bin_ in list(register.items()):  # Iterate over lists
+        with DATASETS_TABLE.batch_writer() as batch:
+            for record in list(register.items()):  # Iterate over tuples
+                batch.put_item(
+                    Item={
+                        "datasetID": post_data["datasetID"],
+                        "recordID": record[0],
+                        "record": record[1],
+                    }
+                )
 
         return format_response(200, "Succesful upload")
 
