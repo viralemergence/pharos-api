@@ -20,7 +20,7 @@ def lambda_handler(event, _):
     """
     When code exits with block, batch writer will send the data to DynamoDB.
     Batch write only allows 25 put_items operations or 16mb size uploads per batch.
-    TODO: manage upload size
+    Upload is handled directly by batch_writer()
     """
     post_data = json.loads(event.get("body", "{}"))
 
@@ -33,13 +33,6 @@ def lambda_handler(event, _):
 
         register = post_data["register"]
 
-        # Coerce register to list of tuples [ (recordID, record), ... ]
-        # register_list = list(register.items())
-
-        # Split register in bins of size <= 25.
-        # bins = split(register_list)  # List of lists
-
-        # for bin_ in list(register.items()):  # Iterate over lists
         with DATASETS_TABLE.batch_writer() as batch:
             for record in list(register.items()):  # Iterate over tuples
                 batch.put_item(
