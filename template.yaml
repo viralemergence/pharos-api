@@ -290,6 +290,7 @@ Resources:
             Method: post
       Layers:
         - !Ref Libraries
+      Timeout: 300
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
