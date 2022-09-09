@@ -25,16 +25,7 @@ def lambda_handler(event, _):
     Upload is handled directly by batch_writer()
     """
 
-    print('recursion limit on lambda:')
-    print(sys.getrecursionlimit())
-    print("start json.loads")
-    start_time = time.time()
     post_data = json.loads(event.get("body", "{}"))
-    end_time = time.time()
-    print("finish json.loads")
-    print('json.loads elapsed time:')
-    print(end_time - start_time)
-
 
     # Placeholder check user authorization
     authorized = check_auth(post_data["researcherID"])
