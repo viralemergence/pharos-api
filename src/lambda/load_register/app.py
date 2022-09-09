@@ -1,5 +1,6 @@
 import json
 import os
+from tracemalloc import start
 import boto3
 from boto3.dynamodb.conditions import Key
 from auth import check_auth
@@ -17,18 +18,25 @@ def lambda_handler(event, _):
     if not authorized:
         return format_response(403, "Not Authorized")
 
+    query_keys = {
+        "KeyConditionExpression": Key("datasetID").eq(post_data["datasetID"]),
+        "Limit": 5,
+    }
+
     try:
-
-        response = DATASETS_TABLE.query(
-            KeyConditionExpression=Key("datasetID").eq(post_data["datasetID"])
-        )
-
         register = {}
-        for row in response["Items"]:
-            if row["recordID"] != "_meta":
-                register[row["recordID"]] = row["record"]
-
-        return format_response(200, register)
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                query_keys["ExclusiveStartKey"] = start_key
+            response = DATASETS_TABLE.query(**query_keys)
+            for row in response["Items"]:
+                if row["recordID"] != "_meta":
+                    register[row["recordID"]] = row["record"]
+            start_key = response.get("LastEvaluatedKey", None)
+            done = start_key is None
+        return format_response(200, "Succesful download")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
