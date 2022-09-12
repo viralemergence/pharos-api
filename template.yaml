@@ -21,6 +21,12 @@ Parameters:
   LayerName:
     Type: "String"
     Default: "layer"
+  DatasetsS3Bucket:
+    Type: String
+    Default: "bucket"
+  NVersions:
+    Type: String
+    Default: "5"
   # RDSProxyName:
   #   Type: "String"
   #   Default: "proxy"
@@ -163,6 +169,16 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
+  DatasetsS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn: UsersTable
@@ -280,6 +296,7 @@ Resources:
     DependsOn:
       - UsersTable
       - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/save_register/
       Events:
@@ -294,22 +311,29 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          N_VERSIONS: !Ref NVersions # S3 implmentation
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
       - UsersTable
       - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/load_register/
       Events:
@@ -328,12 +352,17 @@ Resources:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   SaveProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
