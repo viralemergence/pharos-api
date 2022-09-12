@@ -1,27 +1,17 @@
 import json
 import os
+import hashlib
 import boto3
 from auth import check_auth
 from format import format_response
 
 
-# This function should save each row of the register and the dataset
-DYNAMODB = boto3.resource("dynamodb")
-DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
-
-
-# def split(register: list, bin_size=25) -> list:
-#     register_length = len(register)
-#     for i in range(register_length):
-#         yield register[i:bin_size]
+N_VERSIONS = os.environ["N_VERSIONS"]
+S3CLIENT = boto3.client("s3")
+DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
 def lambda_handler(event, _):
-    """
-    When code exits with block, batch writer will send the data to DynamoDB.
-    Batch write only allows 25 put_items operations or 16mb size uploads per batch.
-    Upload is handled directly by batch_writer()
-    """
     post_data = json.loads(event.get("body", "{}"))
 
     # Placeholder check user authorization
@@ -30,20 +20,67 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
+        # Create a unique key by combining the datasetID and the register hash
+        encoded_data = bytes(json.dumps(post_data["register"]).encode("UTF-8"))
+        md5hash = str(hashlib.md5(encoded_data).hexdigest())
+        key = f'{post_data["datasetID"]}/{md5hash}.json'
 
-        register = post_data["register"]
+        # Save new register object to S3 bucket
+        S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
 
-        with DATASETS_TABLE.batch_writer() as batch:
-            for record in list(register.items()):  # Iterate over tuples
-                batch.put_item(
-                    Item={
-                        "datasetID": post_data["datasetID"],
-                        "recordID": record[0],
-                        "record": record[1],
-                    }
-                )
+        # # Check the number of files inside the folder
+        dataset_list = S3CLIENT.list_objects_v2(
+            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
+        )
 
-        return format_response(200, "Succesful upload")
+        length = len(dataset_list["Contents"])
+
+        # Delete the oldest element of the list if greater than n_versions
+        if length > int(N_VERSIONS):
+            dataset_list["Contents"].sort(key=lambda item: item["LastModified"])
+            delkey = dataset_list["Contents"][0]["Key"]
+            S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
+
+        return format_response(200, "Succesful Upload")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
+
+
+# # This function should save each row of the register and the dataset
+# DYNAMODB = boto3.resource("dynamodb")
+# DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+
+
+# def lambda_handler(event, _):
+#     """
+#     When code exits with block, batch writer will send the data to DynamoDB.
+#     Batch write only allows 25 put_items operations or 16mb size uploads per batch.
+#     Upload is handled directly by batch_writer()
+#     """
+
+#     post_data = json.loads(event.get("body", "{}"))
+
+#     # Placeholder check user authorization
+#     authorized = check_auth(post_data["researcherID"])
+#     if not authorized:
+#         return format_response(403, "Not Authorized")
+
+#     try:
+
+#         register = post_data["register"]
+
+#         with DATASETS_TABLE.batch_writer() as batch:
+#             for record in list(register.items()):  # Iterate over tuples
+#                 batch.put_item(
+#                     Item={
+#                         "datasetID": post_data["datasetID"],
+#                         "recordID": record[0],
+#                         "record": record[1],
+#                     }
+#                 )
+
+#         return format_response(200, "Succesful upload")
+
+#     except Exception as e:  # pylint: disable=broad-except
+#         return format_response(403, e)
