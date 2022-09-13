@@ -14,12 +14,16 @@ class SetEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def format_response(code, body):
-    try:
-        body_string = json.dumps(body, cls=SetEncoder)
+def format_response(code, body, preformatted=False):
 
-    except TypeError:
-        body_string = str(body)
+    if not preformatted:
+        try:
+            body_string = json.dumps(body, cls=SetEncoder)
+
+        except TypeError:
+            body_string = str(body)
+    else:
+        body_string = body
 
     print(
         {
