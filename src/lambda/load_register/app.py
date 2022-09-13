@@ -21,23 +21,17 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        response = S3CLIENT.list_objects_v2(
+        key_list = S3CLIENT.list_objects_v2(
             Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
-        )
+        )["Contents"]
 
-        response["Contents"].sort(key=lambda item: item["LastModified"], reverse=True)
+        key_list.sort(key=lambda item: item["LastModified"], reverse=True)
+        key = key_list[0]["Key"]
 
-        key = response["Contents"][0]["Key"]
+        register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
+        register_json = register_response["Body"].read().decode("UTF-8")
 
-        register = S3CLIENT.get_object(
-            Bucket=DATASETS_S3_BUCKET, Key=key
-        )  # post_data["datasetID"]
-        # )
-        return format_response(
-            200, {"response": register["Body"].read().decode("UTF-8")}
-        )
-
-        # return format_response(200, response)
+        return format_response(200, register_json, preformatted=True)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
