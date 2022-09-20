@@ -27,36 +27,6 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
-  RDSProxyName:
-    Type: String
-    Default: proxy
-  RDSProxyPolicyName:
-    Type: String
-    Default: proxy-policy
-  RDSProxyUserName:
-    Type: String
-    Default: database-user
-  RDSProxyEndpointName:
-    Type: String
-    Default: proxy-endpoint
-  SubnetIDs:
-    Type: String
-  DBInstance:
-    Type: String
-  VPCId:
-    Type: String
-  VPCSG:
-    Type: String
-  SecretRDS:
-    Type: String
-  Host:
-    Type: String
-  Database:
-    Type: String
-  Port:
-    Type: String
-  Username:
-    Type: String
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -72,63 +42,6 @@ Globals:
     TracingEnabled: True
 
 Resources:
-  RDSProxy:
-    Type: AWS::RDS::DBProxy
-    Properties:
-      Auth:
-        - AuthScheme: SECRETS
-          IAMAuth: REQUIRED
-          SecretArn: !Ref SecretRDS
-      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
-      EngineFamily: POSTGRESQL
-      IdleClientTimeout: 600
-      DebugLogging: True
-      RequireTLS: True
-      RoleArn: !GetAtt RDSProxyRole.Arn
-      VpcSubnetIds: !Split [",", !Ref SubnetIDs]
-      # VpcSecurityGroupIds:
-      #   - !Ref VPCSecurityGroup
-
-  RDSProxyRole: #IAM role to be associated with the RDS Proxy.
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Action: sts:AssumeRole
-            Principal:
-              Service:
-                - rds.amazonaws.com
-      Policies:
-        - PolicyName:
-            !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyPolicyName]]
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource:
-                  - !Ref SecretRDS
-              - Effect: Allow
-                Action: "kms:Decrypt"
-                Resource: "*" #TODO make more specific !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
-                Condition:
-                  StringEquals:
-                    kms:ViaService: secretsmanager.us-east-2.amazonaws.com
-
-  ProxyTargetGroup:
-    Type: AWS::RDS::DBProxyTargetGroup
-    Properties:
-      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
-      DBInstanceIdentifiers:
-        - !Ref DBInstance # TODO DB instance identifiers.
-      TargetGroupName: default
-      ConnectionPoolConfigurationInfo:
-        MaxConnectionsPercent: 30 # Limit to 30% of db max connections
-        MaxIdleConnectionsPercent: 12
-        ConnectionBorrowTimeout: 20 # The number of seconds for a proxy to wait for a connection to become available in the connection pool. Only applies when the proxy has opened its maximum number of connections and all connections are busy with client sessions.
-    DependsOn: RDSProxy
-
   Libraries:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -138,11 +51,11 @@ Resources:
       RetentionPolicy: Delete
       Description: Provides the base backend shared library and dependencies
       LayerName: !Join ["-", [!Ref AWS::StackName, !Ref LayerName]]
-  
+
   Database:
     Type: AWS::Serverless::LayerVersion
     Properties:
-    ContentUri: src/postgresql
+      ContentUri: src/postgresql
       CompatibleRuntimes:
         - python3.9
       RetentionPolicy: Delete
@@ -445,20 +358,16 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  RDSLambdaSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "Lambda Function Security Group"
-      VpcId: !Ref VPCId
-
   RDSInsertFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: src/lambda/rds_proxy/
       VpcConfig:
         SecurityGroupIds:
-          - !Ref RDSLambdaSG
-        SubnetIds: !Split [",", !Ref SubnetIDs]
+          - !ImportValue pharos-api-david-dev-rds-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-api-david-dev-rds-SubnetA
+          - !ImportValue pharos-api-david-dev-rds-SubnetB
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -471,10 +380,10 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          HOST: !Ref Host
-          PORT: !Ref Port
-          DATABASE: !Ref Database
-          USERNAME: !Ref Username
+          HOST: !ImportValue pharos-api-david-dev-rds-RDSProxyEndpoint
+          PORT: "5432"
+          DATABASE: !ImportValue pharos-api-david-dev-rds-RDSInstance
+          USERNAME: postgres
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
       Policies:
@@ -485,7 +394,7 @@ Resources:
             - Effect: Allow
               Action:
                 - rds-db:connect
-              Resource: arn:aws:rds-db:us-east-2:560812044035:dbuser:prx-032739f4f5a366ac1/* #TODO Make specific
+              Resource: !Sub arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:prx-08b1fb51790af04c0/* #TODO Make dynamic
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
