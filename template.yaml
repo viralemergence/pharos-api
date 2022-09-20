@@ -394,7 +394,21 @@ Resources:
             - Effect: Allow
               Action:
                 - rds-db:connect
-              Resource: !Sub arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:prx-08b1fb51790af04c0/* #TODO Make dynamic
+              Resource: !Join
+                - ":"
+                - - arn:aws:rds-db
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - db-user
+                  - !Select [
+                      6,
+                      !Split [
+                        ":",
+                        !ImportValue pharos-api-david-dev-rds-RDSProxyArn,
+                      ],
+                    ]
+
+              #!Sub arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:prx-08b1fb51790af04c0/* #TODO Make dynamic
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

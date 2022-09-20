@@ -265,9 +265,9 @@ Outputs:
       Name: !Sub ${AWS::StackName}-RDSInstance
   RDSProxy:
     Description: Proxy
-    Value: !Ref RDSProxy
+    Value: !GetAtt RDSProxy.DBProxyArn
     Export:
-      Name: !Sub ${AWS::StackName}-RDSProxy
+      Name: !Sub ${AWS::StackName}-RDSProxyArn
   RDSProxyEndpoint:
     Description: Proxy endpoint
     Value: !GetAtt RDSProxy.Endpoint
