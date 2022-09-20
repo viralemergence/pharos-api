@@ -44,8 +44,8 @@ def lambda_handler(event, _):
         Session = sessionmaker(bind=engine)
         session = Session()
 
-        session.add()  # Here use post_data
-        session.commit()
+        # session.add()  # Here use post_data
+        # session.commit()
 
         session.close()
         return format_response(200, "Works")
