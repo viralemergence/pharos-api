@@ -1,0 +1,300 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  pharos-api
+
+  SAM Template for rds, vpc and proxy configuration in pharos-api
+
+Parameters:
+  RDSName:
+    Type: String
+    Default: RDS
+  ProxyName:
+    Type: String
+    Default: Proxy
+  DatabaseName:
+    Type: String
+    Default: pharos
+  DBUsername:
+    Type: String
+    Default: postgres
+  DBPassword:
+    Type: String
+    Default: testingpharos
+  RDSProxyPolicyName:
+    Type: String
+    Default: proxy-policy
+  Port:
+    Type: String
+    Default: "5432"
+
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+
+  SubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs
+          Ref: "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: "10.0.0.0/24"
+
+  SubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs
+          Ref: "AWS::Region"
+      VpcId: !Ref "VPC"
+      CidrBlock: "10.0.1.0/24"
+
+  RouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref "VPC"
+
+  SubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupName: !Join ["-", [!Ref AWS::StackName, "SubnetGroup"]]
+      DBSubnetGroupDescription: "Subnet Group"
+      SubnetIds:
+        - !Ref "SubnetA"
+        - !Ref "SubnetB"
+
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Join ["-", [!Ref AWS::StackName, "SecurityGroup"]]
+      GroupDescription: "RDS traffic"
+      VpcId: !Ref "VPC"
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: "0.0.0.0/0"
+
+  InstanceSecurityGroupIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    DependsOn: "InstanceSecurityGroup"
+    Properties:
+      GroupId: !Ref "InstanceSecurityGroup"
+      IpProtocol: "tcp"
+      FromPort: "5432"
+      ToPort: "5432"
+      SourceSecurityGroupId: !Ref "InstanceSecurityGroup"
+
+  Secret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+      SecretString: !Sub '{"username" : "${DBUsername}", "password" : "${DBPassword}"}'
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain
+    Properties:
+      AllocatedStorage: "20"
+      DBInstanceClass: db.t3.micro
+      DBName: !Ref DatabaseName
+      DBSubnetGroupName: !Ref "SubnetGroup"
+      DBInstanceIdentifier:
+        !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+      Engine: postgres
+      EngineVersion: "10.19"
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      VPCSecurityGroups:
+        - !Ref InstanceSecurityGroup
+
+  RDSProxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      Auth:
+        - AuthScheme: SECRETS
+          IAMAuth: REQUIRED
+          SecretArn: !Ref Secret
+      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref ProxyName]]
+      EngineFamily: POSTGRESQL
+      IdleClientTimeout: 600
+      DebugLogging: True
+      RequireTLS: True
+      RoleArn: !GetAtt RDSProxyRole.Arn
+      VpcSubnetIds:
+        - !Ref SubnetA
+        - !Ref SubnetB
+      VpcSecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+
+  RDSProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service:
+                - rds.amazonaws.com
+      Policies:
+        - PolicyName:
+            !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyPolicyName]]
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref Secret
+              - Effect: Allow
+                Action: "kms:Decrypt"
+                Resource: "*" #TODO make more specific !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+                Condition:
+                  StringEquals:
+                    kms:ViaService: secretsmanager.us-east-2.amazonaws.com
+
+  ProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref ProxyName]]
+      DBInstanceIdentifiers:
+        - !Ref RDSInstance # TODO DB instance identifiers.
+      TargetGroupName: default
+      ConnectionPoolConfigurationInfo:
+        MaxConnectionsPercent: 100
+        MaxIdleConnectionsPercent: 12
+        ConnectionBorrowTimeout: 20
+    DependsOn: RDSProxy
+
+  # LambdaRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service: lambda.amazonaws.com
+  #           Action: sts:AssumeRole
+  #     ManagedPolicyArns:
+  #       - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  # CreateUsersFunction:
+  #   Type: AWS::Lambda::Function
+  #   DependsOn:
+  #     - RDSInstance
+  #   Properties:
+  #     Role: !GetAtt LambdaRole.Arn
+  #     VpcConfig:
+  #       SubnetIds:
+  #         - !Ref SubnetA
+  #         - !Ref SubnetB
+  #       SecurityGroupIds:
+  #         - !Ref InstanceSecurityGroup
+  #     Handler: index.lambda_handler
+  #     Runtime: python3.9
+  #     FunctionName: CreateUsers
+  #     Code:
+  #       ZipFile: |
+  #         import os
+  #         import boto3
+  #         import cfnresponse
+  #         import psycopg2
+  #         from psycopg2 import sql
+
+  #         HOST = os.environ["HOST"]
+  #         PORT = os.environ["PORT"]
+  #         USERNAME = os.environ["USERNAME"]
+  #         DATABASE = os.environ["DATABASE"]
+  #         PASSWORD = os.environ["PASSWORD"]
+  #         LAMBDAUSER = os.environ["DATABASE"]
+  #         LAMBDAPASSWORD = os.environ["DATABASE"]
+
+  #         def lambda_handler(event,context):
+  #           try:
+  #             connection = psycopg2.connect(
+  #               dbname=DATABASE,
+  #               user=USERNAME,
+  #               password=PASSWORD,
+  #               host=HOST,
+  #               port=PORT
+  #             )
+
+  #             cursor = connection.cursor()
+  #             query = sql.SQL(f"CREATE USER {LAMBDAUSER} WITH LOGIN PASSWORD {LAMBDAPASSWORD}")
+  #             cursor.execute(query)
+
+  #             connection.close()
+
+  #             return {
+  #               'status' : 200,
+  #               'body' : ""
+  #             }
+
+  #           except Exception as e:
+  #             return {
+  #               'status' : 403,
+  #               'body' : str(e)
+  #             }
+
+  #     Environment:
+  #       Variables:
+  #         HOST: !GetAtt RDSInstance.Endpoint.Address
+  #         PORT: !GetAtt RDSInstance.Endpoint.Port
+  #         USERNAME: !Ref DBUsername
+  #         PASSWORD: !Ref DBPassword
+  #         DATABASE: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+  #         LAMBDAUSER: lambda-insert
+  #         LAMBDAPASSWORD: lambda1234
+
+  # LambdaInvokation:
+  #   Type: AWS::CloudFormation::CustomResource
+  #   DependsOn:
+  #     - CreateUsersFunction
+  #   Properties:
+  #     ServiceToken: !GetAtt CreateUsersFunction.Arn
+
+Outputs:
+  RDSInstance:
+    Description: RDS
+    Value: !Ref RDSInstance
+    Export:
+      Name: !Sub ${AWS::StackName}-RDSInstance
+  RDSProxy:
+    Description: Proxy
+    Value: !Ref RDSProxy
+    Export:
+      Name: !Sub ${AWS::StackName}-RDSProxy
+  RDSProxyEndpoint:
+    Description: Proxy endpoint
+    Value: !GetAtt RDSProxy.Endpoint
+    Export:
+      Name: !Sub ${AWS::StackName}-RDSProxyEndpoint
+  VPCInstance:
+    Description: VPC for RDS and proxy
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCInstance
+  VPCSecurityGroup:
+    Description: Security group associated with the vpc
+    Value: !Ref InstanceSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCSG
+  Secret:
+    Description: Creates users after RDS is created
+    Value: !Ref Secret
+    Export:
+      Name: !Sub ${AWS::StackName}-Secret
+  SubnetA:
+    Description: Subnet AZ 0
+    Value: !Ref SubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-SubnetA
+  SubnetB:
+    Description: Subnet AZ 1
+    Value: !Ref SubnetB
+    Export:
+      Name: !Sub ${AWS::StackName}-SubnetB
