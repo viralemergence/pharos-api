@@ -52,16 +52,6 @@ Resources:
       Description: Provides the base backend shared library and dependencies
       LayerName: !Join ["-", [!Ref AWS::StackName, !Ref LayerName]]
 
-  Database:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      ContentUri: src/postgresql
-      CompatibleRuntimes:
-        - python3.9
-      RetentionPolicy: Delete
-      Description: Provides libraries and dependencies for rds connectivity
-      LayerName: !Join ["-", [!Ref AWS::StackName, database]]
-
   UsersTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -358,7 +348,7 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  RDSInsertFunction:
+  RDSInsertFunctionT:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: src/lambda/rds_proxy/
@@ -376,7 +366,6 @@ Resources:
             Method: post
       Layers:
         - !Ref Libraries
-        - !Ref Database
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
