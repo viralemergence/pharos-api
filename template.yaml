@@ -27,6 +27,10 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
+  StackName:
+    Type: String
+  DatabaseName:
+    Type: String
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -397,7 +401,14 @@ Resources:
                       ],
                     ]
 
-              #!Sub arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:prx-08b1fb51790af04c0/* #TODO Make dynamic
+  LambdaNestedStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./pharos-rds/lambda.yaml
+      Parameters:
+        StackName: !Ref StackName
+        DatabaseName: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+        MasterSecret: !ImportValue !Join ["-", [!Ref StackName, Secret]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
