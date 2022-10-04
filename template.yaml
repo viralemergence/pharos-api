@@ -27,10 +27,12 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
-  StackName:
+  RDSStackName:
     Type: String
+    Default: pharos-api-david-dev-rds
   DatabaseName:
     Type: String
+    Default: pharos
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -352,16 +354,16 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  RDSInsertFunctionT:
+  RDSInsertFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: src/lambda/rds_proxy/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue pharos-api-david-dev-rds-VPCSG
+          - !ImportValue pharos-api-david-dev-rds-VPCSG # TODO
         SubnetIds:
-          - !ImportValue pharos-api-david-dev-rds-SubnetA
-          - !ImportValue pharos-api-david-dev-rds-SubnetB
+          - !ImportValue pharos-api-david-dev-rds-SubnetA # TODO
+          - !ImportValue pharos-api-david-dev-rds-SubnetB # TODO
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -401,14 +403,19 @@ Resources:
                       ],
                     ]
 
-  LambdaNestedStack:
-    Type: AWS::Serverless::Application
+  LambdaStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      Location: ./pharos-rds/lambda.yaml
+      TemplateURL: ./pharos-rds/lambda.yaml
       Parameters:
-        StackName: !Ref StackName
+        RDSEndpoint: !Join ["-", [!Ref RDSStackName, RDSEndpoint]]
+        RDSPort: !Join ["-", [!Ref RDSStackName, Port]]
         DatabaseName: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
-        MasterSecret: !ImportValue !Join ["-", [!Ref StackName, Secret]]
+        MasterSecret: !Join ["-", [!Ref RDSStackName, Secret]]
+        SubnetA: !Join ["-", [!Ref RDSStackName, SubnetA]]
+        SubnetB: !Join ["-", [!Ref RDSStackName, SubnetB]]
+        RDSInstance: !Join ["-", [!Ref RDSStackName, RDSInstance]]
+        VPCSG: !Join ["-", [!Ref RDSStackName, VPCSG]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
