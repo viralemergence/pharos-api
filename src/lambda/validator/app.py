@@ -3,9 +3,9 @@ from auth import check_auth
 from format import format_response
 
 
-def validate(name, payload):
+def validator(name):
     module = getattr(__import__(f"validators.{name}"), name)
-    return module.test(payload)
+    return getattr(module, name)
 
 
 def lambda_handler(event, _):
@@ -17,12 +17,19 @@ def lambda_handler(event, _):
     if not authorized:
         return format_response(403, "Not Authorized")
 
-    report = []
-    for row in iter(post_data["rows"]):
-        for column, value in row:
-            try:
-                report.append(validate(column, value))
-            except KeyError:
-                report.append({"pass": False, "message": "Column not found"})
+    validation_report = {}
 
-    return format_response(200, report)
+    for recordid, record in post_data["rows"].items():
+        record_ = {}
+        for column, value in record:
+            column_ = column.replace(" ", "").capitalize()
+            try:
+                Validator = validator(column_)
+                report = Validator(value).run_validation()
+                record_[column] = report
+            except Exception:
+                continue
+
+        validation_report[recordid] = record_
+
+    return format_response(200, validation_report)
