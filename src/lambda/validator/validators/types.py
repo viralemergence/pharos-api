@@ -66,6 +66,10 @@ class Record:
         return oldest
 
     def __iadd__(self, __record):
+        """
+        Updates the record by overloading the operator +=.
+        This can be achieved with: record1 += record2
+        """
         # Client record
         client = {
             key: self.unpack_datapoint(Datapoint(value))
