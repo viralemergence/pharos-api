@@ -1,12 +1,4 @@
-from .validator import Validator
-
-
-def isfloat(num: str):
-    try:
-        float(num)
-        return True
-    except ValueError:
-        return False
+from .validator import Validator, isfloat
 
 
 class Location(Validator):
@@ -19,15 +11,18 @@ class Location(Validator):
         }
 
     def validate_format(self):
-        return
-
-    def validate_restrictions(self, length=8):
-        if len(self.dataValue) == length:
+        sequences = self.dataValue.split(".")
+        if len(sequences[0]) == 5:
             return {"status": self.SUCCESS}
         return {
             "status": self.FAILURE,
             "message": "Coordinates should have 5 decimal points.",
         }
 
-    # def validate_referential_integrity(self):
-    #     raise NotImplementedError
+    def validate_restrictions(self):
+        if self.record.longitude != "" and self.record.latitude != "":
+            return {"status": self.SUCCESS}
+        return {
+            "status": self.FAILURE,
+            "message": "Longitude or latitude missing.",
+        }
