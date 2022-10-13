@@ -6,16 +6,16 @@ class NCBI(Validator):
         if self.dataValue.isnumeric():
             return {"status": self.SUCCESS}
 
-        return {"status": self.FAILURE, "message": ""}
+        return {
+            "status": self.FAILURE,
+            "message": "Valid identifiers are integer-only sequences.",
+        }
 
     def validate_format(self):
-        if 4 <= len(self.datapoint) <= 8:
+        if 0 < len(self.datapoint) < 8:
             return {"status": self.SUCCESS}
 
         return {
             "status": self.FAILURE,
-            "message": "A valid NCBI ID is 5-8 characters long",
+            "message": "A NCBI taxonomic identifier consists of one to seven digits.",
         }
-
-    def validate_referential_integrity(self):
-        raise NotImplementedError
