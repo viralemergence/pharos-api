@@ -19,9 +19,3 @@ class Latin(Validator):
             "status": self.WARNING,
             "message": "Genus should be capitalized and species should be lowercased.",
         }
-
-    def validate_restrictions(self):
-        return
-
-    def validate_referential_integrity(self):
-        return
