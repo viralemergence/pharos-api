@@ -13,18 +13,27 @@ class Datapoint:
             datapoint_.previous = previous
 
 
-class MergeRecords:
-    def __init__(self, client_record: Record, stored_record: Record) -> None:
-        self.client_record = client_record
-        self.stored_record = stored_record
+def order_datapoints(datapoints : list) -> Datapoint:
+    # Sort list from oldest to latest timestamp
+    sorted(datapoints, key=lambda datapoint : datapoint.timestamp, reverse=True)
+    # Extract the latest datapoint
+    oldest = datapoints.pop(0)
+    # Nest datapoints
+    while datapoints:
+        latest = datapoints.pop(0)
+        latest.preview = oldest
+        oldest = latest
+    return oldest
 
-    def merge(self):
-        for key, value in self.client_record.items():
-            if key in self.stored_record:
-                self.stored_record[key].extend(value)
-            else:
-                self.stored_record[key] = value
+def merge(client_record: Record, stored_record: Record):
+    for key, value in client_record.items():
+        if key in stored_record:
+            stored_record[key].extend(value)
+        else:
+            stored_record[key] = value
 
-        # TODO: order by timestamp
+    datapoints = {}
+    for column, datapoint in 
+    
 
-        return self.stored_record
+    return stored_record
