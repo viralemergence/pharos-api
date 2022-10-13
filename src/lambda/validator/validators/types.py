@@ -34,6 +34,12 @@ class Datapoint:
             previous = Datapoint(datapoint_.previous)
             datapoint_.previous = previous
 
+    def __hash__(self) -> int:
+        return hash(self.__dict__["timestamp"])
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, Datapoint) and self.__dict__ == __o.__dict__
+
 
 def unpack_datapoint(datapoint: Datapoint) -> set:
     unpacked_datapoints = set()
@@ -73,8 +79,5 @@ def merge(client_record: Record, stored_record: Record) -> Record:
         for k in sorted(client.keys() | stored.keys())
     }
     # Nest datapoints
-    merged_record = {k: order_datapoints(v) for k, v in merged_record.items()}
-    # Create Record object
-    merged_record = Record(merged_record)
-
-    return merged_record
+    merged_record = {k: order_datapoints(list(v)) for k, v in merged_record.items()}
+    return Record(merged_record)
