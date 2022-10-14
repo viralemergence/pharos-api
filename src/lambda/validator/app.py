@@ -1,35 +1,27 @@
-import json
-from auth import check_auth
-from format import format_response
+from type import Datapoint
 
 
-def validator(name):
-    module = getattr(__import__(f"validators.{name}"), name)
-    return getattr(module, name)
+def get_validator_class(name):
+    try:
+        module = getattr(__import__(f"validators.{name}"), name)
+        return getattr(module, name)
+    except Exception:
+        return getattr("")
 
 
-def lambda_handler(event, _):
+def validate_record(record: "Record"):
 
-    post_data = json.loads(event.get("body", "{}"))
+    for datapointID, datapoint in record.__dict__:
+        # Retrieve the appropriate validator class
+        Validator = get_validator_class(datapointID)
+        # Dynamically create a new class: Datapoint + Validator.
+        # Inherits __init__ from Datapoint and all methods and attributes from both classes
+        DatapointValidator = type("DatapointValidator", (Datapoint, Validator))
+        # Instantiate an object of the newly defined class
+        valid_datapoint = DatapointValidator(datapoint)
+        # Run validation over datapoint
+        valid_datapoint.run_validation()
+        # Update record
+        record.datapointID = valid_datapoint
 
-    # Placeholder check user authorization
-    authorized = check_auth(post_data["researcherID"])
-    if not authorized:
-        return format_response(403, "Not Authorized")
-
-    validation_report = {}
-
-    for recordid, record in post_data["rows"].items():
-        record_ = {}
-        for column, value in record:
-            column_ = column.replace(" ", "").capitalize()
-            try:
-                Validator = validator(column_)
-                report = Validator(value).run_validation()
-                record_[column] = report
-            except Exception:
-                continue
-
-        validation_report[recordid] = record_
-
-    return format_response(200, validation_report)
+    return record
