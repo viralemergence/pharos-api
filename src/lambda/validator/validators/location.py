@@ -3,7 +3,7 @@ from .validator import Validator, isfloat
 
 class Location(Validator):
     def validate_type(self):
-        if isfloat(self.dataValue):
+        if isfloat(self.data_value):
             return {"status": self.SUCCESS}
         return {
             "status": self.FAILURE,
@@ -11,7 +11,7 @@ class Location(Validator):
         }
 
     def validate_format(self):
-        sequences = self.dataValue.split(".")
+        sequences = self.data_value.split(".")
         if len(sequences[0]) == 5:
             return {"status": self.SUCCESS}
         return {

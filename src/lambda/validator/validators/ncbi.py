@@ -3,7 +3,7 @@ from .validator import Validator
 
 class NCBI(Validator):
     def validate_type(self):
-        if self.dataValue.isnumeric():
+        if self.data_value.isnumeric():
             return {"status": self.SUCCESS}
 
         return {

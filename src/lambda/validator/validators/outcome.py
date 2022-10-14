@@ -3,7 +3,7 @@ from .validator import Validator
 
 class Detectionoutcome(Validator):
     def validate_type(self):
-        if self.dataValue.isalpha():
+        if self.data_value.isalpha():
             return {"status": self.SUCCESS}
 
         return {
