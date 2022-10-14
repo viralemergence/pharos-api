@@ -43,7 +43,7 @@ class Record:
         self.__dict__.update(datapoints)
 
     @staticmethod
-    def unpack_datapoint(datapoint: Datapoint) -> set:
+    def __unpack_datapoint(datapoint: Datapoint) -> set:
         unpacked_datapoints = set()
         while hasattr(datapoint, "previous"):
             unpacked_datapoints.add(datapoint)
@@ -51,7 +51,7 @@ class Record:
         return unpacked_datapoints
 
     @staticmethod
-    def order_datapoints(datapoints: list) -> Datapoint:
+    def __order_datapoints(datapoints: list) -> Datapoint:
         # Sort list from oldest to latest timestamp
         sorted(datapoints, key=lambda datapoint: datapoint.timestamp, reverse=True)
         # Extract the latest datapoint
@@ -66,16 +66,16 @@ class Record:
     def __iadd__(self, __record):
         """
         Updates the record by overloading the operator +=.
-        This can be achieved with: record1 += record2
+        This can be achieved with: record1 += record2. Note that only record1 is modified.
         """
         # Client record
         client = {
-            key: self.unpack_datapoint(Datapoint(value))
+            key: self.__unpack_datapoint(Datapoint(value))
             for key, value in self.__dict__.items()
         }
         # Stored record
         stored = {
-            key: self.unpack_datapoint(Datapoint(value))
+            key: self.__unpack_datapoint(Datapoint(value))
             for key, value in __record.__dict__.items()
         }
         # Merge two dictionaries with common and shared keys
