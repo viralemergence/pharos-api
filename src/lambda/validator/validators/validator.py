@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .types import Datapoint, Record
+from .type import Datapoint, Record
 
 
 def isfloat(num: str):
@@ -15,13 +15,8 @@ class Validator(ABC):
     FAILURE = "Failure"
     WARNING = "Warning"
 
-    def __init__(self, datapoint: Datapoint, record: Record):
-        self.datapoint = datapoint
-        self.record = record
-        self.data_value = self.datapoint.dataValue
-
-    def validate_presence(self):
-        if self.data_value != "":
+    def _validate_presence(self) -> None:
+        if self.dataValue != "":
             return {"status": self.SUCCESS}
         return {
             "status": self.WARNING,
@@ -29,27 +24,26 @@ class Validator(ABC):
         }
 
     @abstractmethod
-    def validate_type(self):
+    def _validate_type(self) -> None:
         """Data type."""
 
     @abstractmethod
-    def validate_format(self):
+    def _validate_format(self) -> None:
         """Entry requieres a specific format."""
 
     @abstractmethod
-    def validate_restrictions(self):
+    def _validate_restrictions(self) -> None:
         """Field has a definite amount of data that can be entered into them."""
 
     @abstractmethod
-    def validate_referential_integrity(self):
+    def _validate_referential_integrity(self) -> None:
         """Impose referential integrity to validate inputs. Check data inputs in certain fields against values in database tables."""
 
-    def run_validation(self):
-        if "report" not in self.datapoint:
+    def run_validation(self) -> None:
+        if not self.report:
             report = {
                 method: getattr(self, method)()
                 for method in dir(self)
-                if method.startswith("validate_")
+                if method.startswith("_validate_")
             }
-            self.datapoint["report"] = report
-        return self.datapoint
+            self.report = report
