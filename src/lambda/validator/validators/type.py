@@ -89,14 +89,13 @@ class Record:
         Updates the record by overloading the operator +=.
         This can be achieved with: record1 += record2. Note that only record1 is modified.
         """
-        # Client record
+        # # Client record
         client = {
-            key: self.__unpack_datapoint(Datapoint(value))
-            for key, value in self.__dict__.items()
+            key: self.__unpack_datapoint(value) for key, value in self.__dict__.items()
         }
         # Stored record
         stored = {
-            key: self.__unpack_datapoint(Datapoint(value))
+            key: self.__unpack_datapoint(value)
             for key, value in __record.__dict__.items()
         }
         # Merge two dictionaries with common and shared keys
@@ -110,6 +109,3 @@ class Record:
         self.__dict__.update(
             {k: self.__order_datapoints(list(v)) for k, v in merged_record.items()}
         )
-
-        def __validate_location(self) -> None:
-            pass

@@ -1,8 +1,8 @@
 from .validator import Validator, Datapoint
 
 
-class NCBI(Validator):
-    def __validate_presence(self) -> None:
+class Ncbi(Validator):
+    def _validate_presence(self) -> None:
         if self.dataValue != "":
             return {"status": self.SUCCESS}
         return {
@@ -10,7 +10,7 @@ class NCBI(Validator):
             "message": "Missing value",
         }
 
-    def __validate_type(self):
+    def _validate_type(self):
         if self.dataValue.isnumeric():
             return {"status": self.SUCCESS}
         return {
@@ -18,7 +18,7 @@ class NCBI(Validator):
             "message": "Valid identifiers are integer-only sequences.",
         }
 
-    def __validate_format(self):
+    def _validate_format(self):
         if 0 < len(self.dataValue) < 8:
             return {"status": self.SUCCESS}
         return {
