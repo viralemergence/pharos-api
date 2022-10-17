@@ -3,7 +3,7 @@ from .validator import Validator
 
 class Latin(Validator):
     def validate_type(self):
-        value = self.data_value.replace(" ", "")
+        value = self.dataValue.replace(" ", "")
         if value.isalpha():
             return {"status": self.SUCCESS}
 
@@ -13,7 +13,7 @@ class Latin(Validator):
         }
 
     def validate_format(self):
-        if self.data_value == self.data_value.capitalize():
+        if self.dataValue == self.dataValue.capitalize():
             return {"status": self.SUCCESS}
         return {
             "status": self.WARNING,
