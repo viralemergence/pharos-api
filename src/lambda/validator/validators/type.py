@@ -1,9 +1,7 @@
 class Datapoint:
     """
     Datapoint object matching frontend definition.
-
     {
-
     displayValue: string
     dataValue: string | { [key: string]: string }
     report?: {
@@ -19,30 +17,38 @@ class Datapoint:
     """
 
     # Create an immutable object. Only allows the creation of valid datapoints per definition.
-    # Don't allow inconsistent objects to be created in the first place. Using slots reduces memory.
+    # Don't allow inconsistent objects to be created in the first place.
+    # Using slots reduces memory since there is no dynamic allocation and no weak references.
     __slots__ = (
         "displayValue",
         "dataValue",
         "report",
         "modifiedBy",
         "version",
+        "timestamp",
         "previous",
     )
 
     def __init__(self, datapoint: dict):
+
         for k, v in datapoint.items():
             setattr(self, k, v)
-        datapoint_ = self
+
         # Recursively create datapoints through linked list.
-        if hasattr(datapoint_, "previous"):
-            previous = Datapoint(datapoint_.previous)
-            datapoint_.previous = previous
+        if hasattr(self, "previous"):
+            previous = Datapoint(self.previous)
+            self.previous = previous
 
     def __hash__(self) -> int:
-        return hash(self.__dict__["timestamp"])
+        return hash(self.timestamp)
 
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Datapoint) and self.__dict__ == __o.__dict__
+    def __eq__(self, __o: Datapoint) -> bool:
+        return (
+            isinstance(__o, Datapoint) and self.get_datapoint() == __o.get_datapoint()
+        )
+
+    def get_datapoint(self) -> dict:
+        return {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)}
 
 
 class Record:
@@ -104,3 +110,6 @@ class Record:
         self.__dict__.update(
             {k: self.__order_datapoints(list(v)) for k, v in merged_record.items()}
         )
+
+        def __validate_location(self) -> None:
+            pass
