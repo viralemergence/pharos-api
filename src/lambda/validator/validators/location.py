@@ -2,7 +2,15 @@ from .validator import Validator, isfloat
 
 
 class Location(Validator):
-    def __validate_type(self):
+    def _validate_presence(self) -> None:
+        if self.dataValue != "":
+            return {"status": self.SUCCESS}
+        return {
+            "status": self.FAILURE,
+            "message": "Records must have a location.",
+        }
+
+    def _validate_type(self):
         if isfloat(self.dataValue):
             return {"status": self.SUCCESS}
         return {
@@ -10,7 +18,7 @@ class Location(Validator):
             "message": "Decimal degrees should be expressed with . and not ,",
         }
 
-    def __validate_format(self):
+    def _validate_format(self):
         sequences = self.dataValue.split(".")
         if len(sequences[0]) == 5:
             return {"status": self.SUCCESS}
