@@ -2,17 +2,17 @@ from .validator import Validator, isfloat
 
 
 class Nested(Validator):
-    def validate_presence(self):
-        if self.data_value.value != "" and self.data_value.unit != "":
+    def __validate_presence(self):
+        if self.dataValue["value"] != "" and self.dataValue["unit"] != "":
             return {"status": self.SUCCESS}
 
-        elif self.data_value.value == "" and self.data_value.unit != "":
+        elif self.dataValue["value"] == "" and self.dataValue["unit"] != "":
             return {
                 "status": self.FAILURE,
                 "message": "Value missing.",
             }
 
-        elif self.data_value.value != "" and self.data_value.unit == "":
+        elif self.dataValue["value"] != "" and self.dataValue["unit"] == "":
             return {
                 "status": self.FAILURE,
                 "message": "Unit missing.",
@@ -23,8 +23,8 @@ class Nested(Validator):
             "message": "Value and unit missing.",
         }
 
-    def validate_type(self):
-        if isfloat(self.data_value.value):
+    def __validate_type(self):
+        if isfloat(self.dataValue["value"]):
             return {"status": self.SUCCESS}
 
         return {
