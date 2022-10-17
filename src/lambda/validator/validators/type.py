@@ -2,6 +2,8 @@ class Datapoint:
     """
     Datapoint object matching frontend definition.
 
+    {
+
     displayValue: string
     dataValue: string | { [key: string]: string }
     report?: {
@@ -12,13 +14,26 @@ class Datapoint:
     modifiedBy: string
     version: string
     previous?: Datapoint
+
+    }
     """
 
-    report: dict = None
+    # Create an immutable object. Only allows the creation of valid datapoints per definition.
+    # Don't allow inconsistent objects to be created in the first place. Using slots reduces memory.
+    __slots__ = (
+        "displayValue",
+        "dataValue",
+        "report",
+        "modifiedBy",
+        "version",
+        "previous",
+    )
 
     def __init__(self, datapoint: dict):
-        self.__dict__.update(datapoint)
+        for k, v in datapoint.items():
+            setattr(self, k, v)
         datapoint_ = self
+        # Recursively create datapoints through linked list.
         if hasattr(datapoint_, "previous"):
             previous = Datapoint(datapoint_.previous)
             datapoint_.previous = previous
@@ -87,5 +102,5 @@ class Record:
         }
         # Nest datapoints and update the record
         self.__dict__.update(
-            {k: self.order_datapoints(list(v)) for k, v in merged_record.items()}
+            {k: self.__order_datapoints(list(v)) for k, v in merged_record.items()}
         )
