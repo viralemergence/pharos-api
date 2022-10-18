@@ -2,8 +2,11 @@ from .validator import Validator, isfloat
 
 
 class Location(Validator):
+
+    __slot__ = ()
+
     def _validate_presence(self) -> None:
-        if self.dataValue != "":
+        if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
         return {
             "status": self.FAILURE,
@@ -11,7 +14,7 @@ class Location(Validator):
         }
 
     def _validate_type(self):
-        if isfloat(self.dataValue):
+        if isfloat(self.datapoint.dataValue):
             return {"status": self.SUCCESS}
         return {
             "status": self.FAILURE,
@@ -19,7 +22,7 @@ class Location(Validator):
         }
 
     def _validate_format(self):
-        sequences = self.dataValue.split(".")
+        sequences = self.datapoint.dataValue.split(".")
         if len(sequences[0]) == 5:
             return {"status": self.SUCCESS}
         return {
