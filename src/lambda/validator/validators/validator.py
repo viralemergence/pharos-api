@@ -1,4 +1,4 @@
-from .type import Datapoint
+from type import Datapoint
 
 
 def isfloat(num: str):
@@ -9,20 +9,27 @@ def isfloat(num: str):
         return False
 
 
-class Validator(Datapoint):
+class Validator:
+
+    __slot__ = ("datapoint",)
+
     SUCCESS = "Success"
     FAILURE = "Failure"
     WARNING = "Warning"
 
-    def __init__(self, datapoint: dict) -> None:
-        super().__init__(datapoint)
+    def __init__(self, datapoint: Datapoint) -> None:
+        self.datapoint = datapoint
         self._run_validation()
 
     def _run_validation(self) -> None:
-        if not hasattr(self, "report"):
-            report = {
-                method: getattr(self, method)()
-                for method in dir(self)
-                if method.startswith("_validate_")
-            }
-            self.report = report
+        if not hasattr(self.datapoint, "report"):
+            report = getattr(self, "_presence")()
+            if report["status"] == self.SUCCESS:
+                report.update(
+                    {
+                        method: getattr(self, method)()
+                        for method in dir(self)
+                        if method.startswith("_validate_")
+                    }
+                )
+            self.datapoint.report = report
