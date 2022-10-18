@@ -30,7 +30,6 @@ class Datapoint:
     )
 
     def __init__(self, datapoint: dict):
-
         for k, v in datapoint.items():
             setattr(self, k, v)
 
@@ -42,7 +41,7 @@ class Datapoint:
     def __hash__(self) -> int:
         return hash(self.timestamp)
 
-    def __eq__(self, __o: Datapoint) -> bool:
+    def __eq__(self, __o) -> bool:
         return (
             isinstance(__o, Datapoint) and self.get_datapoint() == __o.get_datapoint()
         )
