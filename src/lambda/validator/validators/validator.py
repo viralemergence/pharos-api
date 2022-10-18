@@ -32,4 +32,4 @@ class Validator:
                         if method.startswith("_validate_")
                     }
                 )
-            self.datapoint.report = report
+            setattr(self.datapoint, "report", report)

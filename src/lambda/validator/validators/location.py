@@ -1,11 +1,11 @@
-from .validator import Validator, isfloat
+from validator import Validator, isfloat
 
 
 class Location(Validator):
 
     __slot__ = ()
 
-    def _validate_presence(self) -> None:
+    def _presence(self) -> None:
         if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
         return {

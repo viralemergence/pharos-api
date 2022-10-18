@@ -1,12 +1,12 @@
-from .type import Datapoint, Record
+from type import Datapoint, Record
 
 
 def get_validator_class(name: str):
-    module = getattr(__import__(f"validators.{name}"), name)
-    return getattr(module, name.capitalize())
+    module = getattr(__import__(name), name.capitalize())
+    return module
 
 
-def validate_location(latitude: Datapoint, longitude: Datapoint) -> tuple:
+def validate_location(latitude: Datapoint, longitude: Datapoint) -> dict:
     """Verify if the location is valid"""
 
     try:
@@ -17,12 +17,12 @@ def validate_location(latitude: Datapoint, longitude: Datapoint) -> tuple:
             report = {"status": "Success"}
 
     except Exception:
-        report = {"status": "Success", "message": "Invalid location."}
+        report = {"status": "Failure", "message": "Invalid location."}
 
     latitude.report["_validate_location"] = report
     longitude.report["_validate_location"] = report
 
-    return {"Latitude": latitude, "Location": longitude}
+    return {"Latitude": latitude, "Location": longitude}  # Maybe unnecesary return
 
 
 def validate_date(year, month, day) -> tuple:
@@ -40,7 +40,7 @@ def validate_record(record: Record) -> Record:
     Ncbi, Latin, Location = map(get_validator_class, ["ncbi", "latin", "location"])
 
     ncbi = {
-        key: Ncbi(key)
+        key: Ncbi(getattr(record, key)).datapoint
         for key in [
             "Host NCBI Tax ID",
             "Pathogen NCBI Tax ID",
@@ -49,10 +49,14 @@ def validate_record(record: Record) -> Record:
     }
 
     latin = {
-        key: Latin(key) for key in ["Host species", "Pathogen", "Detection target"]
+        key: Latin(getattr(record, key)).datapoint
+        for key in ["Host species", "Pathogen", "Detection target"]
     }
 
-    location = {key: Location(key) for key in ["Latitude", "Longitude"]}
+    location = {
+        key: Location(getattr(record, key)).datapoint
+        for key in ["Latitude", "Longitude"]
+    }
 
     loc = validate_location(record.Latitude, record.Longitude)
     location.update(loc)
