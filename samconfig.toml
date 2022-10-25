@@ -9,7 +9,7 @@ region = "us-west-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = false
-parameter_overrides = "CorsAllow=\"https://dev-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\" DBInstance=\"talus-prod\" SubnetIDs=\"subnet-8f7652ea,subnet-1741244e\" SecretRDS=\" \" VPCId=\"\" VPCSG=\"\" Host=\"\" Port=\"\" Database=\"\" Username=\"\""
+parameter_overrides = "CorsAllow=\"https://dev-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
 image_repositories = []
 
 [review]
