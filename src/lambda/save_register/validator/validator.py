@@ -21,15 +21,13 @@ class Validator:
         self.datapoint = datapoint
         self._run_validation()
 
-    def _run_validation(self) -> None:
-        if not hasattr(self.datapoint, "report"):
-            report = getattr(self, "_presence")()
-            if report["status"] == self.SUCCESS:
-                report.update(
-                    {
-                        method: getattr(self, method)()
-                        for method in dir(self)
-                        if method.startswith("_validate_")
-                    }
-                )
-            setattr(self.datapoint, "report", report)
+    def _run_validation(self):
+        validations = [method for method in dir(self) if method.startwith("_validate_")]
+
+        for validation in validations:
+            report = getattr(validation, self)()
+
+            if report["status"] == self.FAILURE:
+                break
+
+        self.datapoint.report = report
