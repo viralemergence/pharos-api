@@ -5,7 +5,7 @@ class Nested(Validator):
 
     __slot__ = ()
 
-    def _presence(self):
+    def _validate_presence(self):
         if (
             self.datapoint.dataValue["value"] != ""
             and self.datapoint.dataValue["unit"] != ""

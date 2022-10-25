@@ -5,7 +5,7 @@ class Location(Validator):
 
     __slot__ = ()
 
-    def _presence(self) -> None:
+    def _validate_presence(self) -> None:
         if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
         return {

@@ -5,7 +5,7 @@ class Latin(Validator):
 
     __slot__ = ()
 
-    def _presence(self) -> None:
+    def _validate_presence(self) -> None:
         if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
         return {
@@ -13,7 +13,7 @@ class Latin(Validator):
             "message": "Missing value",
         }
 
-    def validate_type(self):
+    def _validate_type(self):
         value = self.datapoint.dataValue.replace(" ", "")
         if value.isalpha():
             return {"status": self.SUCCESS}
@@ -23,7 +23,7 @@ class Latin(Validator):
             "message": "Non-alphabetic characters detected.",
         }
 
-    def validate_format(self):
+    def _validate_format(self):
         if self.datapoint.dataValue == self.datapoint.dataValue.capitalize():
             return {"status": self.SUCCESS}
         return {
