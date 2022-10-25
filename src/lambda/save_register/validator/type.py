@@ -12,13 +12,13 @@ class Datapoint:
     modifiedBy: string
     version: string
     previous?: Datapoint
-
     }
     """
 
     # Create an immutable object. Only allows the creation of valid datapoints per definition.
     # Don't allow inconsistent objects to be created in the first place.
     # Using slots reduces memory since there is no dynamic allocation and no weak references.
+
     __slots__ = (
         "displayValue",
         "dataValue",
