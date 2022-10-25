@@ -13,9 +13,9 @@ class Validator:
 
     __slot__ = ("datapoint",)
 
-    SUCCESS = "Success"
-    FAILURE = "Failure"
-    WARNING = "Warning"
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAIL"
+    WARNING = "WARNING"
 
     def __init__(self, datapoint: Datapoint) -> None:
         self.datapoint = datapoint
