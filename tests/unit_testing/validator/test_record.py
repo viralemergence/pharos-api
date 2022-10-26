@@ -204,3 +204,317 @@ for key, value in record_.__dict__.items():
 
         assert datapoint["report"]["status"] == "WARNING"
         assert datapoint["report"]["message"] == "Datapoint is not recognized."
+
+
+# Testing another record
+
+record2 = {
+    "Row ID": {
+        "displayValue": "",
+        "dataValue": "",
+        "version": "0",
+        "modifiedBy": "dev",
+    },
+    "Test ID": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Sample ID": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Animal ID or nickname": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Host species": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Host NCBI Tax ID": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Latitude": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Longitude": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Spatial uncertainty": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Collection date": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Collection method or tissue": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection method": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection target": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection target NCBI Tax ID": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection measurement": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection outcome": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Pathogen": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Pathogen NCBI Tax ID": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "GenBank Accession": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Detection comments": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Organism sex": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Dead or alive": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Health notes": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Life stage": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Age": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Age units": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Mass": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Mass units": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Length": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+    "Length units": {
+        "modifiedBy": "dev",
+        "previous": {
+            "displayValue": "",
+            "dataValue": "",
+            "version": "0",
+            "modifiedBy": "dev",
+        },
+        "version": "1",
+    },
+}
+rec_ = Record(record2, "test")
+rec_v = validate_record(rec_)
+
+{
+    key: key
+    for key in [
+        "Host NCBI Tax ID",
+        "Pathogen NCBI Tax ID",
+        "Detection target NCBI Tax ID",
+    ]
+    if hasattr(rec_, key)
+}
