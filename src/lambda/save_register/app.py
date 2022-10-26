@@ -4,6 +4,8 @@ import hashlib
 import boto3
 from auth import check_auth
 from format import format_response
+from .validator.type import Record
+from .validator.validate_record import validate_record
 
 
 N_VERSIONS = os.environ["N_VERSIONS"]
@@ -20,8 +22,16 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
+        # Validate register
+        verified_register = post_data["register"]
+
+        for record_id, record in register.items():
+            record_ = Record(record, record_id)
+            record_ = validate_record(record_)
+            verified_register["record_id"] = record_
+
         # Create a unique key by combining the datasetID and the register hash
-        encoded_data = bytes(json.dumps(post_data["register"]).encode("UTF-8"))
+        encoded_data = bytes(json.dumps(register).encode("UTF-8"))
         md5hash = str(hashlib.md5(encoded_data).hexdigest())
         key = f'{post_data["datasetID"]}/{md5hash}.json'
 
