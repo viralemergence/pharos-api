@@ -39,7 +39,11 @@ class Datapoint:
             self.previous = previous
 
     def get_datapoint(self) -> dict:
-        return {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)}
+        dictionary = {s: getattr(self, s) for s in self.__slots__ if hasattr(self, s)}
+        if hasattr(self, "previous"):
+            previous = dictionary["previous"]
+            dictionary["previous"] = previous.get_datapoint()
+        return dictionary
 
 
 class Record:
