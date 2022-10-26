@@ -5,7 +5,8 @@ class Location(Validator):
 
     __slot__ = ()
 
-    def _validate_presence(self) -> None:
+    def _validate_1_presence(self):
+
         if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
         return {
@@ -13,7 +14,7 @@ class Location(Validator):
             "message": "Records must have a location.",
         }
 
-    def _validate_type(self):
+    def _validate_2_type(self):
         if isfloat(self.datapoint.dataValue):
             return {"status": self.SUCCESS}
         return {
@@ -21,7 +22,7 @@ class Location(Validator):
             "message": "Decimal degrees should be expressed with . and not ,",
         }
 
-    def _validate_format(self):
+    def _validate_3_format(self):
         sequences = self.datapoint.dataValue.split(".")
         if len(sequences[0]) == 5:
             return {"status": self.SUCCESS}
