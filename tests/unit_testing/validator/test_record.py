@@ -507,14 +507,11 @@ record2 = {
     },
 }
 rec_ = Record(record2, "test")
+
+for dp in rec_.get_record().values():
+    assert "report" not in dp
+
 rec_v = validate_record(rec_)
 
-{
-    key: key
-    for key in [
-        "Host NCBI Tax ID",
-        "Pathogen NCBI Tax ID",
-        "Detection target NCBI Tax ID",
-    ]
-    if hasattr(rec_, key)
-}
+for k, dp in rec_v.get_record().items():
+    assert "report" in dp
