@@ -46,16 +46,19 @@ def validate_record(record: Record) -> Record:
             "Pathogen NCBI Tax ID",
             "Detection target NCBI Tax ID",
         ]
+        if hasattr(record, key)
     }
 
     latin = {
         key: Latin(getattr(record, key)).datapoint
         for key in ["Host species", "Pathogen", "Detection target"]
+        if hasattr(record, key)
     }
 
     location = {
         key: Location(getattr(record, key)).datapoint
         for key in ["Latitude", "Longitude"]
+        if hasattr(record, key)
     }
 
     keys = record.__dict__.keys()
