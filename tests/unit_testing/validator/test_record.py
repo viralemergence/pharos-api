@@ -178,6 +178,6 @@ recDyDAzCf8v5 = {
 }
 
 
-record = Record(recDyDAzCf8v5)
+record = Record(recDyDAzCf8v5, "recDyDAzCf8v5")
 assert record.__dict__.keys() == recDyDAzCf8v5.keys()
 assert record.get_record() == recDyDAzCf8v5
