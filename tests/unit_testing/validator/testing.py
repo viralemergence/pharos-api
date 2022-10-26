@@ -1,12 +1,10 @@
-import json
-import os
-
 import sys
 
 sys.path.append("./src/lambda/save_register/validator/")
 from type import Datapoint, Record
+from latin import Latin
 
-
+# Datapoint
 host_species = {
     "displayValue": "Vulpes vulpes",
     "dataValue": "Vulpes vulpes",
@@ -20,7 +18,6 @@ host_species = {
     },
 }
 
+# Testing datapoint equality
 datapoint = Datapoint(host_species)
-datapoint.get_datapoint()
-
 assert datapoint.get_datapoint() == host_species
