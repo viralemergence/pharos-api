@@ -58,8 +58,5 @@ def validate_record(record: Record) -> Record:
         for key in ["Latitude", "Longitude"]
     }
 
-    loc = validate_location(record.Latitude, record.Longitude)
-    location.update(loc)
-
     record.__dict__.update({**ncbi, **latin, **location})
     return record
