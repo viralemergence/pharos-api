@@ -54,9 +54,14 @@ class Record:
 
     """
 
-    def __init__(self, record: dict):
+    def __init__(self, record: dict, record_id: str):
+        self.id = record_id
         datapoints = {key: Datapoint(value) for key, value in record.items()}
         self.__dict__.update(datapoints)
 
     def get_record(self) -> dict:
-        return {key: value.get_datapoint() for key, value in self.__dict__.items()}
+        return {
+            key: value.get_datapoint()
+            for key, value in self.__dict__.items()
+            if key != "id"
+        }
