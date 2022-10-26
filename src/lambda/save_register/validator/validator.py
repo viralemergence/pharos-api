@@ -22,10 +22,12 @@ class Validator:
         self._run_validation()
 
     def _run_validation(self):
-        validations = [method for method in dir(self) if method.startwith("_validate_")]
+        validations = [
+            method for method in dir(self) if method.startswith("_validate_")
+        ]
 
         for validation in validations:
-            report = getattr(validation, self)()
+            report = getattr(self, validation)()
 
             if report["status"] == self.FAILURE:
                 break
