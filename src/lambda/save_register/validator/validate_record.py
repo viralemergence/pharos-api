@@ -58,5 +58,16 @@ def validate_record(record: Record) -> Record:
         for key in ["Latitude", "Longitude"]
     }
 
+    keys = record.__dict__.keys()
+    valid_keys = list(ncbi.keys()) + list(latin.keys()) + list(location.keys()) + ["id"]
+    keys_ = [key for key in keys if key not in valid_keys]
+
+    non_recognized = {"status": "WARNING", "message": "Datapoint is not recognized."}
+
+    for k in keys_:
+        value = record.__dict__[k]
+        setattr(value, "report", non_recognized)
+        record.__dict__[k] = value
+
     record.__dict__.update({**ncbi, **latin, **location})
     return record
