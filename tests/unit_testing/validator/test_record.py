@@ -2,6 +2,8 @@ import sys
 
 sys.path.append("./src/lambda/save_register/validator/")
 from type import Record
+from validate_record import validate_record
+
 
 # Testing record
 recDyDAzCf8v5 = {
@@ -177,7 +179,28 @@ recDyDAzCf8v5 = {
     },
 }
 
-
+# Test record equality
 record = Record(recDyDAzCf8v5, "recDyDAzCf8v5")
-assert record.__dict__.keys() == recDyDAzCf8v5.keys()
 assert record.get_record() == recDyDAzCf8v5
+
+# Test record validation
+record_ = validate_record(record)
+
+valid_keys = [
+    "Host NCBI Tax ID",
+    "Pathogen NCBI Tax ID",
+    "Detection target NCBI Tax ID",
+    "Host species",
+    "Pathogen",
+    "Detection target",
+    "Latitude",
+    "Longitude",
+    "id",
+]
+
+for key, value in record_.__dict__.items():
+    if key not in valid_keys:
+        datapoint = record_.__dict__[key].get_datapoint()
+
+        assert datapoint["report"]["status"] == "WARNING"
+        assert datapoint["report"]["message"] == "Datapoint is not recognized."
