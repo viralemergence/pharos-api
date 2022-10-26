@@ -1,9 +1,7 @@
-from type import Datapoint, Record
-
-
-def get_validator_class(name: str):
-    module = getattr(__import__(name), name.capitalize())
-    return module
+from .definitions import Datapoint, Record
+from .ncbi import Ncbi
+from .latin import Latin
+from .location import Location
 
 
 def validate_location(latitude: Datapoint, longitude: Datapoint) -> dict:
@@ -35,10 +33,6 @@ def validate_date(year, month, day) -> tuple:
 
 
 def validate_record(record: Record) -> Record:
-
-    # Retrieve validator
-    Ncbi, Latin, Location = map(get_validator_class, ["ncbi", "latin", "location"])
-
     ncbi = {
         key: Ncbi(getattr(record, key)).datapoint
         for key in [

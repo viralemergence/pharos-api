@@ -1,4 +1,4 @@
-from type import Datapoint
+from .definitions import Datapoint
 
 
 def isfloat(num: str):

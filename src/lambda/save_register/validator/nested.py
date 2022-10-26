@@ -1,4 +1,4 @@
-from validator import Validator, isfloat
+from .validator import Validator, isfloat
 
 
 class Nested(Validator):

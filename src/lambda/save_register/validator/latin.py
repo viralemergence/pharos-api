@@ -1,4 +1,4 @@
-from validator import Validator
+from .validator import Validator
 
 
 class Latin(Validator):

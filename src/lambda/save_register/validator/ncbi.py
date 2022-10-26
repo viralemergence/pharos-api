@@ -1,4 +1,4 @@
-from validator import Validator, Datapoint
+from .validator import Validator
 
 
 class Ncbi(Validator):
