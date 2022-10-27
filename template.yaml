@@ -403,19 +403,19 @@ Resources:
                       ],
                     ]
 
-  LambdaStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./pharos-rds/lambda.yaml
-      Parameters:
-        RDSEndpoint: !Join ["-", [!Ref RDSStackName, RDSEndpoint]]
-        RDSPort: !Join ["-", [!Ref RDSStackName, Port]]
-        DatabaseName: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
-        MasterSecret: !Join ["-", [!Ref RDSStackName, Secret]]
-        SubnetA: !Join ["-", [!Ref RDSStackName, SubnetA]]
-        SubnetB: !Join ["-", [!Ref RDSStackName, SubnetB]]
-        RDSInstance: !Join ["-", [!Ref RDSStackName, RDSInstance]]
-        VPCSG: !Join ["-", [!Ref RDSStackName, VPCSG]]
+  # LambdaStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: ./pharos-rds/lambda.yaml
+  #     Parameters:
+  #       RDSEndpoint: !Join ["-", [!Ref RDSStackName, RDSEndpoint]]
+  #       RDSPort: !Join ["-", [!Ref RDSStackName, Port]]
+  #       DatabaseName: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+  #       MasterSecret: !Join ["-", [!Ref RDSStackName, Secret]]
+  #       SubnetA: !Join ["-", [!Ref RDSStackName, SubnetA]]
+  #       SubnetB: !Join ["-", [!Ref RDSStackName, SubnetB]]
+  #       RDSInstance: !Join ["-", [!Ref RDSStackName, RDSInstance]]
+  #       VPCSG: !Join ["-", [!Ref RDSStackName, VPCSG]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
