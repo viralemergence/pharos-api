@@ -1,8 +1,8 @@
 import sys
 
-sys.path.append("./src/lambda/save_register/validator/")
-from type import Record
-from validate_record import validate_record
+sys.path.append("./src/lambda/save_register/")
+from validator.definitions import Record
+from validator.validate_record import validate_record
 
 
 # Testing record

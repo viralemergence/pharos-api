@@ -1,8 +1,8 @@
 import sys
 
-sys.path.append("./src/lambda/save_register/validator/")
-from type import Datapoint
-from latin import Latin
+sys.path.append("./src/lambda/save_register/")
+from validator.definitions import Datapoint
+from validator.latin import Latin
 
 # Datapoint
 host_species = {

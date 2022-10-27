@@ -2,9 +2,9 @@ import sys
 import json
 
 
-sys.path.append("./src/lambda/save_register/validator/")
-from type import Datapoint, Record
-from validate_record import validate_record
+sys.path.append("./src/lambda/save_register/")
+from validator.definitions import Datapoint, Record
+from validator.validate_record import validate_record
 
 with open("./tests/unit_testing/validator/register.json") as file:
     register = json.load(file)
