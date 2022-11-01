@@ -4,6 +4,8 @@ import hashlib
 import boto3
 from auth import check_auth
 from format import format_response
+from validator.definitions import Record
+from validator.validate_record import validate_record
 
 
 N_VERSIONS = os.environ["N_VERSIONS"]
@@ -20,8 +22,16 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
+        # Validate register
+        verified_register = post_data["register"]
+
+        for record_id, record in verified_register.items():
+            record_ = Record(record, record_id)
+            record_ = validate_record(record_)
+            verified_register[record_id] = record_.get_record()
+
         # Create a unique key by combining the datasetID and the register hash
-        encoded_data = bytes(json.dumps(post_data["register"]).encode("UTF-8"))
+        encoded_data = bytes(json.dumps(verified_register).encode("UTF-8"))
         md5hash = str(hashlib.md5(encoded_data).hexdigest())
         key = f'{post_data["datasetID"]}/{md5hash}.json'
 
@@ -45,42 +55,3 @@ def lambda_handler(event, _):
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
-
-
-# # This function should save each row of the register and the dataset
-# DYNAMODB = boto3.resource("dynamodb")
-# DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
-
-
-# def lambda_handler(event, _):
-#     """
-#     When code exits with block, batch writer will send the data to DynamoDB.
-#     Batch write only allows 25 put_items operations or 16mb size uploads per batch.
-#     Upload is handled directly by batch_writer()
-#     """
-
-#     post_data = json.loads(event.get("body", "{}"))
-
-#     # Placeholder check user authorization
-#     authorized = check_auth(post_data["researcherID"])
-#     if not authorized:
-#         return format_response(403, "Not Authorized")
-
-#     try:
-
-#         register = post_data["register"]
-
-#         with DATASETS_TABLE.batch_writer() as batch:
-#             for record in list(register.items()):  # Iterate over tuples
-#                 batch.put_item(
-#                     Item={
-#                         "datasetID": post_data["datasetID"],
-#                         "recordID": record[0],
-#                         "record": record[1],
-#                     }
-#                 )
-
-#         return format_response(200, "Succesful upload")
-
-#     except Exception as e:  # pylint: disable=broad-except
-#         return format_response(403, e)
