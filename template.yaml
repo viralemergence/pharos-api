@@ -29,7 +29,7 @@ Parameters:
     Default: 5
   RDSStackName:
     Type: String
-    Default: pharos-api-david-dev-rds
+    Default: data-lab-rds
   DatabaseName:
     Type: String
     Default: pharos
@@ -360,10 +360,10 @@ Resources:
       CodeUri: src/lambda/rds_proxy/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue pharos-api-david-dev-rds-VPCSG # TODO
+          - !ImportValue data-lab-rds-VPCSG # TODO
         SubnetIds:
-          - !ImportValue pharos-api-david-dev-rds-SubnetA # TODO
-          - !ImportValue pharos-api-david-dev-rds-SubnetB # TODO
+          - !ImportValue data-lab-rds-SubnetA # TODO
+          - !ImportValue data-lab-rds-SubnetB # TODO
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -375,9 +375,9 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          HOST: !ImportValue pharos-api-david-dev-rds-RDSProxyEndpoint
+          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
           PORT: "5432"
-          DATABASE: !ImportValue pharos-api-david-dev-rds-RDSInstance
+          DATABASE: !ImportValue data-lab-rds-RDSInstance
           USERNAME: postgres
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
@@ -397,10 +397,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [
-                        ":",
-                        !ImportValue pharos-api-david-dev-rds-RDSProxyArn,
-                      ],
+                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
                     ]
 
   # LambdaStack:
