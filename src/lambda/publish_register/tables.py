@@ -23,7 +23,7 @@ class ResearcherRecords(Base):
 
 class Records(Base):
     __tablename__ = "Records"
-    record_id = Column(String(41), primary_key=True)  # compund key proj-set-rec
+    pharos_id = Column(String(41), primary_key=True)  # compund key proj-set-rec
     project_id = Column(String(20))
     dataset_id = Column(String(20))
     record_id = Column(String(20))
@@ -54,14 +54,14 @@ class Records(Base):
     length = Column(Numeric(7, 6))  # length units to meters 0.000000
 
 
-def create_records(pharos_id, researcherId, record):
+def create_records(pharosId, researcherId, record):
 
-    pr, dt, rec = pharos_id.split("-")
+    pr, dt, rec = pharosId.split("-")
 
-    research_record = ResearcherRecords(researcher_id=researcherId, record_id=pharos_id)
+    research_record = ResearcherRecords(researcher_id=researcherId, record_id=pharosId)
 
     record_ = Records(
-        record_id=pharos_id,
+        pharos_id=pharosId,
         project_id=pr,
         dataset_id=dt,
         record_id=rec,

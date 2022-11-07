@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 # from auth import check_auth
 from format import format_response
-from tables import Records, ResearcherRecords, create_record
+from tables import Records, ResearcherRecords, create_records
 
 
 RDS = boto3.client("rds")
@@ -49,7 +49,7 @@ def lambda_handler(event, _):
                 pharosId = (
                     f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
                 )
-                pharos_record, researcher_record = create_record(
+                pharos_record, researcher_record = create_records(
                     pharosId, post_data["researcherID"], record
                 )
                 records.extend([pharos_record, researcher_record])
