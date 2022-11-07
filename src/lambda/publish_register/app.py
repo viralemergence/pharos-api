@@ -46,9 +46,11 @@ def lambda_handler(event, _):
             records = []
 
             for record_id, record in post_data["register"].items():
-                id_ = f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
+                pharosId = (
+                    f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
+                )
                 pharos_record, researcher_record = create_record(
-                    post_data["researcherID"], id_, record
+                    pharosId, post_data["researcherID"], record
                 )
                 records.extend([pharos_record, researcher_record])
 
