@@ -2,6 +2,10 @@ import json
 import requests
 import pytest
 
+# Load register with one record
+with open("./tests/integration_tests/record.json") as file:
+    initial_record = json.load(file)
+
 
 def test_save_register_one_record():
     """Save a register with only one record."""
@@ -16,6 +20,11 @@ def test_load_register_one_record():
 def test_publish_register_one_record():
     """Publish a register with one record."""
     pass
+
+
+# Load register with multiple records
+with open("./tests/integration_tests/register.json") as file:
+    initial_record = json.load(file)
 
 
 def test_save_register_multiple_record():
