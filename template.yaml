@@ -358,12 +358,12 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: src/lambda/publish_register/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG # TODO
-        SubnetIds:
-          - !ImportValue data-lab-rds-SubnetA # TODO
-          - !ImportValue data-lab-rds-SubnetB # TODO
+      # VpcConfig:
+      # SecurityGroupIds:
+      #   - !ImportValue data-lab-rds-VPCSG # TODO
+      # SubnetIds:
+      #   - !ImportValue data-lab-rds-SubnetA # TODO
+      #   - !ImportValue data-lab-rds-SubnetB # TODO
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -392,6 +392,15 @@ Resources:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
         - Statement:
             - Effect: Allow
               Action:
