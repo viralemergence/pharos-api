@@ -382,6 +382,12 @@ Resources:
           PASSWORD: testingrds
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
