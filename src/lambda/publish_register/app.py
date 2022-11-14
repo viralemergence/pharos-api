@@ -13,6 +13,9 @@ DYNAMODB = boto3.resource("dynamodb")
 PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
+S3CLIENT = boto3.client("s3")
+DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+
 RDS = boto3.client("rds")
 HOST = os.environ["HOST"]
 PORT = os.environ["PORT"]
@@ -69,15 +72,31 @@ def lambda_handler(event, _):
 
             records = []
 
-            for record_id, record in post_data["register"].items():
-                pharosId = (
-                    f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
-                )
-                pharos_record, researcher_record = create_records(
-                    pharosId, post_data["researcherID"], record
-                )
-                records.extend([pharos_record, researcher_record])
+            for dataset in datasets:
+                # Retrieve last version of the register
+                key_list = S3CLIENT.list_objects_v2(
+                    Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset}/"
+                )["Contents"]
 
+                key_list.sort(key=lambda item: item["LastModified"], reverse=True)
+                key = key_list[0]["Key"]
+
+                register_response = S3CLIENT.get_object(
+                    Bucket=DATASETS_S3_BUCKET, Key=key
+                )
+                register = register_response["Body"].read().decode("UTF-8")
+
+                # Create records
+                for record_id, record in register.items():
+                    pharosId = (
+                        f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
+                    )
+                    pharos_record, researcher_record = create_records(
+                        pharosId, post_data["researcherID"], record
+                    )
+                    records.extend([pharos_record, researcher_record])
+
+            # Upload records
             session.add_all(records)
             session.commit()
 
