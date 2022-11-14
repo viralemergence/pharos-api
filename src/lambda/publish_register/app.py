@@ -9,6 +9,9 @@ from sqlalchemy.orm import sessionmaker
 from format import format_response
 from tables import Records, ResearcherRecords, create_records
 
+DYNAMODB = boto3.resource("dynamodb")
+PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
+DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 RDS = boto3.client("rds")
 HOST = os.environ["HOST"]
@@ -21,6 +24,27 @@ PASSWORD = os.environ["PASSWORD"]
 def lambda_handler(event, _):
 
     post_data = json.loads(event.get("body", "{}"))
+
+    # Retrieve datasets from project table
+    try:
+
+        project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
+        datasets = project["datasetIDs"]
+
+    except Exception as e:
+        return format_response(403, e)
+
+    # Retrieve meta from datasets and filter released
+    try:
+        for dataset_id in datasets:
+            dataset_meta = DATASETS_TABLE.get_item(
+                Key={"datasetID": dataset_id, "recordID": "_meta"}
+            )
+            if dataset_meta["releaseStatus"] != "Released":
+                datasets.remove(dataset_id)
+
+    except Exception as e:
+        return format_response(403, e)
 
     try:
 
