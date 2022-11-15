@@ -86,11 +86,11 @@ def lambda_handler(event, _):
                 )
                 register = register_response["Body"].read().decode("UTF-8")
 
+                register = json.loads(register)
+
                 # Create records
                 for record_id, record in register.items():
-                    pharosId = (
-                        f"{post_data['projectID']}-{post_data['datasetID']}-{record_id}"
-                    )
+                    pharosId = f"{post_data['projectID']}-{dataset}-{record_id}"
                     pharos_record, researcher_record = create_records(
                         pharosId, post_data["researcherID"], record
                     )
