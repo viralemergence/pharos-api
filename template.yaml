@@ -427,6 +427,8 @@ Resources:
           DATABASE: pharos
           USERNAME: postgres
           PASSWORD: testingrds
+          REGION: !Ref AWS::Region
+          BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
