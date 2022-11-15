@@ -357,7 +357,7 @@ Resources:
   PublishRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: src/lambda/publish_register/
+      CodeUri: src/lambda/publish_project/
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue data-lab-rds-VPCSG
@@ -369,7 +369,7 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /publish-register
+            Path: /publish-project
             Method: post
       Layers:
         - !Ref Libraries
