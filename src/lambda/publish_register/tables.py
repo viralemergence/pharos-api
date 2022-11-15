@@ -40,7 +40,6 @@ class Records(Base):
     detection_outcome = Column(String(12))
     location = Column(Geometry("Point"))
     precision = Column(Numeric(1, 0))  # 1 meter scale
-    country = Column(String(3))
     collection_date = Column(Date())
     animal_identifier = Column(String(40))
     host_species = Column(String(50))
@@ -80,7 +79,6 @@ def create_records(pharosId, researcherId, record):
         detection_outcome=record["Detection outcome"]["dataValue"],
         location=f"POINT({record['Longitude']['dataValue']} {record['Latitude']['dataValue']})",
         precision=1,  # record["Precision"]["dataValue"],
-        country="",  # record["Country"],
         collection_date=datetime.datetime.strptime(
             record["Collection date"]["dataValue"], "%d/%m/%Y"
         ).date(),  # datetime.datetime( f"{record["Year"]}/{record["Month"]}/{record["Day"]}", '%y/%m/%d')
