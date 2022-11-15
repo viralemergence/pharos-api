@@ -14,7 +14,7 @@ Parameters:
     Default: users
   DatasetsTableName:
     Type: String
-    Default: datasets
+    Default: datasets-2
   ProjectsTableName:
     Type: String
     Default: projects
