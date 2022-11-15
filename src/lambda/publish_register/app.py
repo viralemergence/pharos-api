@@ -7,7 +7,8 @@ from sqlalchemy.orm import sessionmaker
 
 # from auth import check_auth
 from format import format_response
-from tables import Records, ResearcherRecords, create_records
+from models import Records, ResearcherRecords
+from utils import create_records
 
 DYNAMODB = boto3.resource("dynamodb")
 PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
