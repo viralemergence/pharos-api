@@ -14,7 +14,7 @@ Parameters:
     Default: users
   DatasetsTableName:
     Type: String
-    Default: datasets-2
+    Default: datasets
   ProjectsTableName:
     Type: String
     Default: projects
@@ -71,7 +71,7 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
-  DatasetsTable:
+  DatasetsTable2:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     Properties:
