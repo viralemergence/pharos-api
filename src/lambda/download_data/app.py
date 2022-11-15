@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 import boto3
 import sqlalchemy
 from auth import check_auth
@@ -11,6 +12,8 @@ PORT = os.environ["PORT"]
 USERNAME = os.environ["USERNAME"]
 DATABASE = os.environ["DATABASE"]
 PASSWORD = os.environ["PASSWORD"]
+REGION = os.environ["REGION"]
+BUCKET = os.environ["BUCKET"]
 
 
 def lambda_handler(event, _):
@@ -36,10 +39,14 @@ def lambda_handler(event, _):
 
         connection = engine.connect()
 
+        date = datetime.datetime.utcnow().date()
+
+        file_path = f"data_{datetime.datetime.strftime(date, '%Y_%m_%d')}.csv"
+
+        s3_uri = f"aws_commons.create_s3_uri('{BUCKET}', '{file_path}', '{REGION}')"
+
         connection.execute(  # TODO
-            """SELECT * from aws_s3.query_export_to_s3('SELECT * FROM records', \
-                 aws_commons.create_s3_uri('sample-bucket', 'sample-filepath', 'us-west-2'), \ 
-                    options :='format csv, delimiter $$:$$');"""
+            f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM records', {s3_uri}, options :='format csv, delimiter $$:$$');"
         )
 
         connection.close()
