@@ -32,7 +32,7 @@ def lambda_handler(event, _):
     try:
 
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
-        datasets = project["datasetIDs"]
+        datasets = project["Item"]["datasetIDs"]
 
     except Exception as e:
         return format_response(403, e)
@@ -43,7 +43,7 @@ def lambda_handler(event, _):
             dataset_meta = DATASETS_TABLE.get_item(
                 Key={"datasetID": dataset_id, "recordID": "_meta"}
             )
-            if dataset_meta["releaseStatus"] != "Released":
+            if dataset_meta["Item"]["releaseStatus"] != "Released":
                 datasets.remove(dataset_id)
 
     except Exception as e:
