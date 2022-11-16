@@ -23,9 +23,9 @@ def lambda_handler(event, _):
 
     try:
         # Validate register
-        verified_register = post_data["register"]
+        verified_register = {}
 
-        for record_id, record in verified_register.items():
+        for record_id, record in post_data["register"].items():
             record_ = Record(record, record_id)
             record_ = validate_record(record_)
             verified_register[record_id] = record_.get_record()
