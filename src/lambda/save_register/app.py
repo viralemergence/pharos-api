@@ -51,7 +51,7 @@ def lambda_handler(event, _):
             delkey = dataset_list["Contents"][0]["Key"]
             S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
 
-        return format_response(200, "Succesful Upload")
+        return format_response(200, verified_register)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
