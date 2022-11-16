@@ -3,6 +3,7 @@ import json
 import datetime
 import boto3
 import sqlalchemy
+from sqlalchemy.engine import URL
 from auth import check_auth
 from format import format_response
 
@@ -21,10 +22,12 @@ def lambda_handler(event, _):
     post_data = json.loads(event.get("body", "{}"))
 
     authorized = check_auth(post_data["researcherID"])
+
     if not authorized:
         return format_response(403, "Not Authorized")
 
     try:
+
         database_url = URL.create(
             drivername="postgresql+psycopg2",
             host=HOST,
