@@ -44,12 +44,12 @@ def lambda_handler(event, _):
 
         date = datetime.datetime.utcnow().date()
 
-        file_path = f"data_{datetime.datetime.strftime(date, '%Y_%m_%d')}.csv"
+        file_path = f"data_{datetime.datetime.strftime(date, '%Y_%m_%d')}"
 
         s3_uri = f"aws_commons.create_s3_uri('{BUCKET}', '{file_path}', '{REGION}')"
 
         connection.execute(  # TODO
-            f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM records', {s3_uri}, options :='format csv, delimiter $$:$$');"
+            f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM Records', {s3_uri}, options :='format csv);"
         )
 
         connection.close()
