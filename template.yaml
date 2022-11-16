@@ -33,6 +33,9 @@ Parameters:
   DatabaseName:
     Type: String
     Default: pharos
+  DataDownloadBucket:
+    Type: String
+    Default: data-bucket
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -110,6 +113,16 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  DataDownload:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -403,7 +416,7 @@ Resources:
   DownloadDataFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: src/lambda/publish_project/
+      CodeUri: src/lambda/download_data/
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue data-lab-rds-VPCSG
@@ -415,7 +428,7 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /publish-project
+            Path: /download-data
             Method: post
       Layers:
         - !Ref Libraries
