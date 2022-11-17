@@ -2,9 +2,6 @@ from .validator import Validator, isfloat
 
 
 class Nested(Validator):
-
-    __slot__ = ()
-
     def _validate_presence(self):
         if (
             self.datapoint.dataValue["value"] != ""

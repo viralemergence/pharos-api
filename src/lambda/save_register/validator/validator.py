@@ -11,8 +11,6 @@ def isfloat(num: str):
 
 class Validator:
 
-    __slot__ = ("datapoint",)
-
     SUCCESS = "SUCCESS"
     FAILURE = "FAIL"
     WARNING = "WARNING"

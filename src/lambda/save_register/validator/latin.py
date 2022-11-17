@@ -2,9 +2,6 @@ from .validator import Validator
 
 
 class Latin(Validator):
-
-    __slot__ = ()
-
     def _validate_1_presence(self) -> None:
         if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}

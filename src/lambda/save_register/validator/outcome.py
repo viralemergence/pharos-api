@@ -2,9 +2,6 @@ from .validator import Validator
 
 
 class Detectionoutcome(Validator):
-
-    __slot__ = ()
-
     def _validate_type(self):
         if self.datapoint.dataValue.isalpha():
             return {"status": self.SUCCESS}
