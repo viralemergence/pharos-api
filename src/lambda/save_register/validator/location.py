@@ -25,6 +25,12 @@ class Location(Validator):
 
     def _validate_3_format(self):
         sequences = self.datapoint.dataValue.split(".")
+        if len(sequences) < 2:
+            return {
+                "status": self.FAILURE,
+                "message": "Coordinates should have decimal points.",
+            }
+
         if len(sequences[1]) == 5:
             return {"status": self.SUCCESS, "message": "Ready to release."}
         return {
