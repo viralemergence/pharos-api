@@ -3,33 +3,7 @@ from .ncbi import Ncbi
 from .latin import Latin
 from .location import Location
 from .default import Default
-
-
-def validate_location(latitude: Datapoint, longitude: Datapoint) -> dict:
-    """Verify if the location is valid"""
-
-    try:
-        latitude_ = float(latitude.dataValue)
-        longitude_ = float(longitude.dataValue)
-
-        if -90 <= latitude_ <= 90 and -180 <= longitude_ <= 180:
-            report = {"status": "Success"}
-
-    except Exception:
-        report = {"status": "Failure", "message": "Invalid location."}
-
-    latitude.report["_validate_location"] = report
-    longitude.report["_validate_location"] = report
-
-    return {"Latitude": latitude, "Location": longitude}  # Maybe unnecesary return
-
-
-# Placeholder
-def validate_date(year, month, day) -> dict:
-    try:
-        return {"status": "Success"}
-    except Exception:
-        return {"status": "Success", "message": "Invalid date."}
+from .date import Date
 
 
 def validate_record(record: Record) -> Record:
@@ -61,9 +35,6 @@ def validate_record(record: Record) -> Record:
             "Mass units",
             "Length",
             "Length units",
-            "Collection day",
-            "Collection month",
-            "Collection year",
         ]
         if hasattr(record, key)
     }
@@ -85,8 +56,18 @@ def validate_record(record: Record) -> Record:
     }
 
     location = {
-        key: Location(getattr(record, key)).datapoint
+        key: Location(getattr(record, key), record).datapoint
         for key in ["Latitude", "Longitude"]
+        if hasattr(record, key)
+    }
+
+    date = {
+        key: Date(getattr(record, key), record).datapoint
+        for key in [
+            "Collection day",
+            "Collection month",
+            "Collection year",
+        ]
         if hasattr(record, key)
     }
 
@@ -96,6 +77,7 @@ def validate_record(record: Record) -> Record:
         + list(latin.keys())
         + list(location.keys())
         + list(default.keys())
+        + list(date.keys())
         + ["id"]
     )
     keys_ = [key for key in keys if key not in valid_keys]
@@ -107,5 +89,5 @@ def validate_record(record: Record) -> Record:
         setattr(value, "report", non_recognized)
         record.__dict__[k] = value
 
-    record.__dict__.update({**ncbi, **latin, **location, **default})
+    record.__dict__.update({**ncbi, **latin, **location, **default, **date})
     return record
