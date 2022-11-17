@@ -16,7 +16,7 @@ class Latin(Validator):
     def _validate_3_type(self):
         value = self.datapoint.dataValue.replace(" ", "")
         if value.isalpha():
-            return {"status": self.SUCCESS}
+            return {"status": self.SUCCESS, "message": "Ready to release."}
 
         return {
             "status": self.FAILURE,

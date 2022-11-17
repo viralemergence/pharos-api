@@ -6,4 +6,4 @@ class Default(Validator):
     __slot__ = ()
 
     def _validate_(self):
-        return {"status": self.SUCCESS}
+        return {"status": self.SUCCESS, "message": "Ready to release."}
