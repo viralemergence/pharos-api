@@ -2,8 +2,9 @@ from .validator import Validator, isfloat
 
 
 class Location(Validator):
-
-    __slot__ = ()
+    def __init__(self, datapoint, record) -> None:
+        self.record = record
+        super().__init__(datapoint)
 
     def _validate_1_presence(self):
 
@@ -24,9 +25,27 @@ class Location(Validator):
 
     def _validate_3_format(self):
         sequences = self.datapoint.dataValue.split(".")
-        if len(sequences[0]) == 5:
+        if len(sequences[1]) == 5:
             return {"status": self.SUCCESS, "message": "Ready to release."}
         return {
             "status": self.FAILURE,
             "message": "Coordinates should have 5 decimal points.",
         }
+
+    def _validate_4_location(self):
+        """Verify if the location is valid"""
+
+        if hasattr(self.record, "Latitude") and hasattr(self.record, "Longitude"):
+
+            try:
+
+                latitude = float(self.record.Latitude.dataValue)
+                longitude = float(self.record.Longitude.dataValue)
+
+                if -90 <= latitude <= 90 and -180 <= longitude <= 180:
+                    return {"status": self.SUCCESS, "message": "Ready for release."}
+
+            except Exception:
+                return {"status": self.FAILURE, "message": "Invalid location."}
+
+        return {"status": self.FAILURE, "message": "Invalid location, missing values."}
