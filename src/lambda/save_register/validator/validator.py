@@ -28,6 +28,9 @@ class Validator:
             for validation in validations:
                 report = getattr(self, validation)()
 
+                if report is None:
+                    return
+
                 if report["status"] == self.FAILURE:
                     break
 
