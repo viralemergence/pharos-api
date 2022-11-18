@@ -8,12 +8,14 @@ class Location(Validator):
 
     def _validate_1_presence(self):
 
-        if hasattr(self.datapoint, "dataValue"):
+        if hasattr(self.record, "Latitude") and hasattr(
+            self.record, "Longitude"
+        ):  # if hasattr(self.datapoint, "dataValue"):
             return {"status": self.SUCCESS}
-        return {
-            "status": self.FAILURE,
-            "message": "Records must have a location.",
-        }
+        # return {
+        #     "status": self.FAILURE,
+        #     "message": "Records must have a location.",
+        # }
 
     def _validate_2_type(self):
         if isfloat(self.datapoint.dataValue):
