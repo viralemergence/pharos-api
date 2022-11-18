@@ -22,7 +22,7 @@ class Location(Validator):
             return {"status": self.SUCCESS}
         return {
             "status": self.FAILURE,
-            "message": "Decimal degrees should be expressed with . and not ,",
+            "message": "Coordinates should be decimal numbers.",
         }
 
     def _validate_3_format(self):
@@ -30,11 +30,12 @@ class Location(Validator):
         if len(sequences) < 2:
             return {
                 "status": self.FAILURE,
-                "message": "Coordinates should have decimal points.",
+                "message": "Coordinates should have 5 decimal numbers separated with a point.",
             }
 
         if len(sequences[1]) == 5:
             return {"status": self.SUCCESS, "message": "Ready to release."}
+
         return {
             "status": self.FAILURE,
             "message": "Coordinates should have 5 decimal points.",
