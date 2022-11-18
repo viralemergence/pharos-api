@@ -8,14 +8,18 @@ class Date(Validator):
         super().__init__(datapoint)
 
     def _validate_1_presence(self):
-        if hasattr(self.datapoint, "dataValue"):
+        if (
+            hasattr(self.record, "Collection day")
+            and hasattr(self.record, "Collection month")
+            and hasattr(self.record, "Collection year")
+        ):
             return {"status": self.SUCCESS}
 
-        else:
-            return {
-                "status": self.FAILURE,
-                "message": "Records must have a date.",
-            }
+        # else:
+        #     return {
+        #         "status": self.FAILURE,
+        #         "message": "Records must have a date.",
+        #     }
 
     def _validate_2_type(self):
         if self.datapoint.dataValue.isdigit():
