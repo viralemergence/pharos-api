@@ -32,26 +32,47 @@ class Date(Validator):
             }
 
     def _validate_4_date(self):
-        if (
-            hasattr(self.record, "Collection day")
-            and hasattr(self.record, "Collection month")
-            and hasattr(self.record, "Collection year")
-        ):
 
-            try:
-                day = int(getattr(self.record, "Collection day").dataValue)
-                month = int(getattr(self.record, "Collection month").dataValue)
-                year = int(getattr(self.record, "Collection year").dataValue)
+        try:
+            day = int(getattr(self.record, "Collection day").dataValue)
+            month = int(getattr(self.record, "Collection month").dataValue)
+            year = int(getattr(self.record, "Collection year").dataValue)
 
-                date_ = datetime.date(
-                    year=year,
-                    month=month,
-                    day=day,
-                )
+            datetime.date(year, month, day)
 
-                return {"status": self.SUCCESS, "message": "Ready to release."}
+            setattr(
+                getattr(self.record, "Collection day"),
+                "report",
+                {"status": self.SUCCESS, "message": "Ready to release."},
+            )
 
-            except Exception:
-                return {"status": self.FAILURE, "message": "Invalid date."}
+            setattr(
+                getattr(self.record, "Collection month"),
+                "report",
+                {"status": self.SUCCESS, "message": "Ready to release."},
+            )
 
-        return {"status": self.FAILURE, "message": "Invalid date, missing values."}
+            setattr(
+                getattr(self.record, "Collection year"),
+                "report",
+                {"status": self.SUCCESS, "message": "Ready to release."},
+            )
+
+        except Exception:
+            setattr(
+                getattr(self.record, "Collection day"),
+                "report",
+                {"status": self.FAILURE, "message": "Invalid date."},
+            )
+
+            setattr(
+                getattr(self.record, "Collection month"),
+                "report",
+                {"status": self.FAILURE, "message": "Invalid date."},
+            )
+
+            setattr(
+                getattr(self.record, "Collection year"),
+                "report",
+                {"status": self.FAILURE, "message": "Invalid date."},
+            )
