@@ -1,10 +1,9 @@
-import datetime
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column
 from sqlalchemy.types import Numeric, String, Date, Boolean, BigInteger, TypeDecorator
 from geoalchemy2 import Geometry
 
-Base = declarative_base()
+
 class StringToNumeric(TypeDecorator):
     """Typecast string to numeric."""
 
@@ -33,7 +32,11 @@ def declarative_constructor(self, **kwargs):
         if not hasattr(attribute_type, k):
             continue
         setattr(self, k, kwargs[k])
+
+
 Base = declarative_base(constructor=declarative_constructor)
+
+
 class Researchers(Base):
     __tablename__ = "researchers"
     researcher_id = Column(String(20), primary_key=True)
