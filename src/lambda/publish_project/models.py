@@ -5,6 +5,16 @@ from sqlalchemy.types import Numeric, String, Date, Boolean, BigInteger
 from geoalchemy2 import Geometry
 
 Base = declarative_base()
+class StringToNumeric(TypeDecorator):
+    """Typecast string to numeric."""
+
+    impl = Numeric
+
+    def __init__(self, *arg, **kw):
+        TypeDecorator.__init__(self, *arg, **kw)
+
+    def process_bind_param(self, value, dialect):
+        return float(value)
 
 
 class Researcher(Base):
@@ -41,7 +51,7 @@ class Records(Base):
     pathogen_ncbi_tax_id = Column(String(8))
     detection_outcome = Column(String(12))
     location = Column(Geometry("Point"))
-    spatial_uncertainity = Column(Numeric(1, 0))  # 1 meter scale
+    spatial_uncertainity = Column(StringToNumeric(1, 0))  # 1 meter scale
     collection_date = Column(Date())
     animal_identifier = Column(String(40))
     host_species = Column(String(50))
@@ -53,3 +63,5 @@ class Records(Base):
     age = Column(BigInteger())  # age units seconds 100 years ==> integer of 10 units
     mass = Column(Numeric(7, 6))  # mass units to kg 0.000000
     length = Column(Numeric(7, 6))  # length units to meters 0.000000
+    mass = Column(StringToNumeric(7, 6))  # mass units to kg 0.000000
+    length = Column(StringToNumeric(7, 6))  # length units to meters 0.000000
