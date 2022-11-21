@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 # from auth import check_auth
 from format import format_response
-from models import Records, ResearcherRecords
+from models import Records, ResearchersRecords
 from utils import create_records
 
 DYNAMODB = boto3.resource("dynamodb")
@@ -67,7 +67,7 @@ def lambda_handler(event, _):
         Session = sessionmaker(bind=engine)
 
         Records.__table__.create(engine, checkfirst=True)
-        ResearcherRecords.__table__.create(engine, checkfirst=True)
+        ResearchersRecords.__table__.create(engine, checkfirst=True)
 
         with Session() as session:
 
