@@ -9,20 +9,22 @@ Base = declarative_base()
 
 class Researcher(Base):
     __tablename__ = "Researchers"
+class Researchers(Base):
+    __tablename__ = "researchers"
     researcher_id = Column(String(20), primary_key=True)
     first_name = Column(String(40))
     last_name = Column(String(40))
 
 
 class ResearchersRecords(Base):
-    __tablename__ = "ResearcherRecords"
+    __tablename__ = "researchersrecords"
     id_pk = Column(BigInteger(), primary_key=True, autoincrement=True)
     researcher_id = Column(String(20))
     record_id = Column(String(41))
 
 
 class Records(Base):
-    __tablename__ = "Records"
+    __tablename__ = "records"
     pharos_id = Column(String(41), primary_key=True)  # compund key proj-set-rec
     project_id = Column(String(20))
     dataset_id = Column(String(20))
