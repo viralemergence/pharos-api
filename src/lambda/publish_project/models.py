@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column
-from sqlalchemy.types import Numeric, String, Date, Boolean, BigInteger
+from sqlalchemy.types import Numeric, String, Date, Boolean, BigInteger, TypeDecorator
 from geoalchemy2 import Geometry
 
 Base = declarative_base()
