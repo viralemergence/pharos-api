@@ -17,8 +17,23 @@ class StringToNumeric(TypeDecorator):
         return float(value)
 
 
-class Researcher(Base):
-    __tablename__ = "Researchers"
+class StringToInteger(TypeDecorator):
+    """Typecast string to integer."""
+
+    impl = BigInteger
+
+    def process_bind_param(self, value, dialect):
+        return int(value)
+
+
+def declarative_constructor(self, **kwargs):
+    """Don't raise a TypeError for unknown attribute names."""
+    attribute_type = type(self)
+    for k in kwargs:
+        if not hasattr(attribute_type, k):
+            continue
+        setattr(self, k, kwargs[k])
+Base = declarative_base(constructor=declarative_constructor)
 class Researchers(Base):
     __tablename__ = "researchers"
     researcher_id = Column(String(20), primary_key=True)
@@ -60,8 +75,8 @@ class Records(Base):
     life_stage = Column(String(15))
     organism_sex = Column(String(1))  # M, F, U
     dead_or_alive = Column(String(7))  # Y, N, U
-    age = Column(BigInteger())  # age units seconds 100 years ==> integer of 10 units
-    mass = Column(Numeric(7, 6))  # mass units to kg 0.000000
-    length = Column(Numeric(7, 6))  # length units to meters 0.000000
+    age = Column(
+        StringToInteger()
+    )  # age units seconds 100 years ==> integer of 10 units
     mass = Column(StringToNumeric(7, 6))  # mass units to kg 0.000000
     length = Column(StringToNumeric(7, 6))  # length units to meters 0.000000
