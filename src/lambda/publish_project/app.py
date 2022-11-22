@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 # from auth import check_auth
 from format import format_response
-from models import Records, ResearchersRecords
+from models import Tests, ResearchersTests
 from utils import create_records
 
 DYNAMODB = boto3.resource("dynamodb")
@@ -33,19 +33,19 @@ def lambda_handler(event, _):
     try:
 
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
-        datasets = project["Item"]["datasetIDs"]
+        datasets_ids = project["Item"]["datasetIDs"]
 
     except Exception as e:
         return format_response(403, e)
 
     # Retrieve meta from datasets and filter released
     try:
-        for dataset_id in datasets:
+        for dataset_id in datasets_ids:
             dataset_meta = DATASETS_TABLE.get_item(
                 Key={"datasetID": dataset_id, "recordID": "_meta"}
             )
             if dataset_meta["Item"]["releaseStatus"] != "Released":
-                datasets.remove(dataset_id)
+                datasets_ids.remove(dataset_id)
 
     except Exception as e:
         return format_response(403, e)
@@ -66,17 +66,17 @@ def lambda_handler(event, _):
 
         Session = sessionmaker(bind=engine)
 
-        Records.__table__.create(engine, checkfirst=True)
-        ResearchersRecords.__table__.create(engine, checkfirst=True)
+        Tests.__table__.create(engine, checkfirst=True)
+        ResearchersTests.__table__.create(engine, checkfirst=True)
 
         with Session() as session:
 
             records = []
 
-            for dataset in datasets:
+            for dataset_id in datasets_ids:
                 # Retrieve last version of the register
                 key_list = S3CLIENT.list_objects_v2(
-                    Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset}/"
+                    Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset_id}/"
                 )["Contents"]
 
                 key_list.sort(key=lambda item: item["LastModified"], reverse=True)
@@ -91,11 +91,16 @@ def lambda_handler(event, _):
 
                 # Create records
                 for record_id, record in register.items():
-                    pharosId = f"{post_data['projectID']}-{dataset}-{record_id}"
-                    pharos_record, researcher_record = create_records(
-                        pharosId, post_data["researcherID"], record
+
+                    test_record, researcher_test_record = create_records(
+                        post_data["projectID"],
+                        dataset_id,
+                        record_id,
+                        post_data["researcherID"],
+                        record,
                     )
-                    records.extend([pharos_record, researcher_record])
+
+                    records.extend([test_record, researcher_test_record])
 
             # Upload records
             session.add_all(records)

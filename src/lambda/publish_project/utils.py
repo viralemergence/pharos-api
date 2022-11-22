@@ -1,5 +1,5 @@
 import datetime
-from models import Records, ResearchersRecords
+from models import Tests, ResearchersTests
 
 
 def preprocess_record(record, record_id, dataset_id, project_id) -> dict:
@@ -30,12 +30,10 @@ def preprocess_record(record, record_id, dataset_id, project_id) -> dict:
 
 def create_records(project_id, dataset_id, record_id, researcher_id, record):
 
-    research_record = ResearchersRecords(
+    researcher_test_record = ResearchersTests(
         researcher_id=researcher_id, record_id=f"{project_id}-{dataset_id}-{record_id}"
     )
 
-    pharos_record = Records(
-        **preprocess_record(record, record_id, dataset_id, project_id)
-    )
+    test_record = Tests(**preprocess_record(record, record_id, dataset_id, project_id))
 
-    return pharos_record, research_record
+    return test_record, researcher_test_record

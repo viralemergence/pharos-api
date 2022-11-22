@@ -44,15 +44,15 @@ class Researchers(Base):
     last_name = Column(String(40))
 
 
-class ResearchersRecords(Base):
-    __tablename__ = "researchersrecords"
+class ResearchersTests(Base):
+    __tablename__ = "researcherstests"
     id_pk = Column(BigInteger(), primary_key=True, autoincrement=True)
     researcher_id = Column(String(20))
     record_id = Column(String(41))
 
 
-class Records(Base):
-    __tablename__ = "records"
+class Tests(Base):
+    __tablename__ = "tests"
     pharos_id = Column(String(41), primary_key=True)  # compund key proj-set-rec
     project_id = Column(String(20))
     dataset_id = Column(String(20))
@@ -80,7 +80,7 @@ class Records(Base):
     # detection_measurement_units
     pathogen = Column(String(50))
     pathogen_ncbi_tax_id = Column(String(8))
-    # genbanck_accession
+    # genbank_accession
     # detection_comments
     organism_sex = Column(String(1))  # M, F, U
     dead_or_alive = Column(String(7))  # Y, N, U
