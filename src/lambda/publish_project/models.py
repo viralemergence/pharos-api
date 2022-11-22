@@ -57,29 +57,41 @@ class Records(Base):
     project_id = Column(String(20))
     dataset_id = Column(String(20))
     record_id = Column(String(20))
-    test_id = Column(String(25))
+    row_id = Column(String(25))
     sample_id = Column(String(25))
-    # pool = Column(Boolean)
     animal_id = Column(String(32))
-    collection_method = Column(String(50))
-    detection_method = Column(String(50))
-    detection_target = Column(String(50))
-    detection_target_ncbi_tax_id = Column(String(8))
-    pathogen = Column(String(50))
-    pathogen_ncbi_tax_id = Column(String(8))
-    detection_outcome = Column(String(12))
-    location = Column(Geometry("Point"))
-    spatial_uncertainity = Column(StringToNumeric(1, 0))  # 1 meter scale
-    collection_date = Column(Date())
-    animal_identifier = Column(String(40))
     host_species = Column(String(50))
     host_ncbi_tax_id = Column(String(8))
-    # host_uncertanity = Column(String(15))
-    life_stage = Column(String(15))
+    location = Column(Geometry("Point"))  # latitude, longitude
+    spatial_uncertainity = Column(
+        StringToNumeric(1, 0)
+    )  # 1 meter scale / spatial uncertainity and spatial uncertainity units
+    collection_date = Column(
+        Date()
+    )  # collection day, collection month, collection year
+    collection_method_or_tissue = Column(String(50))
+    detection_method = Column(String(50))
+    # primer_sequence
+    # primer_citation
+    detection_target = Column(String(50))
+    detection_target_ncbi_tax_id = Column(String(8))
+    detection_outcome = Column(String(12))
+    # detection_measurement
+    # detection_measurement_units
+    pathogen = Column(String(50))
+    pathogen_ncbi_tax_id = Column(String(8))
+    # genbanck_accession
+    # detection_comments
     organism_sex = Column(String(1))  # M, F, U
     dead_or_alive = Column(String(7))  # Y, N, U
+    # health_notes
+    life_stage = Column(String(15))
     age = Column(
         StringToInteger()
-    )  # age units seconds 100 years ==> integer of 10 units
-    mass = Column(StringToNumeric(7, 6))  # mass units to kg 0.000000
-    length = Column(StringToNumeric(7, 6))  # length units to meters 0.000000
+    )  # age units seconds 100 years ==> integer of 10 digits / age, age units
+    mass = Column(StringToNumeric(7, 6))  # mass units to kg 0.000000 / mass, mass units
+    length = Column(
+        StringToNumeric(7, 6)
+    )  # length units to meters 0.000000 / length, length units
+    # pool = Column(Boolean)
+    # host_uncertanity = Column(String(15))
