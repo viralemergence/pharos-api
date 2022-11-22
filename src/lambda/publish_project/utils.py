@@ -11,7 +11,8 @@ def preprocess_record(record, record_id, dataset_id, project_id) -> dict:
     record_.update(
         {
             "collection_date": datetime.datetime.strptime(
-                record_["collection_date"], "%d/%m/%Y"
+                f"{record_['collection_day']}/{record_['collection_month']}/{record_['collection_year']}",
+                "%d/%m/%Y",
             ).date()
         }
     )
