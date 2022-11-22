@@ -28,10 +28,14 @@ def preprocess_record(record, record_id, dataset_id, project_id) -> dict:
     return record_
 
 
-def create_records(pharosId, researcherId, record):
+def create_records(project_id, dataset_id, record_id, researcher_id, record):
 
-    research_record = ResearchersRecords(researcher_id=researcherId, record_id=pharosId)
+    research_record = ResearchersRecords(
+        researcher_id=researcher_id, record_id=f"{project_id}-{dataset_id}-{record_id}"
+    )
 
-    pharos_record = Records(**preprocess_record(record))
+    pharos_record = Records(
+        **preprocess_record(record, record_id, dataset_id, project_id)
+    )
 
     return pharos_record, research_record
