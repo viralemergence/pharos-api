@@ -93,7 +93,7 @@ class Records(Base):
         StringToNumeric(12, 6)
     )  # mass units to kg xxxxxx.xxxxxx / mass, mass units / tons - mg
     length = Column(
-        StringToNumeric(7, 6)
-    )  # length units to meters 0.000000 / length, length units
+        StringToNumeric(8, 6)
+    )  # length units to meters xx.xxxxxx / length, length units / m - mm
     # pool = Column(Boolean)
     # host_uncertanity = Column(String(15))
