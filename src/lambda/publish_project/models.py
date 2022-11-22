@@ -89,7 +89,9 @@ class Records(Base):
     age = Column(
         StringToInteger()
     )  # age units seconds 100 years ==> integer of 10 digits / age, age units
-    mass = Column(StringToNumeric(7, 6))  # mass units to kg 0.000000 / mass, mass units
+    mass = Column(
+        StringToNumeric(12, 6)
+    )  # mass units to kg xxxxxx.xxxxxx / mass, mass units / tons - mg
     length = Column(
         StringToNumeric(7, 6)
     )  # length units to meters 0.000000 / length, length units
