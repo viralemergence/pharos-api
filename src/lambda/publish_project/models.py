@@ -63,7 +63,7 @@ class Tests(Base):
     host_species = Column(String(50))
     host_ncbi_tax_id = Column(String(8))
     location = Column(Geometry("Point"))  # latitude, longitude
-    spatial_uncertainity = Column(
+    spatial_uncertainty = Column(
         StringToNumeric(1, 0)
     )  # 1 meter scale / spatial uncertainity and spatial uncertainity units
     collection_date = Column(
