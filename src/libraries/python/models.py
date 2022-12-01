@@ -57,7 +57,7 @@ class Tests(Base):
     project_id = Column(String(20))
     dataset_id = Column(String(20))
     record_id = Column(String(20))
-    row_id = Column(String(25))
+    # row_id = Column(String(25))
     sample_id = Column(String(25), default=None)
     animal_id = Column(String(32), default=None)
     host_species = Column(String(50))
