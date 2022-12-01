@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 # from auth import check_auth
 from format import format_response
 from models import Tests, ResearchersTests
-from create_record import create_records
+from create_record import create_records, verify_record
 
 DYNAMODB = boto3.resource("dynamodb")
 PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
@@ -91,6 +91,11 @@ def lambda_handler(event, _):
 
                 # Create records
                 for record_id, record in register.items():
+
+                    is_valid_record = verify_record(record)
+
+                    if not is_valid_record:
+                        return format_response(400, "Invalid record found.")
 
                     test_record, researcher_test_record = create_records(
                         post_data["projectID"],
