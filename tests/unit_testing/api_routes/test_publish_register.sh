@@ -7,4 +7,4 @@ if [[ -z "$1" ]];
         API=$1
 fi
 
-curl -X POST -d "@payload_publish_register.json" $API/publish-register
+curl -X POST -d "@payload_publish_register.json" $API/publish-project
