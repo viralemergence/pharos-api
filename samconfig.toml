@@ -8,19 +8,6 @@ tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 [default.build.parameters]
 tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 
-
-[dev]
-[dev.deploy]
-[dev.deploy.parameters]
-stack_name = "pharos-api-dev"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
-s3_prefix = "pharos-api-dev"
-region = "us-west-1"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-disable_rollback = false
-parameter_overrides
-
 [dev]
 [dev.deploy]
 [dev.deploy.parameters]
