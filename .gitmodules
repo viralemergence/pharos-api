@@ -1,0 +1,3 @@
+[submodule "pharos-rds"]
+	path = pharos-rds
+	url = git@github.com:talus-analytics-bus/pharos-rds.git

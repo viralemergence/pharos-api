@@ -11,34 +11,30 @@ Parameters:
     Default: "http://localhost:8000"
   UsersTableName:
     Type: String
-    Default: "users"
+    Default: users
   DatasetsTableName:
     Type: String
-    Default: "datasets"
+    Default: datasets
   ProjectsTableName:
-    Type: "String"
-    Default: "projects"
+    Type: String
+    Default: projects
   LayerName:
-    Type: "String"
-    Default: "layer"
-  # RDSProxyName:
-  #   Type: "String"
-  #   Default: "proxy"
-  # RDSProxyPolicyName:
-  #   Type: "String"
-  #   Default: "proxy-policy"
-  # RDSProxyUserName:
-  #   Type: "String"
-  #   Default: database-user
-  # RDSProxyEndpointName:
-  #   Type: "String"
-  #   Default: proxy-endpoint
-  # SubnetIDs:
-  #   Type: "String"
-  #   Default: "subnet-ba874cd3,subnet-52ffe52a,subnet-7183bb3b"
-  # DBInstance:
-  #   Type: "String"
-  #   Default: pharos-testing-1019
+    Type: String
+    Default: layer
+  DatasetsS3Bucket:
+    Type: String
+    Default: bucket
+  NVersions:
+    Type: String
+    Default: 5
+  RDSStackName:
+    Type: String
+    Default: data-lab-rds
+  DatabaseName:
+    Type: String
+    Default: pharos
+
+# comment to force build
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -54,62 +50,6 @@ Globals:
     TracingEnabled: True
 
 Resources:
-  # RDSProxy:
-  #   Type: AWS::RDS::DBProxy
-  #   Properties:
-  #     Auth:
-  #       - AuthScheme: SECRETS
-  #         IAMAuth: DISABLED # Try with rds for token authentication
-  #         SecretArn: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pharos-api-david-dev-database-user-1019-AKKGDV # TODO
-  #     DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
-  #     EngineFamily: POSTGRESQL
-  #     IdleClientTimeout: 600 # The number of seconds that a connection to the proxy can be inactive before the proxy disconnects it
-  #     DebugLogging: True # Includes detailed information about SQL statements in its logs. This information helps you to debug issues involving SQL behavior or the performance and scalability of the proxy connections.
-  #     RequireTLS: True # Requiered if IAM auth is used
-  #     RoleArn: !GetAtt RDSProxyRole.Arn # The Amazon Resource Name (ARN) of the IAM role that the proxy uses to access secrets in AWS Secrets Manager.
-  #     VpcSubnetIds: !Split [",", !Ref SubnetIDs] # The target subnet will be the one where the DB instance is located.
-  #     VpcSecurityGroupIds:
-  #       - sg-93fb35fa
-
-  # RDSProxyRole: #IAM role to be associated with the RDS Proxy.
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Statement:
-  #         - Effect: Allow
-  #           Action: sts:AssumeRole
-  #           Principal:
-  #             Service:
-  #               - rds.amazonaws.com
-  #     Policies:
-  #       - PolicyName:
-  #           !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyPolicyName]]
-  #         PolicyDocument:
-  #           Statement:
-  #             - Effect: Allow
-  #               Action:
-  #                 - secretsmanager:GetResourcePolicy
-  #                 - secretsmanager:GetSecretValue
-  #                 - secretsmanager:DescribeSecret
-  #                 - secretsmanager:ListSecretVersionIds
-  #               Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pharos-api-david-dev-database-user-1019-AKKGDV # TODO
-  #             - Effect: Allow
-  #               Action: kms:Decrypt
-  #               Resource: "*"
-
-  # ProxyTargetGroup:
-  #   Type: AWS::RDS::DBProxyTargetGroup
-  #   Properties:
-  #     DBProxyName: !Join ["-", [!Ref AWS::StackName, !Ref RDSProxyName]]
-  #     DBInstanceIdentifiers:
-  #       - !Ref DBInstance # TODO DB instance identifiers.
-  #     TargetGroupName: default
-  #     ConnectionPoolConfigurationInfo:
-  #       MaxConnectionsPercent: 30 # Limit to 30% of db max connections
-  #       MaxIdleConnectionsPercent: 12
-  #       ConnectionBorrowTimeout: 20 # The number of seconds for a proxy to wait for a connection to become available in the connection pool. Only applies when the proxy has opened its maximum number of connections and all connections are busy with client sessions.
-  #   DependsOn: RDSProxy
-
   Libraries:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -162,6 +102,16 @@ Resources:
           KeyType: "HASH" # Partition key
       BillingMode: "PAY_PER_REQUEST"
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+
+  DatasetsS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -280,6 +230,7 @@ Resources:
     DependsOn:
       - UsersTable
       - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/save_register/
       Events:
@@ -290,25 +241,33 @@ Resources:
             Method: post
       Layers:
         - !Ref Libraries
+      Timeout: 300
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          N_VERSIONS: !Ref NVersions # S3 implmentation
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
       - UsersTable
       - DatasetsTable
+      - DatasetsS3
     Properties:
       CodeUri: src/lambda/load_register/
       Events:
@@ -319,6 +278,7 @@ Resources:
             Method: post
       Layers:
         - !Ref Libraries
+      Timeout: 300
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -326,12 +286,17 @@ Resources:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   SaveProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -391,35 +356,65 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  # RDSFunction:
-  #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  RDSInsertFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/lambda/rds_proxy/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue data-lab-rds-VPCSG # TODO
+        SubnetIds:
+          - !ImportValue data-lab-rds-SubnetA # TODO
+          - !ImportValue data-lab-rds-SubnetB # TODO
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /rds-proxy
+            Method: post
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
+          PORT: "5432"
+          DATABASE: !ImportValue data-lab-rds-RDSInstance
+          USERNAME: postgres
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rds-db:connect
+              Resource: !Join
+                - ":"
+                - - arn:aws:rds-db
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - db-user
+                  - !Select [
+                      6,
+                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                    ]
+
+  # LambdaStack:
+  #   Type: AWS::CloudFormation::Stack
   #   Properties:
-  #     CodeUri: src/lambda/rds_proxy/
-  #     VpcConfig:
-  #       SecurityGroupIds:
-  #         - sg-93fb35fa
-  #       SubnetIds: !Split [",", !Ref SubnetIDs]
-  #     Events:
-  #       Auth:
-  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-  #         Properties:
-  #           Path: /rds-proxy
-  #           Method: post
-  #     Layers:
-  #       - !Ref Libraries
-  #     Environment:
-  #       Variables:
-  #         CORS_ALLOW: !Ref CorsAllow
-  #         USERS_TABLE_NAME:
-  #           !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-  #     Policies:
-  #       - DynamoDBCrudPolicy:
-  #           TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-  #       - Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - rds-db:connect
-  #             Resource: !Sub arn:aws:rds-db:${AWS::Region}:560812044035:dbuser:prx-0cb4d9b556123bcba/*
+  #     TemplateURL: ./pharos-rds/lambda.yaml
+  #     Parameters:
+  #       RDSEndpoint: !Join ["-", [!Ref RDSStackName, RDSEndpoint]]
+  #       RDSPort: !Join ["-", [!Ref RDSStackName, Port]]
+  #       DatabaseName: !Join ["-", [!Ref AWS::StackName, !Ref DatabaseName]]
+  #       MasterSecret: !Join ["-", [!Ref RDSStackName, Secret]]
+  #       SubnetA: !Join ["-", [!Ref RDSStackName, SubnetA]]
+  #       SubnetB: !Join ["-", [!Ref RDSStackName, SubnetB]]
+  #       RDSInstance: !Join ["-", [!Ref RDSStackName, RDSInstance]]
+  #       VPCSG: !Join ["-", [!Ref RDSStackName, VPCSG]]
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
