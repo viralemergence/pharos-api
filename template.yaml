@@ -34,6 +34,8 @@ Parameters:
     Type: String
     Default: pharos
 
+# comment to force build
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
