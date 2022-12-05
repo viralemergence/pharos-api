@@ -1,4 +1,7 @@
 version = 0.1
+[default.deploy.parameters]
+tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
+
 [dev]
 [dev.deploy]
 [dev.deploy.parameters]
@@ -24,7 +27,6 @@ capabilities = "CAPABILITY_IAM"
 disable_rollback = false
 parameter_overrides = "CorsAllow=\"https://review-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets2\" ProjectsTableName=\"projects\" LayerName=\"layer\""
 image_repositories = []
-
 
 [prod]
 [prod.deploy]
