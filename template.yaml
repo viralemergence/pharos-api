@@ -440,7 +440,7 @@ Resources:
                       !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
                     ]
 
-  LambdaInvokation: # Function will execute only if it was created succesfully
+  InvokePermissions:
     Type: AWS::CloudFormation::CustomResource
     Properties:
       ServiceToken: !GetAtt PermissionsFunction.Arn
