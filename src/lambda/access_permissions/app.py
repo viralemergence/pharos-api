@@ -16,27 +16,38 @@ USERNAME = os.environ["USERNAME"]
 DATABASE = os.environ["DATABASE"]
 SECRET = os.environ["SECRET"]
 
-# STACK = os.environ["STACK"]
+create = {
+    "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{SECRET}';""",
+    "database": f'CREATE DATABASE "{DATABASE}";',
+    "permissions": f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN DATABASE "{DATABASE}" TO "{USERNAME}";',
+}
 
-create = [
-    # f'CREATE DATABASE "{DATABASE}";',
-    # 'CREATE EXTENSION postgis;',
-    # 'CREATE EXTENSION aws_s3 CASCADE;',
-    f'CREATE USER "{USERNAME}" WITH ENCRYPTED PASSWORD "{SECRET}";',
-    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN DATABASE "{DATABASE}" TO "{USERNAME}";',
-]
+extensions = {
+    "postgis": "CREATE EXTENSION postgis;",
+    "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
+}
 
-delete = [f'DROP DATABASE "{DATABASE}";', f'DROP USER "{USERNAME}"']
+delete = {
+    "database": f'DROP DATABASE "{DATABASE}";',
+    "user": f'DROP USER "{USERNAME}";',
+}
 
 
-# def stack_status(status) -> bool:
-#     stack_data = CF.describe_stacks(StackName=STACK)
-#     return stack_data["Stacks"][0]["StackStatus"] == status
+def handle_statements(connection, response_data, **statement: dict) -> None:
+    for key, value in statement.items():
+        try:
+            connection.execute(value)
+            response_data[key] = str(value)
+
+        except Exception as e:
+            response_data[key] = str(e)
 
 
 def lambda_handler(event, context):
 
-    database_url = URL.create(
+    response_data = {}
+
+    master_url = URL.create(
         drivername="postgresql+psycopg2",
         host=HOST,
         username=MASTER,
@@ -45,31 +56,38 @@ def lambda_handler(event, context):
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
     )
 
-    responseData = {}
-
     try:
-
-        engine = sqlalchemy.create_engine(database_url)
-
+        engine = sqlalchemy.create_engine(master_url)
         connection = engine.connect()
         connection.execute("commit")
 
-        # if stack_status("CREATE_IN_PROGRESS"):
-        for statement in create:
-            connection.execute(statement)
+    except Exception as e:
+        response_data["mconnection"] = str(e)
 
-        # if stack_status("DELETE_IN_PROGRESS"):
-        #     for statement in delete:
-        #         connection.execute(statement)
+    handle_statements(connection, response_data, **create)
 
-        connection.close()
+    connection.close()
 
-        responseData["User"] = USERNAME
-        responseData["Database"] = DATABASE
+    database_url = URL.create(
+        drivername="postgresql+psycopg2",
+        host=HOST,
+        database=DATABASE,
+        username=MASTER,
+        port=PORT,
+        password=PASSWORD,
+        query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
+    )
+
+    try:
+        engine = sqlalchemy.create_engine(database_url)
+        connection = engine.connect()
+        connection.execute("commit")
 
     except Exception as e:
-        print(e)
-        #responseData["Error"] = "Failed"
-        #cfnresponse.send(event, context, cfnresponse.FAILED, responseData)
+        response_data["dbconnection"] = str(e)
 
-    cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+    handle_statements(connection, response_data, **extensions)
+
+    connection.close()
+
+    cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
