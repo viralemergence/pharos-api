@@ -11,8 +11,6 @@ def isfloat(num: str):
 
 class Validator:
 
-    __slot__ = ("datapoint",)
-
     SUCCESS = "SUCCESS"
     FAILURE = "FAIL"
     WARNING = "WARNING"
@@ -30,7 +28,10 @@ class Validator:
         for validation in validations:
             report = getattr(self, validation)()
 
+            if report is None:
+                return
+
             if report["status"] == self.FAILURE:
                 break
 
-        self.datapoint.report = report
+            self.datapoint.report = report

@@ -33,6 +33,11 @@ Parameters:
   DatabaseName:
     Type: String
     Default: pharos
+  DataDownloadBucket:
+    Type: String
+    Default: data-bucket
+
+# comment to force build
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -110,6 +115,16 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  DataDownload:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -400,6 +415,61 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rds-db:connect
+              Resource: !Join
+                - ":"
+                - - arn:aws:rds-db
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - db-user
+                  - !Select [
+                      6,
+                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                    ]
+
+  DownloadDataFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/lambda/download_data/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue data-lab-rds-VPCSG
+        SubnetIds:
+          - !ImportValue data-lab-rds-SubnetA
+          - !ImportValue data-lab-rds-SubnetB
+          - subnet-8f7652ea
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /download-data
+            Method: post
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
+          PORT: "5432"
+          DATABASE: pharos
+          USERNAME: postgres
+          PASSWORD: testingrds
+          REGION: !Ref AWS::Region
+          BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+          USERS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]

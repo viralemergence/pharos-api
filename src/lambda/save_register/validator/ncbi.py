@@ -14,7 +14,7 @@ class Ncbi(Validator):
 
     def _validate_3_type(self):
         if self.datapoint.dataValue.isnumeric():
-            return {"status": self.SUCCESS}
+            return {"status": self.SUCCESS, "message": "Ready to release."}
         return {
             "status": self.FAILURE,
             "message": "Valid identifiers are integer-only sequences.",

@@ -23,9 +23,9 @@ def lambda_handler(event, _):
 
     try:
         # Validate register
-        verified_register = post_data["register"]
+        verified_register = {}
 
-        for record_id, record in verified_register.items():
+        for record_id, record in post_data["register"].items():
             record_ = Record(record, record_id)
             record_ = validate_record(record_)
             verified_register[record_id] = record_.get_record()
@@ -51,7 +51,7 @@ def lambda_handler(event, _):
             delkey = dataset_list["Contents"][0]["Key"]
             S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
 
-        return format_response(200, "Succesful Upload")
+        return format_response(200, verified_register)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
