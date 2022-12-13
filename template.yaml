@@ -369,21 +369,23 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
-  RDSInsertFunction:
+  PublishProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: src/lambda/rds_proxy/
+      Timeout: 30
+      CodeUri: src/lambda/publish_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG # TODO
+          - !ImportValue data-lab-rds-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetA # TODO
-          - !ImportValue data-lab-rds-SubnetB # TODO
+          - !ImportValue data-lab-rds-SubnetA
+          - !ImportValue data-lab-rds-SubnetB
+          - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /rds-proxy
+            Path: /publish-project
             Method: post
       Layers:
         - !Ref Libraries
@@ -392,14 +394,30 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
           PORT: "5432"
-          DATABASE: !ImportValue data-lab-rds-RDSInstance
+          DATABASE: pharos
           USERNAME: postgres
+          PASSWORD: testingrds
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          DATASETS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          PROJECTS_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
         - Statement:
             - Effect: Allow
               Action:
