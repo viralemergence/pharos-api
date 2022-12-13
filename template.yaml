@@ -457,8 +457,8 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
           PORT: "5432"
-          DATABASE: pharos
-          USERNAME: postgres
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
           PASSWORD: testingrds
           REGION: !Ref AWS::Region
           BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
