@@ -34,4 +34,4 @@ class Validator:
             if report["status"] == self.FAILURE:
                 break
 
-            self.datapoint.report = report
+        self.datapoint.report = report
