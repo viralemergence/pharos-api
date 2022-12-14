@@ -3,8 +3,10 @@ version: 2.1
 credentials: &credentials
   - AWS Credentials
 
+# orbs:
+#   sam: circleci/aws-sam-serverless@3.2.0
 orbs:
-  sam: circleci/aws-sam-serverless@3.2.0
+  aws-sam-serverless: circleci/aws-sam-serverless@4.0.0
 
 workflows:
   version: 2
