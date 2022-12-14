@@ -1,4 +1,6 @@
 import os
+import json
+
 import boto3
 from botocore.exceptions import ClientError
 import sqlalchemy
@@ -7,30 +9,28 @@ import cfnresponse
 
 RDS = boto3.client("rds")
 CF = boto3.client("cloudformation")
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 HOST = os.environ["HOST"]
 PORT = os.environ["PORT"]
-MASTER = os.environ["MASTER"]
-PASSWORD = os.environ["PASSWORD"]
-USERNAME = os.environ["USERNAME"]
 DATABASE = os.environ["DATABASE"]
-SECRET = os.environ["SECRET"]
+USERNAME = os.environ["USERNAME"]
 
-create = {
-    "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{SECRET}';""",
-    "database": f'CREATE DATABASE "{DATABASE}";',
-    "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
-}
+extensions = {}
 
-extensions = {
-    "postgis": "CREATE EXTENSION postgis;",
-    "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
-}
+# delete = {
+#     "database": f'DROP DATABASE "{DATABASE}";',
+#     "user": f'DROP USER "{USERNAME}";',
+# }
 
-delete = {
-    "database": f'DROP DATABASE "{DATABASE}";',
-    "user": f'DROP USER "{USERNAME}";',
-}
+
+def get_secret(secret_id):
+    response = SECRETS_MANAGER.get_secret_value(SecretId=secret_id)
+    return json.loads(response["SecretString"])
+
+
+# Requesting secret at during init so it's cached in the runtime
+CREDENTIALS = get_secret("data-lab-rds-test")
 
 
 def handle_statements(connection, response_data, **statement: dict) -> None:
@@ -50,9 +50,9 @@ def lambda_handler(event, context):
     master_url = URL.create(
         drivername="postgresql+psycopg2",
         host=HOST,
-        username=MASTER,
+        username=CREDENTIALS["username"],
         port=PORT,
-        password=PASSWORD,
+        password=CREDENTIALS["password"],
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
     )
 
@@ -64,7 +64,33 @@ def lambda_handler(event, context):
     except Exception as e:
         response_data["mconnection"] = str(e)
 
-    handle_statements(connection, response_data, **create)
+    response = SECRETS_MANAGER.get_random_password()
+    new_password = response["RandomPassword"]
+
+    response = SECRETS_MANAGER.create_secret(
+        Name=DATABASE,
+        Description=f'Username and Password for database "{DATABASE}" used for Pharos',
+        SecretString=(
+            f'{{"username":"{USERNAME}",'
+            f'"password":"{new_password}",'
+            f'"host":{HOST},'
+            f'"port":{PORT}}}'
+        ),
+        Tags=[
+            {"Key": "Project", "Value": "Pharos"},
+            {"Key": "Project:Detail", "Value": "Pharos"},
+        ],
+    )
+
+    handle_statements(
+        connection,
+        response_data,
+        **{
+            "database": f'CREATE DATABASE "{DATABASE}";',
+            "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
+            "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
+        },
+    )
 
     connection.close()
 
@@ -72,9 +98,9 @@ def lambda_handler(event, context):
         drivername="postgresql+psycopg2",
         host=HOST,
         database=DATABASE,
-        username=MASTER,
+        username=CREDENTIALS["username"],
         port=PORT,
-        password=PASSWORD,
+        password=CREDENTIALS["password"],
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
     )
 
@@ -86,7 +112,14 @@ def lambda_handler(event, context):
     except Exception as e:
         response_data["dbconnection"] = str(e)
 
-    handle_statements(connection, response_data, **extensions)
+    handle_statements(
+        connection,
+        response_data,
+        **{
+            "postgis": "CREATE EXTENSION postgis;",
+            "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
+        },
+    )
 
     connection.close()
 
