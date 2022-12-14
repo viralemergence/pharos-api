@@ -19,7 +19,7 @@ SECRET = os.environ["SECRET"]
 create = {
     "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{SECRET}';""",
     "database": f'CREATE DATABASE "{DATABASE}";',
-    "permissions": f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN DATABASE "{DATABASE}" TO "{USERNAME}";',
+    "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
 }
 
 extensions = {

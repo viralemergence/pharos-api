@@ -504,10 +504,10 @@ Resources:
         Variables:
           HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
           PORT: "5432"
-          DATABASE: !Join ["-", [!Ref AWS::StackName, pharos]]
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           MASTER: postgres
           PASSWORD: testingrds
-          USERNAME: !Join ["-", [!Ref AWS::StackName, lambdaUser]]
+          USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
           SECRET: LambdaPassword
       Policies:
         - AWSLambdaVPCAccessExecutionRole
