@@ -57,7 +57,7 @@ jobs:
     steps:
       - checkout
       - sam/install
-      - sudo apt install python3
+      - run: sudo apt install python3
       - run: sam build -t ./template.yaml
       - run: |
           sam deploy \
