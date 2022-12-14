@@ -59,7 +59,8 @@ jobs:
 
     steps:
       - checkout
-      - sam install --python_version "3.9"
+      - sam/install:
+          python_version: 3.9
       - run: sam build
       - run: |
           sam deploy \
