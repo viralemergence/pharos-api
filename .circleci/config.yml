@@ -57,6 +57,7 @@ jobs:
     steps:
       - checkout
       - sam/install
+      - run: sam build -t ./template.yaml
       - run: |
           sam deploy \
             --config-env <<parameters.config-env>> \
