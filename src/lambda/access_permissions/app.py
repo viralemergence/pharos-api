@@ -48,6 +48,7 @@ def lambda_handler(event, context):
     # Make it handle delete events instantly
     # TODO: Add cleanup here...
     if event["RequestType"] == "Delete":
+        print("Handle Delete Event")
         cfnresponse.send(event, context, cfnresponse.SUCCESS)
         return
 
