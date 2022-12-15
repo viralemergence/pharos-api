@@ -86,7 +86,9 @@ def lambda_handler(event, context):
 
     except ClientError:
         print("Create random password")
-        response = SECRETS_MANAGER.get_random_password()
+        response = SECRETS_MANAGER.get_random_password(
+            ExcludePunctuation=True, IncludeSpace=False
+        )
         new_password = response["RandomPassword"]
 
         print("Store new secret")
