@@ -96,10 +96,14 @@ def lambda_handler(event, context):
             Name=DATABASE,
             Description=f'Username and Password for database "{DATABASE}" used for Pharos',
             SecretString=(
-                f'{{"username":"{USERNAME}",'
-                f'"password":"{new_password}",'
-                f'"host":"{HOST}",'
-                f'"port":"{PORT}"}}'
+                json.dumps(
+                    {
+                        "username": USERNAME,
+                        "password": new_password,
+                        "host": HOST,
+                        "port": PORT,
+                    }
+                )
             ),
             Tags=[
                 {"Key": "Project", "Value": "Pharos"},
