@@ -31,6 +31,7 @@ def lambda_handler(event, _):
     post_data = json.loads(event.get("body", "{}"))
 
     # Retrieve datasets from project table
+    print("Retrieve datasets from project table")
     try:
 
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
@@ -40,6 +41,7 @@ def lambda_handler(event, _):
         return format_response(403, e)
 
     # Retrieve meta from datasets and filter released
+    print("Retrieve meta from datasets and filter released")
     try:
         for dataset_id in datasets_ids:
             dataset_meta = DATASETS_TABLE.get_item(
@@ -53,6 +55,7 @@ def lambda_handler(event, _):
 
     try:
 
+        print("Connect to database")
         database_url = URL.create(
             drivername="postgresql+psycopg2",
             host=CREDENTIALS["host"],
@@ -72,9 +75,11 @@ def lambda_handler(event, _):
 
         with Session() as session:
 
+            print("Session established")
             records = []
 
             for dataset_id in datasets_ids:
+                print(f"Ingesting dataset: {dataset_id}")
                 # Retrieve last version of the register
                 key_list = S3CLIENT.list_objects_v2(
                     Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset_id}/"
@@ -109,6 +114,7 @@ def lambda_handler(event, _):
                     records.extend([test_record, researcher_test_record])
 
             # Upload records
+            print("Commit records to db")
             session.add_all(records)
             session.commit()
 
