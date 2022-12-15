@@ -47,12 +47,12 @@ def lambda_handler(event, context):
 
     # Printing event in case the custom resource
     # needs to be manually deleted or marked as success
-    print('EVENT:')
+    print("EVENT:")
     print(event)
-
 
     response_data = {}
 
+    print("Connect to DB as Superuser")
     master_url = URL.create(
         drivername="postgresql+psycopg2",
         host=HOST,
@@ -70,9 +70,11 @@ def lambda_handler(event, context):
     except Exception as e:
         response_data["mconnection"] = str(e)
 
+    print("Create random password")
     response = SECRETS_MANAGER.get_random_password()
     new_password = response["RandomPassword"]
 
+    print("Store new secret")
     response = SECRETS_MANAGER.create_secret(
         Name=DATABASE,
         Description=f'Username and Password for database "{DATABASE}" used for Pharos',
@@ -88,6 +90,7 @@ def lambda_handler(event, context):
         ],
     )
 
+    print("Create database, user, and grant permissions")
     handle_statements(
         connection,
         response_data,
@@ -100,6 +103,7 @@ def lambda_handler(event, context):
 
     connection.close()
 
+    print("Connect to new database as superuser")
     database_url = URL.create(
         drivername="postgresql+psycopg2",
         host=HOST,
@@ -118,6 +122,7 @@ def lambda_handler(event, context):
     except Exception as e:
         response_data["dbconnection"] = str(e)
 
+    print("Install postgis and aws_s3 extensions")
     handle_statements(
         connection,
         response_data,
