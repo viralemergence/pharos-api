@@ -49,6 +49,7 @@ def lambda_handler(event, context):
     # TODO: Add cleanup here...
     if event["RequestType"] == "Delete":
         cfnresponse.send(event, context, cfnresponse.SUCCESS)
+        return
 
     # Printing event in case the custom resource
     # needs to be manually deleted or marked as success
