@@ -103,48 +103,48 @@ def lambda_handler(event, context):
             ],
         )
 
-    print("Create database, user, and grant permissions")
-    handle_statements(
-        connection,
-        response_data,
-        **{
-            "database": f'CREATE DATABASE "{DATABASE}";',
-            "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
-            "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
-        },
-    )
+        print("Create database, user, and grant permissions")
+        handle_statements(
+            connection,
+            response_data,
+            **{
+                "database": f'CREATE DATABASE "{DATABASE}";',
+                "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
+                "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
+            },
+        )
 
-    connection.close()
+        connection.close()
 
-    print("Connect to new database as superuser")
-    database_url = URL.create(
-        drivername="postgresql+psycopg2",
-        host=HOST,
-        database=DATABASE,
-        username=CREDENTIALS["username"],
-        port=PORT,
-        password=CREDENTIALS["password"],
-        query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
-    )
+        print("Connect to new database as superuser")
+        database_url = URL.create(
+            drivername="postgresql+psycopg2",
+            host=HOST,
+            database=DATABASE,
+            username=CREDENTIALS["username"],
+            port=PORT,
+            password=CREDENTIALS["password"],
+            query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
+        )
 
-    try:
-        engine = sqlalchemy.create_engine(database_url)
-        connection = engine.connect()
-        connection.execute("commit")
+        try:
+            engine = sqlalchemy.create_engine(database_url)
+            connection = engine.connect()
+            connection.execute("commit")
 
-    except Exception as e:
-        response_data["dbconnection"] = str(e)
+        except Exception as e:
+            response_data["dbconnection"] = str(e)
 
-    print("Install postgis and aws_s3 extensions")
-    handle_statements(
-        connection,
-        response_data,
-        **{
-            "postgis": "CREATE EXTENSION postgis;",
-            "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
-        },
-    )
+        print("Install postgis and aws_s3 extensions")
+        handle_statements(
+            connection,
+            response_data,
+            **{
+                "postgis": "CREATE EXTENSION postgis;",
+                "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
+            },
+        )
 
-    connection.close()
+        connection.close()
 
-    cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
