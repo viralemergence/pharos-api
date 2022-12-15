@@ -2,7 +2,7 @@ import os
 import json
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ResourceNotFoundException
 import sqlalchemy
 from sqlalchemy.engine import URL
 import cfnresponse
@@ -75,25 +75,33 @@ def lambda_handler(event, context):
     except Exception as e:
         response_data["mconnection"] = str(e)
 
-    print("Create random password")
-    response = SECRETS_MANAGER.get_random_password()
-    new_password = response["RandomPassword"]
+    try:
+        print("Check if secret exists")
+        SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
+        # if secret exists, short-circuit setup
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        return
 
-    print("Store new secret")
-    response = SECRETS_MANAGER.create_secret(
-        Name=DATABASE,
-        Description=f'Username and Password for database "{DATABASE}" used for Pharos',
-        SecretString=(
-            f'{{"username":"{USERNAME}",'
-            f'"password":"{new_password}",'
-            f'"host":{HOST},'
-            f'"port":{PORT}}}'
-        ),
-        Tags=[
-            {"Key": "Project", "Value": "Pharos"},
-            {"Key": "Project:Detail", "Value": "Pharos"},
-        ],
-    )
+    except ResourceNotFoundException:
+        print("Create random password")
+        response = SECRETS_MANAGER.get_random_password()
+        new_password = response["RandomPassword"]
+
+        print("Store new secret")
+        response = SECRETS_MANAGER.create_secret(
+            Name=DATABASE,
+            Description=f'Username and Password for database "{DATABASE}" used for Pharos',
+            SecretString=(
+                f'{{"username":"{USERNAME}",'
+                f'"password":"{new_password}",'
+                f'"host":{HOST},'
+                f'"port":{PORT}}}'
+            ),
+            Tags=[
+                {"Key": "Project", "Value": "Pharos"},
+                {"Key": "Project:Detail", "Value": "Pharos"},
+            ],
+        )
 
     print("Create database, user, and grant permissions")
     handle_statements(
