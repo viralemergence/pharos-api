@@ -98,8 +98,8 @@ def lambda_handler(event, context):
             SecretString=(
                 f'{{"username":"{USERNAME}",'
                 f'"password":"{new_password}",'
-                f'"host":{HOST},'
-                f'"port":{PORT}}}'
+                f'"host":"{HOST}",'
+                f'"port":"{PORT}"}}'
             ),
             Tags=[
                 {"Key": "Project", "Value": "Pharos"},
