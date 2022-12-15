@@ -8,13 +8,14 @@ from auth import check_auth
 from format import format_response
 
 RDS = boto3.client("rds")
-HOST = os.environ["HOST"]
-PORT = os.environ["PORT"]
-USERNAME = os.environ["USERNAME"]
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
+
 DATABASE = os.environ["DATABASE"]
-PASSWORD = os.environ["PASSWORD"]
 REGION = os.environ["REGION"]
 BUCKET = os.environ["BUCKET"]
+
+response = SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
+CREDENTIALS = json.loads(response["SecretString"])
 
 
 def lambda_handler(event, _):
@@ -30,11 +31,11 @@ def lambda_handler(event, _):
 
         database_url = URL.create(
             drivername="postgresql+psycopg2",
-            host=HOST,
+            host=CREDENTIALS["host"],
             database=DATABASE,
-            username=USERNAME,
-            port=PORT,
-            password=PASSWORD,
+            username=CREDENTIALS["username"],
+            port=CREDENTIALS["port"],
+            password=CREDENTIALS["password"],
             query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
         )
 
