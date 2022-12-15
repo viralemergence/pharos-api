@@ -2,7 +2,7 @@ import os
 import json
 
 import boto3
-from botocore.exceptions import ClientError, ResourceNotFoundException
+from botocore.exceptions import ClientError
 import sqlalchemy
 from sqlalchemy.engine import URL
 import cfnresponse
@@ -82,7 +82,7 @@ def lambda_handler(event, context):
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
 
-    except ResourceNotFoundException:
+    except ClientError:
         print("Create random password")
         response = SECRETS_MANAGER.get_random_password()
         new_password = response["RandomPassword"]
