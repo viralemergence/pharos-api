@@ -392,11 +392,7 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
-          PORT: "5432"
-          DATABASE: pharos
-          USERNAME: postgres
-          PASSWORD: testingrds
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           USERS_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
           DATASETS_TABLE_NAME:
@@ -432,6 +428,13 @@ Resources:
                       6,
                       !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
                     ]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
 
   DownloadDataFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction

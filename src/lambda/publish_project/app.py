@@ -10,6 +10,8 @@ from format import format_response
 from models import Tests, ResearchersTests
 from create_record import create_records, verify_record
 
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
+
 DYNAMODB = boto3.resource("dynamodb")
 PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
@@ -18,11 +20,10 @@ S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 RDS = boto3.client("rds")
-HOST = os.environ["HOST"]
-PORT = os.environ["PORT"]
-USERNAME = os.environ["USERNAME"]
 DATABASE = os.environ["DATABASE"]
-PASSWORD = os.environ["PASSWORD"]
+
+response = SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
+CREDENTIALS = json.loads(response["SecretString"])
 
 
 def lambda_handler(event, _):
@@ -54,11 +55,11 @@ def lambda_handler(event, _):
 
         database_url = URL.create(
             drivername="postgresql+psycopg2",
-            host=HOST,
+            host=CREDENTIALS["host"],
             database=DATABASE,
-            username=USERNAME,
-            port=PORT,
-            password=PASSWORD,
+            username=CREDENTIALS["username"],
+            port=CREDENTIALS["port"],
+            password=CREDENTIALS["password"],
             query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
         )
 
