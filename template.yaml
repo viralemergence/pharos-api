@@ -528,6 +528,7 @@ Resources:
                 - secretsmanager:GetSecretValue
                 - secretsmanager:GetRandomPassword
                 - secretsmanager:CreateSecret
+                - secretsmanager:TagResource
               Resource:
                 - "*"
 
