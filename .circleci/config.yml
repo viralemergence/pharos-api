@@ -73,6 +73,5 @@ jobs:
       - run: |
           sam deploy \
             --config-env <<parameters.config-env>> \
-            --template-file ./template.yaml \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset
