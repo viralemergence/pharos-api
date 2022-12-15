@@ -47,7 +47,9 @@ def lambda_handler(event, context):
 
     # Printing event in case the custom resource
     # needs to be manually deleted or marked as success
+    print('EVENT:')
     print(event)
+
 
     response_data = {}
 
