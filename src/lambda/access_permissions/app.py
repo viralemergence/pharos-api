@@ -45,6 +45,11 @@ def handle_statements(connection, response_data, **statement: dict) -> None:
 
 def lambda_handler(event, context):
 
+    # Make it handle delete events instantly
+    # TODO: Add cleanup here...
+    if event["RequestType"] == "Delete":
+        cfnresponse.send(event, context, cfnresponse.SUCCESS)
+
     # Printing event in case the custom resource
     # needs to be manually deleted or marked as success
     print("EVENT:")
