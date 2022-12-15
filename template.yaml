@@ -522,6 +522,14 @@ Resources:
                       6,
                       !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
                     ]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - secretsmanager:GetRandomPassword
+                - secretsmanager:CreateSecret
+              Resource:
+                - "*"
 
   InvokePermissions:
     Type: AWS::CloudFormation::CustomResource
