@@ -6,7 +6,6 @@ credentials: &credentials
 # orbs:
 #   sam: circleci/aws-sam-serverless@3.2.0
 orbs:
-  aws-cli: circleci/aws-cli@3.1
   sam: circleci/aws-sam-serverless@4.0
 
 workflows:
@@ -51,6 +50,9 @@ workflows:
 
 jobs:
   deploy:
+    docker:
+      - image: cimg/python:3.9
+
     executor: sam/default
 
     parameters:
@@ -59,8 +61,7 @@ jobs:
 
     steps:
       - checkout
-      - sam/install:
-          python_version: "3.9"
+      - sam/install
       - run: sam build
       - run: |
           sam deploy \
