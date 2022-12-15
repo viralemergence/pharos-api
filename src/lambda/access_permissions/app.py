@@ -45,6 +45,10 @@ def handle_statements(connection, response_data, **statement: dict) -> None:
 
 def lambda_handler(event, context):
 
+    # Printing event in case the custom resource
+    # needs to be manually deleted or marked as success
+    print(event)
+
     response_data = {}
 
     master_url = URL.create(
