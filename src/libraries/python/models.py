@@ -13,6 +13,8 @@ class StringToNumeric(TypeDecorator):
         TypeDecorator.__init__(self, *arg, **kw)
 
     def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
         return float(value)
 
 
@@ -22,6 +24,8 @@ class StringToInteger(TypeDecorator):
     impl = BigInteger
 
     def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
         return int(value)
 
 
