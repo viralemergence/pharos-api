@@ -47,17 +47,18 @@ def lambda_handler(event, context):
 
     # Make it handle delete events instantly
     # TODO: Add cleanup here...
+
+    response_data = {}
+
     if event["RequestType"] == "Delete":
         print("Handle Delete Event")
-        cfnresponse.send(event, context, cfnresponse.SUCCESS)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
 
     # Printing event in case the custom resource
     # needs to be manually deleted or marked as success
     print("EVENT:")
     print(event)
-
-    response_data = {}
 
     print("Connect to DB as Superuser")
     master_url = URL.create(
