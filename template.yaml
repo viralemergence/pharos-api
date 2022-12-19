@@ -501,9 +501,10 @@ Resources:
         SecurityGroupIds:
           - !ImportValue data-lab-rds-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetA
-          - !ImportValue data-lab-rds-SubnetB
-          - subnet-8f7652ea
+          # - !ImportValue data-lab-rds-SubnetA
+          # - !ImportValue data-lab-rds-SubnetB
+          - !ImportValue data-lab-rds-SubnetC
+          # - subnet-8f7652ea
       Environment:
         Variables:
           HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
