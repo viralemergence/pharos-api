@@ -1,0 +1,4 @@
+{
+  "python.autoComplete.extraPaths": ["./src/libraries/python"],
+  "python.analysis.extraPaths": ["./src/libraries/python"]
+}
