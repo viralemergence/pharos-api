@@ -12,11 +12,16 @@ def lambda_handler(event, _):
     try:
         post_data = json.loads(event.get("body", "{}"))
 
-        # allow creation of user with a
-        # set researcherID for debugging
+        # If resercherID is not provided, generate a new one
         researcherID = post_data.get("researcherID")
         if not researcherID:
             researcherID = uuid.uuid4().hex
+
+        # TODO
+        # This overwrites the existing record completely
+        # What we actually need here is a merge; so that
+        # an out of date client can't take away project
+        # permissions or roll back other data.
 
         users_response = USERS_TABLE.put_item(
             Item={
