@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from enum import Enum
 
 from pydantic import BaseModel, validator
@@ -9,7 +9,7 @@ data = """
 {
 "data": {
     "rec9Hjw3utQm2": {
-        "Host_species_NCBI_tax_ID": {
+        "Host species NCBI tax ID": {
             "displayValue": "3053800000",
             "dataValue": "30538000000",
             "report": {
@@ -19,7 +19,7 @@ data = """
             "modifiedBy": "dev",
             "version": "1678391083301"
         },
-        "Sample_ID": {
+        "Sample ID": {
             "displayValue": "1",
             "dataValue": "1",
             "report": {
@@ -29,7 +29,7 @@ data = """
             "modifiedBy": "dev",
             "version": "1678461815020"
         },
-        "Host_species": {
+        "Host species": {
             "displayValue": "Bat",
             "dataValue": "Bat",
             "report": {
@@ -39,7 +39,7 @@ data = """
             "modifiedBy": "dev",
             "version": "1678461820035"
         },
-        "Animal_ID": {
+        "Animal ID": {
             "displayValue": "Fred",
             "dataValue": "Fred",
             "report": {
@@ -75,26 +75,37 @@ class Report(BaseModel):
 
 class Datapoint(BaseModel):
     displayValue: str
-    dataValue: str
+    dataValue: Union[str, dict]
     modifiedBy: str
     version: str
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
 
 
+def SnakeCaseToSpaces(string: str) -> str:
+    return string.replace("_", " ")
+
+
 class Record(BaseModel):
     Host_species_NCBI_tax_ID: Optional[Datapoint] = None
 
     @validator("Host_species_NCBI_tax_ID")
-    def length_check(cls, value):
-        if len(value.dataValue) > 8:
-            value.report.status = ReportScore.fail
-            value.report.message = "Datapoint is too long."
-        return value
+    def length_check(cls, datapoint):
+        if datapoint.report:
+            return datapoint
+
+        if len(datapoint.dataValue) > 8:
+            datapoint.report.status = ReportScore.fail
+            datapoint.report.message = "Datapoint is too long."
+
+        return datapoint
 
     Sample_ID: Optional[Datapoint] = None
     Host_species: Optional[Datapoint] = None
     Animal_ID: Optional[Datapoint] = None
+
+    class Config:
+        alias_generator = SnakeCaseToSpaces
 
 
 class Register(BaseModel):
@@ -104,17 +115,19 @@ class Register(BaseModel):
 register = Register.parse_raw(data)
 
 record = register.data["rec9Hjw3utQm2"]
-datapoint = record.Animal_ID
+animal_id = record.Animal_ID
 
-status = datapoint.report.status.value
+status = animal_id.report.status.value
 print(status)
 
-datapoint.report.status = ReportScore.fail
+animal_id.report.status = ReportScore.fail
 
-status = datapoint.report.status.value
+status = animal_id.report.status.value
 print(status)
 
-prev = datapoint.previous
+prev = animal_id.previous
 print(prev.dataValue)
 
-debug(record.Host_species_NCBI_tax_ID)
+ncbi = record.Host_species_NCBI_tax_ID
+
+debug(ncbi)
