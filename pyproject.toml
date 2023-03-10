@@ -16,8 +16,9 @@ good-names = [
 ]
 
 [tool.pylint.messages_control]
-disable = "C0116, C0115, C0114"
+disable = "C0116, C0115, C0114, C0103, E0213"
 init-hook="import sys; sys.path.append('src/libraries/python/')"
+extension-pkg-whitelist = "pydantic"
 
 [tool.pylint.format]
 max-line-length = "100"
