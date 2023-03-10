@@ -6,7 +6,6 @@ from auth import check_auth
 from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
-PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
 
 
