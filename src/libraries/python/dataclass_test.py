@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import Dict, Optional, Union
 from enum import Enum
 
@@ -7,7 +8,6 @@ from devtools import debug
 
 data = """
 {
-"data": {
     "rec9Hjw3utQm2": {
         "Host species NCBI tax ID": {
             "displayValue": "3053800000",
@@ -57,7 +57,6 @@ data = """
         }
     }
 }
-}
 """
 
 
@@ -86,17 +85,28 @@ def SnakeCaseToSpaces(string: str) -> str:
     return string.replace("_", " ")
 
 
+## decorator to make the validator skip datapoints which
+## already have a report, because they're already invalid
+def validator_skip_existing_report(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if args[1].report:
+            return args[1]
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class Record(BaseModel):
     Host_species_NCBI_tax_ID: Optional[Datapoint] = None
 
     @validator("Host_species_NCBI_tax_ID")
+    @validator_skip_existing_report
     def length_check(cls, datapoint):
-        if datapoint.report:
-            return datapoint
-
         if len(datapoint.dataValue) > 8:
-            datapoint.report.status = ReportScore.fail
-            datapoint.report.message = "Datapoint is too long."
+            datapoint.report = Report(
+                status=ReportScore.fail, message="Datapoint is too long."
+            )
 
         return datapoint
 
@@ -112,21 +122,18 @@ class Register(BaseModel):
     data: Dict[str, Record]
 
 
-register = Register.parse_raw(data)
+register = Register.parse_raw(f'{{"data":{data}}}')
 
 record = register.data["rec9Hjw3utQm2"]
 animal_id = record.Animal_ID
 
 status = animal_id.report.status.value
-print(status)
 
 animal_id.report.status = ReportScore.fail
 
-status = animal_id.report.status.value
-print(status)
+animal_report = animal_id.report
 
 prev = animal_id.previous
-print(prev.dataValue)
 
 ncbi = record.Host_species_NCBI_tax_ID
 
