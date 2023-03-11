@@ -70,21 +70,55 @@ class Record(BaseModel):
     display in the user interface.
     """
 
+    Sample_ID: Optional[Datapoint] = None
+    Animal_ID: Optional[Datapoint] = None
+    Host_species: Optional[Datapoint] = None
     Host_species_NCBI_tax_ID: Optional[Datapoint] = None
+    Latitude: Optional[Datapoint] = None
+    Longitude: Optional[Datapoint] = None
+    Spatial_uncertainty: Optional[Datapoint] = None
+    Collection_day: Optional[Datapoint] = None
+    Collection_month: Optional[Datapoint] = None
+    Collection_year: Optional[Datapoint] = None
+    Collection_method_or_tissue: Optional[Datapoint] = None
+    Detection_method: Optional[Datapoint] = None
+    Primer_sequence: Optional[Datapoint] = None
+    Primer_citation: Optional[Datapoint] = None
+    Detection_target: Optional[Datapoint] = None
+    Detection_target_NCBI_tax_ID: Optional[Datapoint] = None
+    Detection_outcome: Optional[Datapoint] = None
+    Detection_measurement: Optional[Datapoint] = None
+    Detection_measurement_units: Optional[Datapoint] = None
+    Pathogen: Optional[Datapoint] = None
+    Pathogen_NCBI_tax_ID: Optional[Datapoint] = None
+    GenBank_accession: Optional[Datapoint] = None
+    Detection_comments: Optional[Datapoint] = None
+    Organism_sex: Optional[Datapoint] = None
+    Dead_or_alive: Optional[Datapoint] = None
+    Health_notes: Optional[Datapoint] = None
+    Life_stage: Optional[Datapoint] = None
+    Age: Optional[Datapoint] = None
+    Mass: Optional[Datapoint] = None
+    Length: Optional[Datapoint] = None
 
-    @validator("Host_species_NCBI_tax_ID")
+    @validator(
+        "Host_species_NCBI_tax_ID",
+        "Detection_target_NCBI_tax_ID",
+        "Pathogen_NCBI_tax_ID",
+    )
     @validator_skip_existing_report
     def length_check(cls, datapoint):
-        if len(datapoint.dataValue) > 8:
+        if not datapoint.dataValue.isnumeric():
             datapoint.report = Report(
-                status=ReportScore.fail, message="Datapoint is too long."
+                status=ReportScore.fail,
+                message="Valid identifiers are integer-only sequences.",
             )
-
+        if not 0 < len(datapoint.dataValue) < 8:
+            datapoint.report = Report(
+                status=ReportScore.fail,
+                message="A NCBI taxonomic identifier consists of one to seven digits.",
+            )
         return datapoint
-
-    Sample_ID: Optional[Datapoint] = None
-    Host_species: Optional[Datapoint] = None
-    Animal_ID: Optional[Datapoint] = None
 
     class Config:
         ## datapoint names are transformed by
