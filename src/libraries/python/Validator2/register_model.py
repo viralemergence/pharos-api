@@ -2,13 +2,12 @@ from typing import Dict, Optional, Union
 from functools import wraps
 from enum import Enum
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Extra, validator
 
 
-## Helper function to transform column names
-## containing spaces to underscored names
-## for use in the record class.
-def SnakeCaseToSpaces(string: str) -> str:
+## Helper function to transform column names containing
+## spaces to underscored names for use in the record class.
+def snakeCaseToSpaces(string: str):
     return string.replace("_", " ")
 
 
@@ -90,7 +89,8 @@ class Record(BaseModel):
     class Config:
         ## datapoint names are transformed by
         ## replaceing spaces with underscores
-        alias_generator = SnakeCaseToSpaces
+        alias_generator = snakeCaseToSpaces
+        extra = Extra.forbid
 
 
 class Register(BaseModel):
