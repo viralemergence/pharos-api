@@ -3,6 +3,7 @@ from typing import Dict, Optional, Union
 from enum import Enum
 
 from pydantic import BaseModel, validator
+from pydantic.config import Extra
 
 from devtools import debug
 
@@ -116,6 +117,7 @@ class Record(BaseModel):
 
     class Config:
         alias_generator = SnakeCaseToSpaces
+        extra = Extra.forbid
 
 
 class Register(BaseModel):
