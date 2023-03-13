@@ -66,6 +66,47 @@ class Datapoint(BaseModel):
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
 
+    def float(self):
+        """Return the datapoint's dataValue as an float, or if
+        dataValue cannot be converted to an float, return None
+        and add a warning report to the datapoint.
+        """
+        try:
+            return float(self.dataValue)
+        except ValueError:
+            self.report = Report(
+                status=ReportScore.fail,
+                message="Value must be a decimal number",
+            )
+            return None
+
+    def str(self):
+        return str(self.dataValue)
+
+    def int(self):
+        """Return the datapoint's dataValue as an int, or if
+        dataValue cannot be converted to an int, return None
+        and add a warning report to the datapoint.
+        """
+        try:
+            return int(self.dataValue)
+        except ValueError:
+            self.report = Report(
+                status=ReportScore.fail, message="Value must be an integer"
+            )
+            return None
+
+    def isnumeric(self):
+        """Check if dataValue is numeric, and
+        if not, add a warning to the datapoint.
+        """
+        if not self.dataValue.isnumeric():
+            self.report = Report(
+                status=ReportScore.fail, message="Value must be all numbers"
+            )
+            return False
+        return True
+
     def __init__(self, **data) -> None:
         super().__init__(**data)
         if not self.report:
@@ -75,22 +116,6 @@ class Datapoint(BaseModel):
 
     class Config:
         extra = Extra.forbid
-
-
-class FloatDatapoint(Datapoint):
-    """A Datapoint which validates a that dataValue is a Float"""
-
-    dataValue: float
-
-    @validator("dataValue")
-    def float_check(cls, dataValue):
-        try:
-            float(dataValue)
-        except ValueError:
-            cls.report = Report(
-                status=ReportScore.fail, message="Datapoint must be a number."
-            )
-        return dataValue
 
 
 class Record(BaseModel):
@@ -108,8 +133,8 @@ class Record(BaseModel):
     Animal_ID: Optional[Datapoint] = None
     Host_species: Optional[Datapoint] = None
     Host_species_NCBI_tax_ID: Optional[Datapoint] = None
-    Latitude: Optional[FloatDatapoint] = None
-    Longitude: Optional[FloatDatapoint] = None
+    Latitude: Optional[Datapoint] = None
+    Longitude: Optional[Datapoint] = None
     Spatial_uncertainty: Optional[Datapoint] = None
     Collection_day: Optional[Datapoint] = None
     Collection_month: Optional[Datapoint] = None
@@ -142,12 +167,7 @@ class Record(BaseModel):
     )
     @validator_skip_fail_warn
     def length_check(cls, datapoint: Datapoint):
-        if not datapoint.dataValue.isnumeric():
-            datapoint.report = Report(
-                status=ReportScore.fail,
-                message="Valid identifiers are integer-only sequences.",
-            )
-        if not 0 < len(datapoint.dataValue) < 8:
+        if datapoint.isnumeric() and not 0 < len(datapoint.dataValue) < 8:
             datapoint.report = Report(
                 status=ReportScore.fail,
                 message="A NCBI taxonomic identifier consists of one to seven digits.",
@@ -156,8 +176,9 @@ class Record(BaseModel):
 
     @validator("Latitude")
     @validator_skip_fail_warn
-    def check_lat(cls, latitude: FloatDatapoint):
-        if not -90 <= latitude.dataValue <= 90:
+    def check_lat(cls, latitude: Datapoint):
+        float_value = latitude.float()
+        if float_value and not -90 <= float_value <= 90:
             latitude.report = Report(
                 status=ReportScore.fail, message="Latitude must be between -90 and 90."
             )
@@ -165,8 +186,9 @@ class Record(BaseModel):
 
     @validator("Longitude")
     @validator_skip_fail_warn
-    def check_lon(cls, longitude: FloatDatapoint):
-        if not -180 <= longitude.dataValue <= 180:
+    def check_lon(cls, longitude: Datapoint):
+        float_value = longitude.float()
+        if float_value and not -180 <= float_value <= 180:
             longitude.report = Report(
                 status=ReportScore.fail,
                 message="Longitude must be between -180 and 180.",

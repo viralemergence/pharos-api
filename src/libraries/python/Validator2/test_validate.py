@@ -7,22 +7,26 @@ example_data = """
         "Host species NCBI tax ID": {
             "displayValue": "3053800000",
             "dataValue": "30538000000",
+            "report": {
+                "status": "WARNING",
+                "message": "Datapoint is not recognized."
+            },
             "modifiedBy": "dev",
             "version": "1678391083301"
         },
         "Sample ID": {
             "displayValue": "1",
             "dataValue": "1",
-            "report": {
-                "status": "SUCCESS",
-                "message": "Ready to release."
-            },
             "modifiedBy": "dev",
             "version": "1678461815020"
         },
         "Host species": {
             "displayValue": "Bat",
             "dataValue": "Bat",
+            "report": {
+                "status": "SUCCESS",
+                "message": "Ready to release."
+            },
             "modifiedBy": "dev",
             "version": "1678461820035"
         },
@@ -41,6 +45,12 @@ example_data = """
                 "modifiedBy": "dev",
                 "version": "1678461824903"
             }
+        },
+        "Latitude": {
+            "displayValue": "pear",
+            "dataValue": "12.45",
+            "modifiedBy": "dev",
+            "version": "1678461815020"
         }
     }
 }
