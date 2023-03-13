@@ -32,6 +32,9 @@ class ReportScore(Enum):
     success = "SUCCESS"
     warning = "WARNING"
 
+    class Config:
+        extra = Extra.forbid
+
 
 class Report(BaseModel):
     """The report object a validated datapoint,
@@ -42,6 +45,9 @@ class Report(BaseModel):
     status: ReportScore
     message: str
     data: Optional[dict] = None
+
+    class Config:
+        extra = Extra.forbid
 
 
 class Datapoint(BaseModel):
@@ -57,6 +63,9 @@ class Datapoint(BaseModel):
     version: str
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
+
+    class Config:
+        extra = Extra.forbid
 
 
 class Record(BaseModel):
@@ -107,13 +116,14 @@ class Record(BaseModel):
         "Pathogen_NCBI_tax_ID",
     )
     @validator_skip_existing_report
-    def length_check(cls, datapoint):
+    def length_check(cls, datapoint: Datapoint):
         if not datapoint.dataValue.isnumeric():
             datapoint.report = Report(
                 status=ReportScore.fail,
                 message="Valid identifiers are integer-only sequences.",
             )
         if not 0 < len(datapoint.dataValue) < 8:
+
             datapoint.report = Report(
                 status=ReportScore.fail,
                 message="A NCBI taxonomic identifier consists of one to seven digits.",
@@ -133,7 +143,6 @@ class Record(BaseModel):
         ## datapoint names are transformed by
         ## replaceing spaces with underscores
         alias_generator = snakeCaseToSpaces
-        extra = Extra.forbid
 
 
 class Register(BaseModel):
