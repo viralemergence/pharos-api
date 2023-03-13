@@ -144,6 +144,17 @@ class Record(BaseModel):
         ## replaceing spaces with underscores
         alias_generator = snakeCaseToSpaces
 
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
+        # Parse any unrecognized fields as Datapoints and add a warning report
+        extra_fields = set(self.__dict__) - set(self.__fields__)
+        for key in extra_fields:
+            dat = Datapoint(**self.__dict__[key])
+            dat.report = Report(
+                status=ReportScore.warning, message="Datapoint is not recognized."
+            )
+            self.__dict__[key] = dat
+
 
 class Register(BaseModel):
     """The register object is the top-level

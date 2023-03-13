@@ -7,7 +7,7 @@ from pydantic.config import Extra
 
 from devtools import debug
 
-data = """
+example_data = """
 {
     "rec9Hjw3utQm2": {
         "Host species NCBI tax ID": {
@@ -115,28 +115,69 @@ class Record(BaseModel):
     Host_species: Optional[Datapoint] = None
     Animal_ID: Optional[Datapoint] = None
 
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
+
+        # Parse any unrecognized fields as Datapoints and add a warning report
+        extra_fields = set(self.__dict__) - set(self.__fields__)
+
+        for key in extra_fields:
+            dat = Datapoint(**self.__dict__[key])
+
+            dat.report = Report(
+                status=ReportScore.warning, message="Datapoint is not recognized."
+            )
+
+            self.__dict__[key] = dat
+
+    # @property
+    # def extra_fields(self) -> set[str]:
+    #     return set(self.__dict__) - set(self.__fields__)
+
     class Config:
         alias_generator = SnakeCaseToSpaces
-        extra = Extra.forbid
+        extra = Extra.allow
 
 
 class Register(BaseModel):
     data: Dict[str, Record]
 
 
-register = Register.parse_raw(f'{{"data":{data}}}')
+register = Register.parse_raw(f'{{"data":{example_data}}}')
 
 record = register.data["rec9Hjw3utQm2"]
-animal_id = record.Animal_ID
 
-status = animal_id.report.status.value
+debug(record)
 
-animal_id.report.status = ReportScore.fail
 
-animal_report = animal_id.report
+# print(record.extra_fields)
 
-prev = animal_id.previous
+# for extra in record.extra_fields:
+#     dat = Datapoint(**record.__dict__[extra])
+#     dat.report = Report(
+#         status=ReportScore.warning, message="Datapoint is not recognized."
+#     )
+#     record.__dict__[extra] = dat
+
+# animal_id = record.Animal_ID
+
+# debug(animal_id)
+
+# status = animal_id.report.status.value
+
+# animal_id.report.status = ReportScore.fail
+
+# animal_report = animal_id.report
+
+# prev = animal_id.previous
 
 ncbi = record.Host_species_NCBI_tax_ID
 
-debug(ncbi)
+# debug(ncbi)
+
+# debug(record)
+
+debug(record.__fields__)
+debug(record.__dict__.keys())
+
+print(register.json(indent=2, by_alias=True))
