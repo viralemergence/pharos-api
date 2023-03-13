@@ -120,6 +120,15 @@ class Record(BaseModel):
             )
         return datapoint
 
+    @validator("Longitude")
+    @validator_skip_existing_report
+    def check_valid_location(cls, longitude, values):
+        latitude = values.get("Latitude")
+        if not latitude and not longitude:
+            return longitude
+
+        return longitude
+
     class Config:
         ## datapoint names are transformed by
         ## replaceing spaces with underscores

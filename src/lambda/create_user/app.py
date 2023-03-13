@@ -22,7 +22,6 @@ def lambda_handler(event, _):
         # What we actually need here is a merge; so that
         # an out of date client can't take away project
         # permissions or roll back other data.
-
         users_response = USERS_TABLE.put_item(
             Item={
                 "researcherID": researcherID,
