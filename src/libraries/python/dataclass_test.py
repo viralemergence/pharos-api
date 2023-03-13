@@ -81,6 +81,14 @@ class Datapoint(BaseModel):
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
 
+    @validator("dataValue")
+    @validator_skip_existing_report
+    def default(cls, dataValue):
+        dataValue.report = Report(
+            status=ReportScore.success, message="Ready to release."
+        )
+        return dataValue
+
 
 def SnakeCaseToSpaces(string: str) -> str:
     return string.replace("_", " ")

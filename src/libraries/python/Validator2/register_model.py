@@ -1,6 +1,8 @@
+import re
 from typing import Dict, Optional, Union
 from functools import wraps
 from enum import Enum
+from devtools import debug
 
 from pydantic import BaseModel, Extra, validator
 
@@ -12,11 +14,11 @@ def snakeCaseToSpaces(string: str):
 
 
 ## decorator to make the validator skip datapoints which
-## already have a report, because they're already invalid
-def validator_skip_existing_report(func):
+## already have a failure or warning, because they're already invalid
+def validator_skip_fail_warn(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if args[1].report:
+        if args[1].report.status in (ReportScore.fail, ReportScore.warning):
             return args[1]
         return func(*args, **kwargs)
 
@@ -64,8 +66,31 @@ class Datapoint(BaseModel):
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
 
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
+        if not self.report:
+            self.report = Report(
+                status=ReportScore.success, message="Ready to release."
+            )
+
     class Config:
         extra = Extra.forbid
+
+
+class FloatDatapoint(Datapoint):
+    """A Datapoint which validates a that dataValue is a Float"""
+
+    dataValue: float
+
+    @validator("dataValue")
+    def float_check(cls, dataValue):
+        try:
+            float(dataValue)
+        except ValueError:
+            cls.report = Report(
+                status=ReportScore.fail, message="Datapoint must be a number."
+            )
+        return dataValue
 
 
 class Record(BaseModel):
@@ -83,8 +108,8 @@ class Record(BaseModel):
     Animal_ID: Optional[Datapoint] = None
     Host_species: Optional[Datapoint] = None
     Host_species_NCBI_tax_ID: Optional[Datapoint] = None
-    Latitude: Optional[Datapoint] = None
-    Longitude: Optional[Datapoint] = None
+    Latitude: Optional[FloatDatapoint] = None
+    Longitude: Optional[FloatDatapoint] = None
     Spatial_uncertainty: Optional[Datapoint] = None
     Collection_day: Optional[Datapoint] = None
     Collection_month: Optional[Datapoint] = None
@@ -115,7 +140,7 @@ class Record(BaseModel):
         "Detection_target_NCBI_tax_ID",
         "Pathogen_NCBI_tax_ID",
     )
-    @validator_skip_existing_report
+    @validator_skip_fail_warn
     def length_check(cls, datapoint: Datapoint):
         if not datapoint.dataValue.isnumeric():
             datapoint.report = Report(
@@ -123,20 +148,29 @@ class Record(BaseModel):
                 message="Valid identifiers are integer-only sequences.",
             )
         if not 0 < len(datapoint.dataValue) < 8:
-
             datapoint.report = Report(
                 status=ReportScore.fail,
                 message="A NCBI taxonomic identifier consists of one to seven digits.",
             )
         return datapoint
 
-    @validator("Longitude")
-    @validator_skip_existing_report
-    def check_valid_location(cls, longitude, values):
-        latitude = values.get("Latitude")
-        if not latitude and not longitude:
-            return longitude
+    @validator("Latitude")
+    @validator_skip_fail_warn
+    def check_lat(cls, latitude: FloatDatapoint):
+        if not -90 <= latitude.dataValue <= 90:
+            latitude.report = Report(
+                status=ReportScore.fail, message="Latitude must be between -90 and 90."
+            )
+        return latitude
 
+    @validator("Longitude")
+    @validator_skip_fail_warn
+    def check_lon(cls, longitude: FloatDatapoint):
+        if not -180 <= longitude.dataValue <= 180:
+            longitude.report = Report(
+                status=ReportScore.fail,
+                message="Longitude must be between -180 and 180.",
+            )
         return longitude
 
     class Config:
