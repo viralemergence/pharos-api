@@ -4,7 +4,7 @@ from functools import wraps
 from enum import Enum
 from devtools import debug
 
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, Extra, validator
 
 
 ## Helper function to transform column names containing
@@ -54,7 +54,7 @@ class Datapoint(BaseModel):
     report: Optional[Report] = None
     previous: Optional["Datapoint"] = None
 
-    def float(self):
+    def __float__(self):
         """Return the datapoint's dataValue as an float, or if
         dataValue cannot be converted to an float, return None
         and add a warning report to the datapoint.
@@ -70,10 +70,10 @@ class Datapoint(BaseModel):
             )
             return None
 
-    def str(self):
+    def __str__(self):
         return str(self.dataValue)
 
-    def int(self):
+    def __int__(self):
         """Return the datapoint's dataValue as an int, or if
         dataValue cannot be converted to an int, return None
         and add a warning report to the datapoint.
@@ -86,13 +86,17 @@ class Datapoint(BaseModel):
             )
             return None
 
+    def __len__(self):
+        return len(self.dataValue)
+
     def nonzero_int(self):
         """Return the datapoint's non-zero dataValue as an int, or if
         dataValue cannot be converted to an int or is equal to zero,
         return None and add a warning report to the datapoint.
         """
-        if self.int() and self.int() != 0:
-            return self.int()
+        integer = int(self)
+        if integer and integer != 0:
+            return integer
 
         self.report = Report(
             status=ReportScore.fail, message="Value must be a non-zero integer"
@@ -114,9 +118,6 @@ class Datapoint(BaseModel):
             return False
         return True
 
-    def __len__(self):
-        return len(self.dataValue)
-
     class Config:
         extra = Extra.forbid
 
@@ -130,10 +131,10 @@ class DefaultPassDatapoint(Datapoint):
             )
 
 
-class NumericDatapoint(Datapoint):
+class FloatDatapoint(Datapoint):
     def __init__(self, **data) -> None:
         super().__init__(**data)
-        if self.isnumeric() and not self.report:
+        if float(self) and not self.report:
             self.report = Report(
                 status=ReportScore.success, message="Ready to release."
             )
@@ -192,9 +193,9 @@ class Record(BaseModel):
     Dead_or_alive: Optional[DefaultPassDatapoint] = None
     Health_notes: Optional[DefaultPassDatapoint] = None
     Life_stage: Optional[DefaultPassDatapoint] = None
-    Age: Optional[NumericDatapoint] = None
-    Mass: Optional[NumericDatapoint] = None
-    Length: Optional[NumericDatapoint] = None
+    Age: Optional[FloatDatapoint] = None
+    Mass: Optional[FloatDatapoint] = None
+    Length: Optional[FloatDatapoint] = None
 
     @validator(
         "Host_species_NCBI_tax_ID",
@@ -203,7 +204,7 @@ class Record(BaseModel):
     )
     @validator_skip_fail_warn
     def length_check(cls, datapoint: Datapoint):
-        if datapoint.int() and 0 < len(datapoint) < 8:
+        if int(datapoint) and not 0 < len(datapoint) < 8:
             datapoint.report = Report(
                 status=ReportScore.fail,
                 message="A NCBI taxonomic identifier consists of one to seven digits.",
@@ -213,7 +214,7 @@ class Record(BaseModel):
     @validator("Latitude")
     @validator_skip_fail_warn
     def check_lat(cls, latitude: Datapoint):
-        float_value = latitude.float()
+        float_value = float(latitude)
         if float_value and not -90 <= float_value <= 90:
             latitude.report = Report(
                 status=ReportScore.fail, message="Latitude must be between -90 and 90."
@@ -223,7 +224,7 @@ class Record(BaseModel):
     @validator("Longitude")
     @validator_skip_fail_warn
     def check_lon(cls, longitude: Datapoint):
-        float_value = longitude.float()
+        float_value = float(longitude)
         if float_value and not -180 <= float_value <= 180:
             longitude.report = Report(
                 status=ReportScore.fail,
@@ -246,7 +247,7 @@ class Record(BaseModel):
         try:
             if year.nonzero_int() and month.nonzero_int() and day.nonzero_int():
                 try:
-                    date = datetime(year.int(), month.int(), day.int())
+                    date = datetime(int(year), int(month), int(day))
                     report = Report(
                         status=ReportScore.success,
                         message=f"Date {date.strftime('%Y-%m-%d')} is ready to release",
@@ -256,7 +257,7 @@ class Record(BaseModel):
                     debug(e)
                     report = Report(
                         status=ReportScore.fail,
-                        message=f"Date {year.int()}-{month.int()}-{day.int()} is invalid, {e}.",
+                        message=f"Date {int(year)}-{int(month)}-{int(day)} is invalid, {e}.",
                     )
 
                 day.report, month.report, year.report = report, report, report
