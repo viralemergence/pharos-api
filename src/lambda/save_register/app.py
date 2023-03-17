@@ -40,7 +40,7 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        # Dump the validated register to JSON
+        # Dump the validated register to JSON, excluding datasetID and researcherID
         register_json = validated.json(
             include={"register_data"}, by_alias=True, exclude_none=True
         )
