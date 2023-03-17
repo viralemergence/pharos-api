@@ -1,46 +1,60 @@
-import json
 import os
 import hashlib
+from typing import Dict
+
 import boto3
+from pydantic import BaseModel, Field, ValidationError
+
 from auth import check_auth
 from format import format_response
-from validator.definitions import Record
-from validator.validate_record import validate_record
+from register import Record
 
 
-N_VERSIONS = os.environ["N_VERSIONS"]
 S3CLIENT = boto3.client("s3")
+N_VERSIONS = os.environ["N_VERSIONS"]
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
+class SaveRegisterData(BaseModel):
+    researcherID: str
+    datasetID: str
+    register_data: Dict[str, Record] = Field(..., alias="register")
+
+
+class Event(BaseModel):
+    body: SaveRegisterData
+
+
 def lambda_handler(event, _):
-    post_data = json.loads(event.get("body", "{}"))
+
+    # parse and validate event data
+    try:
+        validated = SaveRegisterData.parse_raw(event["body"])
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
     # Placeholder check user authorization
-    authorized = check_auth(post_data["researcherID"])
+    authorized = check_auth(validated.researcherID)
     if not authorized:
         return format_response(403, "Not Authorized")
 
     try:
-        # Validate register
-        verified_register = {}
-
-        for record_id, record in post_data["register"].items():
-            record_ = Record(record, record_id)
-            record_ = validate_record(record_)
-            verified_register[record_id] = record_.get_record()
-
+        # Dump the validated register to JSON
+        register_json = validated.json(
+            include={"register_data"}, by_alias=True, exclude_none=True
+        )
         # Create a unique key by combining the datasetID and the register hash
-        encoded_data = bytes(json.dumps(verified_register).encode("UTF-8"))
+        encoded_data = bytes(register_json.encode("utf-8"))
         md5hash = str(hashlib.md5(encoded_data).hexdigest())
-        key = f'{post_data["datasetID"]}/{md5hash}.json'
+        key = f"{validated.datasetID}/{md5hash}.json"
 
         # Save new register object to S3 bucket
         S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
 
         # # Check the number of files inside the folder
         dataset_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f'{post_data["datasetID"]}/'
+            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
         )
 
         length = len(dataset_list["Contents"])
@@ -51,7 +65,7 @@ def lambda_handler(event, _):
             delkey = dataset_list["Contents"][0]["Key"]
             S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
 
-        return format_response(200, verified_register)
+        return format_response(200, register_json, preformatted=True)
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
