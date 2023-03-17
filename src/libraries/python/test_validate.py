@@ -1,6 +1,3 @@
-import json
-import timeit
-import pickle
 from typing import Dict
 
 from devtools import debug
@@ -15,8 +12,8 @@ example_data = """
     "register": {
         "rec9Hjw3utQm2": {
             "Host species NCBI tax ID": {
-                "displayValue": "3053800000",
-                "dataValue": "30538000000",
+                "displayValue": "",
+                "dataValue": "",
                 "report": {
                     "status": "WARNING",
                     "message": "Datapoint is not recognized."
