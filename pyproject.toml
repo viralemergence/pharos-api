@@ -28,3 +28,4 @@ max-line-length = "100"
 
 [tool.pyright]
 extraPaths = ["src/libraries/python/"]
+stubPath = ""
