@@ -55,8 +55,8 @@ class Datapoint(BaseModel):
 
     def __float__(self):
         """Return the datapoint's dataValue as an float, or if
-        dataValue cannot be converted to an float, return None
-        and add a warning report to the datapoint.
+        dataValue cannot be converted to an float, raise a
+        ValueError exception.
         """
         try:
             return float(self.dataValue)
@@ -68,8 +68,8 @@ class Datapoint(BaseModel):
 
     def __int__(self):
         """Return the datapoint's dataValue as an int, or if
-        dataValue cannot be converted to an int, return None
-        and add a warning report to the datapoint.
+        dataValue cannot be converted to an int raise a
+        ValueError exception.
         """
         try:
             return int(self.dataValue)
@@ -80,9 +80,9 @@ class Datapoint(BaseModel):
         return len(self.dataValue)
 
     def nonzero_int(self):
-        """Return the datapoint's non-zero dataValue as an int, or if
-        dataValue cannot be converted to an int or is equal to zero,
-        return None and add a failing report to the datapoint.
+        """Return the datapoint's non-zero dataValue as an
+        int, and if dataValue cannot be converted to an int
+        int or is equal to zero, raise a ValueError exception.
         """
         if int(self) == 0:
             raise ValueError("Value must be a non-zero integer")
@@ -90,9 +90,7 @@ class Datapoint(BaseModel):
         return int(self)
 
     def isnumeric(self):
-        """Check if dataValue is numeric, and
-        if not, add a warning to the datapoint.
-        """
+        """Check if dataValue is numeric."""
         return self.dataValue.isnumeric()
 
     class Config:
@@ -100,6 +98,12 @@ class Datapoint(BaseModel):
 
 
 class DefaultPassDatapoint(Datapoint):
+    """A Datapoint which automatically adds a passing
+    report by default as long as it exists, so that it
+    can be overridden by additional validation rules
+    in the Record validation.
+    """
+
     def __init__(self, **data) -> None:
         super().__init__(**data)
         if not self.report:
