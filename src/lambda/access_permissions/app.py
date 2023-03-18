@@ -12,7 +12,7 @@ CF = boto3.client("cloudformation")
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 HOST = os.environ["HOST"]
-PORT = os.environ["PORT"]
+PORT = int(os.environ["PORT"])
 DATABASE = os.environ["DATABASE"]
 USERNAME = os.environ["USERNAME"]
 

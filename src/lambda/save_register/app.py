@@ -52,7 +52,7 @@ def lambda_handler(event, _):
         # Save new register object to S3 bucket
         S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
 
-        # # Check the number of files inside the folder
+        # Check the number of files inside the folder
         dataset_list = S3CLIENT.list_objects_v2(
             Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
         )
