@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional
 from functools import wraps
 from enum import Enum
-from devtools import debug
 
 from pydantic import BaseModel, Extra, validator
 
@@ -34,7 +33,7 @@ class Report(BaseModel):
 
     status: ReportScore
     message: str
-    data: Optional[dict] = None
+    data: Optional[dict[str, Any]] = None
 
     class Config:
         extra = Extra.forbid
@@ -48,7 +47,7 @@ class Datapoint(BaseModel):
     """
 
     displayValue: Optional[str]
-    dataValue: Union[str, dict]
+    dataValue: str
     modifiedBy: str
     version: int
     report: Optional[Report] = None
@@ -59,16 +58,10 @@ class Datapoint(BaseModel):
         dataValue cannot be converted to an float, return None
         and add a warning report to the datapoint.
         """
-        if not self.dataValue:
-            return None
         try:
             return float(self.dataValue)
-        except ValueError:
-            self.report = Report(
-                status=ReportScore.fail,
-                message="Value must be a decimal number",
-            )
-            return None
+        except ValueError as e:
+            raise ValueError("Value must be a number") from e
 
     def __str__(self):
         return str(self.dataValue)
@@ -80,11 +73,8 @@ class Datapoint(BaseModel):
         """
         try:
             return int(self.dataValue)
-        except ValueError:
-            self.report = Report(
-                status=ReportScore.fail, message="Value must be an integer"
-            )
-            return None
+        except ValueError as e:
+            raise ValueError("Value must be an integer") from e
 
     def __len__(self):
         return len(self.dataValue)
@@ -92,31 +82,18 @@ class Datapoint(BaseModel):
     def nonzero_int(self):
         """Return the datapoint's non-zero dataValue as an int, or if
         dataValue cannot be converted to an int or is equal to zero,
-        return None and add a warning report to the datapoint.
+        return None and add a failing report to the datapoint.
         """
-        integer = int(self)
-        if integer and integer != 0:
-            return integer
+        if int(self) == 0:
+            raise ValueError("Value must be a non-zero integer")
 
-        self.report = Report(
-            status=ReportScore.fail, message="Value must be a non-zero integer"
-        )
-        return None
+        return int(self)
 
     def isnumeric(self):
         """Check if dataValue is numeric, and
         if not, add a warning to the datapoint.
         """
-        if not self.dataValue.isnumeric():
-            self.report = Report(
-                status=ReportScore.fail,
-                message=(
-                    "Value must be all numbers. Units can be "
-                    "configured in the dataset settings (coming soon)."
-                ),
-            )
-            return False
-        return True
+        return self.dataValue.isnumeric()
 
     class Config:
         extra = Extra.forbid
@@ -126,15 +103,6 @@ class DefaultPassDatapoint(Datapoint):
     def __init__(self, **data) -> None:
         super().__init__(**data)
         if not self.report:
-            self.report = Report(
-                status=ReportScore.success, message="Ready to release."
-            )
-
-
-class FloatDatapoint(Datapoint):
-    def __init__(self, **data) -> None:
-        super().__init__(**data)
-        if float(self) and not self.report:
             self.report = Report(
                 status=ReportScore.success, message="Ready to release."
             )
@@ -193,9 +161,9 @@ class Record(BaseModel):
     Dead_or_alive: Optional[DefaultPassDatapoint] = None
     Health_notes: Optional[DefaultPassDatapoint] = None
     Life_stage: Optional[DefaultPassDatapoint] = None
-    Age: Optional[FloatDatapoint] = None
-    Mass: Optional[FloatDatapoint] = None
-    Length: Optional[FloatDatapoint] = None
+    Age: Optional[DefaultPassDatapoint] = None
+    Mass: Optional[DefaultPassDatapoint] = None
+    Length: Optional[DefaultPassDatapoint] = None
 
     @validator(
         "Host_species_NCBI_tax_ID",
@@ -203,39 +171,56 @@ class Record(BaseModel):
         "Pathogen_NCBI_tax_ID",
     )
     @validator_skip_fail_warn
-    def length_check(cls, datapoint: Datapoint):
-        if int(datapoint) and not 0 < len(datapoint) < 8:
-            datapoint.report = Report(
-                status=ReportScore.fail,
-                message="A NCBI taxonomic identifier consists of one to seven digits.",
-            )
-        return datapoint
+    def length_check(cls, ncbi_id: DefaultPassDatapoint):
+        try:
+            if int(ncbi_id) and not 0 < len(ncbi_id) < 8:
+                ncbi_id.report = Report(
+                    status=ReportScore.fail,
+                    message="A NCBI taxonomic identifier consists of one to seven digits.",
+                )
+        except ValueError as e:
+            ncbi_id.report = Report(status=ReportScore.fail, message=str(e))
+
+        return ncbi_id
 
     @validator("Latitude")
     @validator_skip_fail_warn
-    def check_lat(cls, latitude: Datapoint):
-        float_value = float(latitude)
-        if float_value and not -90 <= float_value <= 90:
-            latitude.report = Report(
-                status=ReportScore.fail, message="Latitude must be between -90 and 90."
-            )
+    def check_lat(cls, latitude: DefaultPassDatapoint):
+        try:
+            if not -90 <= float(latitude) <= 90:
+                latitude.report = Report(
+                    status=ReportScore.fail,
+                    message="Latitude must be between -90 and 90.",
+                )
+
+        except ValueError as e:
+            latitude.report = Report(status=ReportScore.fail, message=str(e))
+
         return latitude
 
     @validator("Longitude")
     @validator_skip_fail_warn
-    def check_lon(cls, longitude: Datapoint):
-        float_value = float(longitude)
-        if float_value and not -180 <= float_value <= 180:
-            longitude.report = Report(
-                status=ReportScore.fail,
-                message="Longitude must be between -180 and 180.",
-            )
+    def check_lon(cls, longitude: DefaultPassDatapoint):
+        try:
+            if not -180 <= float(longitude) <= 180:
+                longitude.report = Report(
+                    status=ReportScore.fail,
+                    message="Longitude must be between -180 and 180.",
+                )
+
+        except ValueError as e:
+            longitude.report = Report(status=ReportScore.fail, message=str(e))
+
         return longitude
 
     @validator("Collection_year")
     def check_date(cls, year: Datapoint, values: Dict[str, Datapoint]):
         day = values.get("Collection_day")
         month = values.get("Collection_month")
+
+        # Don't do any validation until all three are filled out
+        if not day or not month:
+            return year
 
         if len(year) < 4:
             year.report = Report(
@@ -245,29 +230,43 @@ class Record(BaseModel):
             return year
 
         try:
-            if year.nonzero_int() and month.nonzero_int() and day.nonzero_int():
-                try:
-                    date = datetime(int(year), int(month), int(day))
-                    report = Report(
-                        status=ReportScore.success,
-                        message=f"Date {date.strftime('%Y-%m-%d')} is ready to release",
-                    )
+            date = datetime(int(year), int(month), int(day))
+            report = Report(
+                status=ReportScore.success,
+                message=f"Date {date.strftime('%Y-%m-%d')} is ready to release",
+            )
 
-                except ValueError as e:
-                    debug(e)
-                    report = Report(
-                        status=ReportScore.fail,
-                        message=f"Date {int(year)}-{int(month)}-{int(day)} is invalid, {e}.",
-                    )
+        except ValueError as e:
+            try:
+                report = Report(
+                    status=ReportScore.fail,
+                    message=f"Date {int(year)}-{int(month)}-{int(day)} is invalid, {e}.",
+                )
+            except ValueError:
+                report = Report(
+                    status=ReportScore.fail,
+                    message="All of day, month, and year must be numbers.",
+                )
 
-                day.report, month.report, year.report = report, report, report
-
-        except AttributeError:
-            # if month or day are None or cannot convert to int,
-            # we don't need to add or overwrite any reports
-            pass
+        day.report, month.report, year.report = report, report, report
 
         return year
+
+    @validator("Age", "Mass", "Length")
+    @validator_skip_fail_warn
+    def check_float(cls, value: DefaultPassDatapoint):
+        try:
+            float(value)
+        except ValueError:
+            value.report = Report(
+                status=ReportScore.fail,
+                message=(
+                    "Must be a number, units can be configured "
+                    "in dataset settings (coming soon)."
+                ),
+            )
+
+        return value
 
     class Config:
         ## datapoint names are transformed by
