@@ -39,7 +39,7 @@ def test_valid_record():
     assert record.Host_species.dataValue == "Vulpes vulpes"
     assert record.Host_species.report is not None
     assert record.Host_species.report.status == ReportScore.success
-    assert record.Host_species.previous is None
+    assert record.Host_species.previous is not None
     assert record.Host_species.previous.dataValue == "Previous Data Value"
     assert record.Host_species.version == 2
     assert record.Host_species.previous.version == 1
