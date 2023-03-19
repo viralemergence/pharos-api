@@ -71,7 +71,7 @@ jobs:
             sudo apt -y install python3.9-venv;
 
       - run:
-          name: Create virtualenv and install dev dependencies
+          name: Create virtualenv & install dev dependencies
           command: |
             python3.9 -m venv env .
             source env/bin/activate
@@ -90,6 +90,7 @@ jobs:
       - run:
           name: Run Tests
           command: |
+            source env/bin/activate
             mkdir test-results
             pytest --junitxml=test-results/junit.xml
 
