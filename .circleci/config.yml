@@ -20,6 +20,7 @@ workflows:
             branches:
               only:
                 - dev
+                - feature/new-models
 
       # review
       - deploy:
@@ -67,6 +68,31 @@ jobs:
             sudo apt -y update;
             sudo apt -y install python3.9;
             sudo apt -y install python3.9-distutils;
+            python3.9 -m venv env .
+
+      - run:
+          name: Install NodeJS & Pyright
+          command: |
+            sudo apt install nodejs;
+            npm install --global pyright;
+
+      - run:
+          name: install dev dependencies
+          command: pip install -r dev-requirements.txt
+
+      - run:
+          name: Run Type Checks
+          command: pyright
+
+      - run:
+          name: Run Tests
+          command: |
+            source env/bin/activate
+            mkdir test-results
+            pytest --junitxml=test-results/junit.xml
+
+      - store_test_results:
+          path: test-results
 
       - sam/install
       - run: sam build
