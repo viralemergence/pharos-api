@@ -39,7 +39,7 @@ def handle_statements(connection, response_data, **statement: dict) -> None:
             connection.execute(value)
             response_data[key] = str(value)
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             response_data[key] = str(e)
 
 
