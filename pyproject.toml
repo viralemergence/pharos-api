@@ -30,3 +30,6 @@ max-line-length = "100"
 extraPaths = ["src/libraries/python/"]
 stubPath = ""
 include = ["src/"]
+exclude = [ "**/node_modules", "**/__pycache__", "**/.*", "env"]
+venvPath = "."
+venv = "env"
