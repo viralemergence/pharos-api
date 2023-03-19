@@ -86,7 +86,8 @@ jobs:
       - run:
           name: Run Type Checks
           command: |
-            cd pharos-api/
+            pwd
+            ls
             pyright
 
       - run:
