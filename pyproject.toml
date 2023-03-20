@@ -30,7 +30,9 @@ extension-pkg-whitelist = "pydantic"
 disable = [
   "no-name-in-module",
   "missing-class-docstring",
-  "missing-function-docstring"
+  "missing-function-docstring",
+  "missing-module-docstring",
+  "duplicate-code",
 ]
 
 
