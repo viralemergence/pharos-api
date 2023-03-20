@@ -4,13 +4,8 @@ import os
 import boto3
 from boto3.dynamodb.conditions import Key
 
-import sys
-
-
 from auth import check_auth
 from format import format_response
-
-sys.path.insert(0, "../../libraries/python")
 
 
 DYNAMODB = boto3.resource("dynamodb")
