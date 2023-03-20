@@ -86,9 +86,12 @@ jobs:
       - run:
           name: Run Type Checks
           command: |
-            pwd
-            ls
             pyright
+
+      - run:
+          name: Run Style Checks
+          command: |
+            pylint src/
 
       - run:
           name: Run Tests
