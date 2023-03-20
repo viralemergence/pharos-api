@@ -99,7 +99,8 @@ jobs:
           command: |
             source env/bin/activate
             mkdir test-results
-            pytest -v --cov --junitxml=test-results/junit.xml --cov-report=html
+            pytest -v --cov=src/libraries/python
+            pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
 
       - store_artifacts:
           path: htmlcov
