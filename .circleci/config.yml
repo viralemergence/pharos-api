@@ -91,6 +91,7 @@ jobs:
       - run:
           name: Run Style Checks
           command: |
+            source env/bin/activate
             pylint src/
 
       - run:
