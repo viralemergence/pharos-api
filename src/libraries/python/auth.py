@@ -2,7 +2,7 @@ import os
 import boto3
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
+USERS_TABLE = DYNAMODB.Table(os.environ.get("USERS_TABLE_NAME", "mock-table-name"))
 
 
 def check_auth(researcherID):

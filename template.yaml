@@ -255,6 +255,7 @@ Resources:
       Layers:
         - !Ref Libraries
       Timeout: 300
+      MemorySize: 512
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
@@ -292,6 +293,7 @@ Resources:
       Layers:
         - !Ref Libraries
       Timeout: 300
+      MemorySize: 256
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow

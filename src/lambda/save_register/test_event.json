@@ -1,0 +1,83 @@
+{
+  "body": "{\"register\":{\"rec9Hjw3utQm2\":{\"Host species NCBI tax ID\":{\"dataValue\":\"30538\",\"modifiedBy\":\"dev\",\"version\":\"1678391083301\"},\"Sample ID\":{\"dataValue\":\"1\",\"modifiedBy\":\"dev\",\"version\":\"1678461815020\"},\"Host species\":{\"dataValue\":\"Bat\",\"modifiedBy\":\"dev\",\"version\":\"1678461820035\"},\"Animal ID\":{\"dataValue\":\"Fred\",\"modifiedBy\":\"dev\",\"version\":\"1678461824903\"},\"Pathogen\":{\"dataValue\":\"lowercase\",\"modifiedBy\":\"dev\",\"version\":\"1678814794793\"},\"Detection outcome\":{\"dataValue\":\"Positive\",\"modifiedBy\":\"dev\",\"version\":\"1678815064184\"}}},\"datasetID\":\"setAwm6OlrT7U\",\"researcherID\":\"dev\"}",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "deflate, gzip",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "keep-alive",
+    "Content-Length": "2465",
+    "Content-Type": "text/plain;charset=UTF-8",
+    "Host": "localhost:3000",
+    "Origin": "http://localhost:8000",
+    "Referer": "http://localhost:8000/",
+    "Sec-Ch-Ua": "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": "\"macOS\"",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+    "X-Forwarded-Port": "3000",
+    "X-Forwarded-Proto": "http"
+  },
+  "httpMethod": "POST",
+  "isBase64Encoded": false,
+  "multiValueHeaders": {
+    "Accept": ["*/*"],
+    "Accept-Encoding": ["deflate, gzip"],
+    "Accept-Language": ["en-US,en;q=0.9"],
+    "Connection": ["keep-alive"],
+    "Content-Length": ["2465"],
+    "Content-Type": ["text/plain;charset=UTF-8"],
+    "Host": ["localhost:3000"],
+    "Origin": ["http://localhost:8000"],
+    "Referer": ["http://localhost:8000/"],
+    "Sec-Ch-Ua": [
+      "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\""
+    ],
+    "Sec-Ch-Ua-Mobile": ["?0"],
+    "Sec-Ch-Ua-Platform": ["\"macOS\""],
+    "Sec-Fetch-Dest": ["empty"],
+    "Sec-Fetch-Mode": ["cors"],
+    "Sec-Fetch-Site": ["same-site"],
+    "User-Agent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+    ],
+    "X-Forwarded-Port": ["3000"],
+    "X-Forwarded-Proto": ["http"]
+  },
+  "multiValueQueryStringParameters": null,
+  "path": "/save-register",
+  "pathParameters": null,
+  "queryStringParameters": null,
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "1234567890",
+    "domainName": "localhost:3000",
+    "extendedRequestId": null,
+    "httpMethod": "POST",
+    "identity": {
+      "accountId": null,
+      "apiKey": null,
+      "caller": null,
+      "cognitoAuthenticationProvider": null,
+      "cognitoAuthenticationType": null,
+      "cognitoIdentityPoolId": null,
+      "sourceIp": "127.0.0.1",
+      "user": null,
+      "userAgent": "Custom User Agent String",
+      "userArn": null
+    },
+    "path": "/save-register",
+    "protocol": "HTTP/1.1",
+    "requestId": "ab4d4721-6d48-4019-b6f5-53b85af919eb",
+    "requestTime": "15/Mar/2023:14:42:26 +0000",
+    "requestTimeEpoch": 1678891346,
+    "resourceId": "123456",
+    "resourcePath": "/save-register",
+    "stage": "Prod"
+  },
+  "resource": "/save-register",
+  "stageVariables": null,
+  "version": "1.0"
+}
