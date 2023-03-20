@@ -20,7 +20,10 @@ load-plugins = [
   "pylint_pydantic"
 ]
 # ignore-patterns="/env/*"
-ignore-paths="env/"
+ignore-paths=[
+  "env/",
+  "docs/"
+]
 
 [tool.pylint.messages_control]
 # disable = "C0116, C0115, C0114, C0103, E0213, R0903"
