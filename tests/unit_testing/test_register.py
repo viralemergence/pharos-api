@@ -2,7 +2,9 @@
 
 import datetime
 import pytest
+
 from register import Record, ReportScore
+
 
 VALID_RECORD = """
 {
