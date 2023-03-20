@@ -46,3 +46,9 @@ include = ["src/"]
 exclude = [ "**/node_modules", "**/__pycache__", "**/.*", "env"]
 venvPath = "."
 venv = "env"
+
+[tool.pytest.ini_options]
+pythonpath = "src/libraries/python/"
+addopts = [
+    "--import-mode=importlib",
+]
