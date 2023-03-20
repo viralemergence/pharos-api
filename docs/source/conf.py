@@ -1,15 +1,20 @@
 import pathlib
 import sys
+import os
 
 sys.path.insert(
     0, str(pathlib.Path(__file__).parent.parent.parent / "src" / "libraries" / "python")
 )
 
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent / "src"))
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent / "src" / "lambda"))
 
 print("\n\n\nPATH:")
 print(sys.path)
 print("\n\n\n")
+
+
+os.environ["CORS_ALLOW"] = "http://localhost:8000/"
+os.environ["USERS_TABLE_NAME"] = "users-table-name"
 
 
 # Configuration file for the Sphinx documentation builder.

@@ -10,7 +10,6 @@ Welcome to Pharos API's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   api
    register
 
 
