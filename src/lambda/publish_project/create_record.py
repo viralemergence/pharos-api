@@ -1,3 +1,5 @@
+# pylint: disable-all
+
 # import datetime
 # from models import Tests, ResearchersTests
 

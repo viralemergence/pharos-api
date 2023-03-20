@@ -1,3 +1,5 @@
+"""Lambda function to save a register to S3"""
+
 import os
 import hashlib
 from typing import Dict
@@ -16,17 +18,20 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
 class SaveRegisterData(BaseModel):
+    """Data model for the save register request"""
+
     researcherID: str
     datasetID: str
     register_data: Dict[str, Record] = Field(..., alias="register")
 
 
 class Event(BaseModel):
+    """Data model for the event payload"""
+
     body: SaveRegisterData
 
 
 def lambda_handler(event, _):
-
     # parse and validate event data
     try:
         validated = SaveRegisterData.parse_raw(event["body"])

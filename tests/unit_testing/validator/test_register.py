@@ -1,8 +1,10 @@
+"""Tests for the register parsing and validation classes"""
+
 import datetime
 import pytest
 from register import Record, ReportScore
 
-valid_record = """
+VALID_RECORD = """
 {
     "Host species": {
         "dataValue": "Vulpes vulpes",
@@ -34,11 +36,12 @@ valid_record = """
 
 
 def test_valid_record():
-    record = Record.parse_raw(valid_record)
+    """Testing a basic, valid record"""
+    record = Record.parse_raw(VALID_RECORD)
     assert record.Host_species is not None
     assert record.Host_species.dataValue == "Vulpes vulpes"
     assert record.Host_species.report is not None
-    assert record.Host_species.report.status == ReportScore.success
+    assert record.Host_species.report.status == ReportScore.SUCCESS
     assert record.Host_species.previous is not None
     assert record.Host_species.previous.dataValue == "Previous Data Value"
     assert record.Host_species.version == 2
@@ -46,7 +49,8 @@ def test_valid_record():
 
 
 def test_valid_coersion():
-    record = Record.parse_raw(valid_record)
+    """Testing coersions of data points which are expected to be successful"""
+    record = Record.parse_raw(VALID_RECORD)
     assert record.Age is not None
     assert record.Age.dataValue == "10"
     assert float(record.Age) == 10.0
@@ -57,13 +61,14 @@ def test_valid_coersion():
 
 
 def test_coersion_exception():
-    record = Record.parse_raw(valid_record)
+    """Testing coersions of data points which are expected to fail"""
+    record = Record.parse_raw(VALID_RECORD)
     assert record.Host_species is not None
     assert record.Age is not None
     assert record.Age.previous is not None
     assert record.Length is not None
     assert record.Length.report is not None
-    assert record.Length.report.status == ReportScore.fail
+    assert record.Length.report.status == ReportScore.FAIL
 
     with pytest.raises(ValueError):
         int(record.Host_species)
@@ -80,7 +85,7 @@ def test_coersion_exception():
     assert record.Host_species.isnumeric() is False
 
 
-unknown_datapoint = """
+UNKNOWN_DATAPOINT = """
 {
     "Unknown datapoint": {
         "dataValue": "something odd",
@@ -92,14 +97,15 @@ unknown_datapoint = """
 
 
 def test_unknown_datapoint():
-    record = Record.parse_raw(unknown_datapoint)
+    """Testing unknown datapoint warning"""
+    record = Record.parse_raw(UNKNOWN_DATAPOINT)
     datapoint = getattr(record, "Unknown datapoint")
     assert datapoint is not None
     assert datapoint.report is not None
-    assert datapoint.report.status == ReportScore.warning
+    assert datapoint.report.status == ReportScore.WARNING
 
 
-datapoint_illegal_additional_keys = """
+DATAPOINT_ILLEGAL_ADDITIONAL_KEYS = """
 {
     "Host species": {
         "dataValue": "Vulpes vulpes",
@@ -112,11 +118,12 @@ datapoint_illegal_additional_keys = """
 
 
 def test_datapoint_illegal_additional_keys():
+    """Datapoints with additional keys should throw an exception"""
     with pytest.raises(ValueError):
-        Record.parse_raw(datapoint_illegal_additional_keys)
+        Record.parse_raw(DATAPOINT_ILLEGAL_ADDITIONAL_KEYS)
 
 
-missing_required_value = """
+MISSING_REQUIRED_VALUE = """
 {
     "Host species": {
         "dataValue": "Vulpes vulpes",
@@ -127,11 +134,12 @@ missing_required_value = """
 
 
 def test_missing_required_value():
+    """Datapoints with missing required values should throw an exception"""
     with pytest.raises(ValueError):
-        Record.parse_raw(missing_required_value)
+        Record.parse_raw(MISSING_REQUIRED_VALUE)
 
 
-register_with_partial_date = """
+REGISTER_WITH_PARTIAL_DATE = """
 {
     "Collection day": {
         "dataValue": "1",
@@ -148,14 +156,17 @@ register_with_partial_date = """
 
 
 def test_register_with_partial_date():
-    record = Record.parse_raw(register_with_partial_date)
+    """If a date is missing a day or month or year,
+    no reports should be generated
+    """
+    record = Record.parse_raw(REGISTER_WITH_PARTIAL_DATE)
     assert record.Collection_day is not None
     assert record.Collection_day.report is None
     assert record.Collection_year is not None
     assert record.Collection_year.report is None
 
 
-register_with_date = """
+REGISTER_WITH_DATE = """
 {
     "Collection day": {
         "dataValue": "1",
@@ -177,7 +188,10 @@ register_with_date = """
 
 
 def test_register_with_date():
-    record = Record.parse_raw(register_with_date)
+    """If a date is complete, all datapoints in
+    the date should get a success report
+    """
+    record = Record.parse_raw(REGISTER_WITH_DATE)
     assert record.Collection_day is not None
     assert record.Collection_day.report is not None
     assert record.Collection_month is not None
@@ -185,9 +199,9 @@ def test_register_with_date():
     assert record.Collection_year is not None
     assert record.Collection_year.report is not None
 
-    assert record.Collection_day.report.status == ReportScore.success
-    assert record.Collection_month.report.status == ReportScore.success
-    assert record.Collection_year.report.status == ReportScore.success
+    assert record.Collection_day.report.status == ReportScore.SUCCESS
+    assert record.Collection_month.report.status == ReportScore.SUCCESS
+    assert record.Collection_year.report.status == ReportScore.SUCCESS
 
     date = datetime.date(
         int(record.Collection_year),
@@ -198,7 +212,7 @@ def test_register_with_date():
     assert date == datetime.date(2022, 1, 1)
 
 
-register_with_invalid_date = """
+REGISTER_WITH_INVALID_DATE = """
 {
     "Collection day": {
         "dataValue": "apple",
@@ -220,7 +234,10 @@ register_with_invalid_date = """
 
 
 def test_register_with_invalid_date():
-    record = Record.parse_raw(register_with_invalid_date)
+    """If a date is invalid, all date datapoints should
+    get a fail report with an explanation why.
+    """
+    record = Record.parse_raw(REGISTER_WITH_INVALID_DATE)
     assert record.Collection_day is not None
     assert record.Collection_day.report is not None
     assert record.Collection_month is not None
@@ -230,12 +247,12 @@ def test_register_with_invalid_date():
 
     print(record.Collection_day.report.status)
 
-    assert record.Collection_day.report.status == ReportScore.fail
-    assert record.Collection_month.report.status == ReportScore.fail
-    assert record.Collection_year.report.status == ReportScore.fail
+    assert record.Collection_day.report.status == ReportScore.FAIL
+    assert record.Collection_month.report.status == ReportScore.FAIL
+    assert record.Collection_year.report.status == ReportScore.FAIL
 
 
-register_with_short_year = """
+REGISTER_WITH_SHORT_YEAR = """
 {
     "Collection day": {
         "dataValue": "1",
@@ -257,13 +274,14 @@ register_with_short_year = """
 
 
 def test_register_with_short_year():
-    record = Record.parse_raw(register_with_short_year)
+    """All years must have four digits"""
+    record = Record.parse_raw(REGISTER_WITH_SHORT_YEAR)
     assert record.Collection_year is not None
     assert record.Collection_year.report is not None
-    assert record.Collection_year.report.status == ReportScore.fail
+    assert record.Collection_year.report.status == ReportScore.FAIL
 
 
-valid_location = """
+VALID_LOCATION = """
 {
     "Latitude": {
         "dataValue": "40.0150",
@@ -280,17 +298,18 @@ valid_location = """
 
 
 def test_valid_location():
-    record = Record.parse_raw(valid_location)
+    """Testing a valid lat/lon pair"""
+    record = Record.parse_raw(VALID_LOCATION)
     assert record.Latitude is not None
     assert record.Latitude.report is not None
-    assert record.Latitude.report.status == ReportScore.success
+    assert record.Latitude.report.status == ReportScore.SUCCESS
 
     assert record.Longitude is not None
     assert record.Longitude.report is not None
-    assert record.Longitude.report.status == ReportScore.success
+    assert record.Longitude.report.status == ReportScore.SUCCESS
 
 
-non_numeric_invalid_location = """
+NON_NUMERIC_INVALID_LOCATION = """
 {
     "Latitude": {
         "dataValue": "plum",
@@ -307,17 +326,18 @@ non_numeric_invalid_location = """
 
 
 def test_non_numeric_invalid_location():
-    record = Record.parse_raw(non_numeric_invalid_location)
+    """This lat/lon pair is invalid because they are not numeric"""
+    record = Record.parse_raw(NON_NUMERIC_INVALID_LOCATION)
     assert record.Latitude is not None
     assert record.Latitude.report is not None
-    assert record.Latitude.report.status == ReportScore.fail
+    assert record.Latitude.report.status == ReportScore.FAIL
 
     assert record.Longitude is not None
     assert record.Longitude.report is not None
-    assert record.Longitude.report.status == ReportScore.fail
+    assert record.Longitude.report.status == ReportScore.FAIL
 
 
-numeric_invalid_location = """
+NUMERIC_INVALID_LOCATION = """
 {
     "Latitude": {
         "dataValue": "400.0150",
@@ -334,17 +354,18 @@ numeric_invalid_location = """
 
 
 def test_invalid_location():
-    record = Record.parse_raw(numeric_invalid_location)
+    """This lat/lon pair is invalid because they are out of bounds"""
+    record = Record.parse_raw(NUMERIC_INVALID_LOCATION)
     assert record.Latitude is not None
     assert record.Latitude.report is not None
-    assert record.Latitude.report.status == ReportScore.fail
+    assert record.Latitude.report.status == ReportScore.FAIL
 
     assert record.Longitude is not None
     assert record.Longitude.report is not None
-    assert record.Longitude.report.status == ReportScore.fail
+    assert record.Longitude.report.status == ReportScore.FAIL
 
 
-ncbi_tax_ids = """
+NCBI_TAX_IDS = """
 {   
     "Host species NCBI tax ID": {
         "dataValue": "9606",
@@ -366,21 +387,22 @@ ncbi_tax_ids = """
 
 
 def test_ncbi_tax_ids():
-    record = Record.parse_raw(ncbi_tax_ids)
+    """Testing NCBI tax IDs, first should pass, second is too long, third is not numeric"""
+    record = Record.parse_raw(NCBI_TAX_IDS)
     assert record.Host_species_NCBI_tax_ID is not None
     assert record.Host_species_NCBI_tax_ID.report is not None
-    assert record.Host_species_NCBI_tax_ID.report.status == ReportScore.success
+    assert record.Host_species_NCBI_tax_ID.report.status == ReportScore.SUCCESS
 
     assert record.Detection_target_NCBI_tax_ID is not None
     assert record.Detection_target_NCBI_tax_ID.report is not None
-    assert record.Detection_target_NCBI_tax_ID.report.status == ReportScore.fail
+    assert record.Detection_target_NCBI_tax_ID.report.status == ReportScore.FAIL
 
     assert record.Pathogen_NCBI_tax_ID is not None
     assert record.Pathogen_NCBI_tax_ID.report is not None
-    assert record.Pathogen_NCBI_tax_ID.report.status == ReportScore.fail
+    assert record.Pathogen_NCBI_tax_ID.report.status == ReportScore.FAIL
 
 
-existing_warning = """
+EXISTING_WARNING = """
 {
     "Mass": {
         "dataValue": "Vulpes vulpes",
@@ -396,8 +418,9 @@ existing_warning = """
 
 
 def test_existing_warning():
-    record = Record.parse_raw(existing_warning)
+    """If a datapoint already has a warning, it should not get tested again"""
+    record = Record.parse_raw(EXISTING_WARNING)
     assert record.Mass is not None
     assert record.Mass.report is not None
-    assert record.Mass.report.status == ReportScore.warning
+    assert record.Mass.report.status == ReportScore.WARNING
     assert record.Mass.report.message == "don't modify me"

@@ -17,7 +17,6 @@ def lambda_handler(event, _):
         if not researcherID:
             researcherID = uuid.uuid4().hex
 
-        # TODO
         # This overwrites the existing record completely
         # What we actually need here is a merge; so that
         # an out of date client can't take away project

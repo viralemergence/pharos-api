@@ -1,3 +1,25 @@
+"""
+Register parsing and validation module.
+
+A "dataset" in the Pharos UI is a register, which is a dictionary (or
+object, in the JS frontend) of records. Each record has a set of optional
+fields by default, which will be validated when the register is parsed,
+but will also accept fields with any name. Each field is a datapoint,
+and when the register is saved to the api, known fields are validated and
+each datapoint gets a report which tells the system if it is ready
+to import into the Pharos database, and if not, it includes a message
+to help the user understand what they need to change. Unknown datapoints
+are simply marked with a "WARNING" status.
+
+Datapoints are a recursive data structure, where the `previous` property
+points to the previous version of the datapoint. This allows us to track
+the history of a datapoint, tracking when it changed, what changed, and
+who made that change.
+
+This is the core module which defines datapoints, validation reports,
+and records.
+"""
+
 from datetime import datetime
 from typing import Any, Dict, Optional
 from functools import wraps
@@ -8,7 +30,10 @@ from pydantic import BaseModel, Extra, validator
 
 ## Helper function to transform column names containing
 ## spaces to underscored names for use in the record class.
-def snakeCaseToSpaces(string: str):
+def _snake_case_to_spaces(string: str):
+    """Replace underscores with spaces to map from
+    python attributes to display names.
+    """
     return string.replace("_", " ")
 
 
@@ -17,18 +42,18 @@ class ReportScore(Enum):
     inclusion criteria into the final database.
     """
 
-    fail = "FAIL"
-    success = "SUCCESS"
-    warning = "WARNING"
+    FAIL = "FAIL"
+    SUCCESS = "SUCCESS"
+    WARNING = "WARNING"
 
-    class Config:
+    class Config:  # pylint: disable=too-few-public-methods
         extra = Extra.forbid
 
 
 class Report(BaseModel):
     """The report object a validated datapoint,
     containing both the score and a message to
-    show the user in the frontend
+    show the user in the frontend.
     """
 
     status: ReportScore
@@ -47,11 +72,30 @@ class Datapoint(BaseModel):
     """
 
     displayValue: Optional[str]
+    """Deprecating this; do not use."""
+
     dataValue: str
+    """The value of the datapoint, as a string.
+    In most cases this is the raw value the user entered,
+    but in some cases it is a transformed from the user's
+    selected unit into SI units.
+    """
+
     modifiedBy: str
+    """The researcherID of the user who modified this
+    version of this datapoint.
+    """
+
     version: int
+    """The version of this datapoint, which is an integer timestamp
+    used to reconcile divergent datapoint histories.
+    """
+
     report: Optional[Report] = None
+    """The report for this datapoint, once it has been validated."""
+
     previous: Optional["Datapoint"] = None
+    """The previous version of this datapoint, if it exists."""
 
     def __float__(self):
         """Return the datapoint's dataValue as an float, or if
@@ -99,16 +143,16 @@ class Datapoint(BaseModel):
 
 class DefaultPassDatapoint(Datapoint):
     """A Datapoint which automatically adds a passing
-    report by default as long as it exists, so that it
-    can be overridden by additional validation rules
-    in the Record validation.
+    report as long as the `Datapoint` is correctly formatted
+    and structured. This initial report is often overridden
+    by additional validation rules in the Record validator.
     """
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
         if not self.report:
             self.report = Report(
-                status=ReportScore.success, message="Ready to release."
+                status=ReportScore.SUCCESS, message="Ready to release."
             )
 
 
@@ -118,8 +162,8 @@ def validator_skip_fail_warn(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if args[1].report and args[1].report.status in (
-            ReportScore.fail,
-            ReportScore.warning,
+            ReportScore.FAIL,
+            ReportScore.WARNING,
         ):
             return args[1]
         return func(*args, **kwargs)
@@ -175,50 +219,59 @@ class Record(BaseModel):
         "Pathogen_NCBI_tax_ID",
     )
     @validator_skip_fail_warn
-    def length_check(cls, ncbi_id: DefaultPassDatapoint):
+    def check_ncbi(cls, ncbi_id: DefaultPassDatapoint):
+        """Check that the NCBI taxonomic identifier is
+        numeric and between 1 and 7 digits long.
+        """
         try:
             if int(ncbi_id) and not 0 < len(ncbi_id) < 8:
                 ncbi_id.report = Report(
-                    status=ReportScore.fail,
+                    status=ReportScore.FAIL,
                     message="A NCBI taxonomic identifier consists of one to seven digits.",
                 )
         except ValueError as e:
-            ncbi_id.report = Report(status=ReportScore.fail, message=str(e))
+            ncbi_id.report = Report(status=ReportScore.FAIL, message=str(e))
 
         return ncbi_id
 
     @validator("Latitude")
     @validator_skip_fail_warn
     def check_lat(cls, latitude: DefaultPassDatapoint):
+        """Check that the latitude is numeric and between -90 and 90."""
         try:
             if not -90 <= float(latitude) <= 90:
                 latitude.report = Report(
-                    status=ReportScore.fail,
+                    status=ReportScore.FAIL,
                     message="Latitude must be between -90 and 90.",
                 )
 
         except ValueError as e:
-            latitude.report = Report(status=ReportScore.fail, message=str(e))
+            latitude.report = Report(status=ReportScore.FAIL, message=str(e))
 
         return latitude
 
     @validator("Longitude")
     @validator_skip_fail_warn
     def check_lon(cls, longitude: DefaultPassDatapoint):
+        """Check that the longitude is numeric and between -180 and 180."""
         try:
             if not -180 <= float(longitude) <= 180:
                 longitude.report = Report(
-                    status=ReportScore.fail,
+                    status=ReportScore.FAIL,
                     message="Longitude must be between -180 and 180.",
                 )
 
         except ValueError as e:
-            longitude.report = Report(status=ReportScore.fail, message=str(e))
+            longitude.report = Report(status=ReportScore.FAIL, message=str(e))
 
         return longitude
 
     @validator("Collection_year")
     def check_date(cls, year: Datapoint, values: Dict[str, Datapoint]):
+        """Check that the date is valid; skip validation if any of
+        day, month, and year are missing, and check that the year is
+        four digits long."""
+
         day = values.get("Collection_day")
         month = values.get("Collection_month")
 
@@ -228,7 +281,7 @@ class Record(BaseModel):
 
         if len(year) < 4:
             year.report = Report(
-                status=ReportScore.fail,
+                status=ReportScore.FAIL,
                 message="Year must be a four-digit year",
             )
             return year
@@ -236,19 +289,19 @@ class Record(BaseModel):
         try:
             date = datetime(int(year), int(month), int(day))
             report = Report(
-                status=ReportScore.success,
+                status=ReportScore.SUCCESS,
                 message=f"Date {date.strftime('%Y-%m-%d')} is ready to release",
             )
 
         except ValueError as e:
             try:
                 report = Report(
-                    status=ReportScore.fail,
+                    status=ReportScore.FAIL,
                     message=f"Date {int(year)}-{int(month)}-{int(day)} is invalid, {e}.",
                 )
             except ValueError:
                 report = Report(
-                    status=ReportScore.fail,
+                    status=ReportScore.FAIL,
                     message="All of day, month, and year must be numbers.",
                 )
 
@@ -259,11 +312,12 @@ class Record(BaseModel):
     @validator("Age", "Mass", "Length")
     @validator_skip_fail_warn
     def check_float(cls, value: DefaultPassDatapoint):
+        """Check that the value is a decimal."""
         try:
             float(value)
         except ValueError:
             value.report = Report(
-                status=ReportScore.fail,
+                status=ReportScore.FAIL,
                 message=(
                     "Must be a number, units can be configured "
                     "in dataset settings (coming soon)."
@@ -275,7 +329,7 @@ class Record(BaseModel):
     class Config:
         ## datapoint names are transformed by
         ## replaceing spaces with underscores
-        alias_generator = snakeCaseToSpaces
+        alias_generator = _snake_case_to_spaces
         extra = Extra.allow
 
     def __init__(self, **data) -> None:
@@ -285,7 +339,7 @@ class Record(BaseModel):
         for key in extra_fields:
             dat = Datapoint(**self.__dict__[key])
             dat.report = Report(
-                status=ReportScore.warning, message="Datapoint is not recognized."
+                status=ReportScore.WARNING, message="Datapoint is not recognized."
             )
             self.__dict__[key] = dat
 
