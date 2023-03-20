@@ -366,7 +366,7 @@ def test_invalid_location():
 
 
 NCBI_TAX_IDS = """
-{   
+{
     "Host species NCBI tax ID": {
         "dataValue": "9606",
         "modifiedBy": "dev",
