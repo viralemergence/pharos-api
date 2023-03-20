@@ -22,6 +22,9 @@ def lambda_handler(event, _):
         PROJECTS_TABLE.put_item(Item=post_data)
 
         # Update project set for every author in the project
+
+        # Looks like the idea for this code is to handle the
+        # case where a new author is added to a project
         for author in post_data["authors"]:
             researcher = author["researcherID"]
             USERS_TABLE.update_item(

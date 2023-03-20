@@ -3,6 +3,7 @@ import json
 import os
 import boto3
 from boto3.dynamodb.conditions import Key
+
 from auth import check_auth
 from format import format_response
 
@@ -36,6 +37,10 @@ def lambda_handler(event, _):
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
 
         datasets = {}
+
+        if not isinstance(project["Item"]["datasetIDs"], list):
+            return format_response(500, "Dataset Format Error")
+
         # From the list of datasetIDs query for the records that contain '_meta' as sort key
         for datasetid in project["Item"]["datasetIDs"]:
             query = DATASETS_TABLE.query(
