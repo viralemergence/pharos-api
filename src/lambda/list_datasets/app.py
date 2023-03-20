@@ -37,20 +37,23 @@ def lambda_handler(event, _):
         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
 
         datasets = {}
-        # From the list of datasetIDs query for the records that contain '_meta' as sort key
-        if isinstance(project["Item"]["datasetIDs"], list):
-            for datasetid in project["Item"]["datasetIDs"]:
-                query = DATASETS_TABLE.query(
-                    KeyConditionExpression=Key("datasetID").eq(datasetid)
-                    & Key("recordID").eq("_meta")
-                )
-                # we're assuming we only want the first result
-                # from the query since we know that there
-                # should only be one recordID:_meta PK:SK pair
-                dataset = query["Items"][0]
-                # Unpack query and append
 
-                datasets[dataset["datasetID"]] = {**dataset, "status": "Saved"}
+        if not isinstance(project["Item"]["datasetIDs"], list):
+            return format_response(500, "Dataset Format Error")
+
+        # From the list of datasetIDs query for the records that contain '_meta' as sort key
+        for datasetid in project["Item"]["datasetIDs"]:
+            query = DATASETS_TABLE.query(
+                KeyConditionExpression=Key("datasetID").eq(datasetid)
+                & Key("recordID").eq("_meta")
+            )
+            # we're assuming we only want the first result
+            # from the query since we know that there
+            # should only be one recordID:_meta PK:SK pair
+            dataset = query["Items"][0]
+            # Unpack query and append
+
+            datasets[dataset["datasetID"]] = {**dataset, "status": "Saved"}
 
         return format_response(200, datasets)
 

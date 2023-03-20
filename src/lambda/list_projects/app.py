@@ -21,7 +21,7 @@ def lambda_handler(event, _):
         user = USERS_TABLE.get_item(Key={"researcherID": post_data["researcherID"]})
         projectids = user["Item"]["projectIDs"]
 
-        if isinstance(projectids, list):
+        if isinstance(projectids, set):
             projects = DYNAMODB.batch_get_item(
                 RequestItems={
                     PROJECTS_TABLE: {
@@ -32,7 +32,7 @@ def lambda_handler(event, _):
 
             return format_response(200, projects["Responses"][PROJECTS_TABLE])
 
-        return format_response(500, "Projects not found")
+        return format_response(500, "Project Format Error")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
