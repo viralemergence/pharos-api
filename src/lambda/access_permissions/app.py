@@ -1,5 +1,3 @@
-# pylint: disable-all
-
 import os
 import json
 
@@ -80,7 +78,7 @@ def lambda_handler(event, context):
         connection = engine.connect()
         connection.execute(sqlalchemy.sql.text("COMMIT"))
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         response_data["mconnection"] = str(e)
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
@@ -148,19 +146,19 @@ def lambda_handler(event, context):
             connection = engine.connect()
             connection.execute(sqlalchemy.sql.text("COMMIT"))
 
-        except Exception as e:
+            print("Install postgis and aws_s3 extensions")
+            handle_statements(
+                connection,
+                response_data,
+                {
+                    "postgis": "CREATE EXTENSION postgis;",
+                    "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
+                },
+            )
+
+            connection.close()
+
+        except Exception as e:  # pylint: disable=broad-except
             response_data["dbconnection"] = str(e)
-
-        print("Install postgis and aws_s3 extensions")
-        handle_statements(
-            connection,
-            response_data,
-            {
-                "postgis": "CREATE EXTENSION postgis;",
-                "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
-            },
-        )
-
-        connection.close()
 
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
