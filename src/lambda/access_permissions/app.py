@@ -42,7 +42,7 @@ def handle_statements(
 ) -> None:
     for key, value in statement.items():
         try:
-            connection.execute(value)
+            connection.execute(sqlalchemy.sql.text(value))
             response_data[key] = str(value)
 
         except Exception as e:  # pylint: disable=broad-except
