@@ -36,7 +36,9 @@ CREDENTIALS = get_secret("data-lab-rds-test")
 
 
 def handle_statements(
-    connection: sqlalchemy.Connection, response_data: dict[str, str], statement: dict
+    connection: sqlalchemy.Connection,
+    response_data: dict[str, str],
+    statement: dict[str, str],
 ) -> None:
     for key, value in statement.items():
         try:
