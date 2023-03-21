@@ -83,6 +83,8 @@ def lambda_handler(event, context):
 
     except Exception as e:
         response_data["mconnection"] = str(e)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        return
 
     try:
         print("Check if secret exists")
