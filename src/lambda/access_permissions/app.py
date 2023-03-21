@@ -38,15 +38,15 @@ CREDENTIALS = get_secret("data-lab-rds-test")
 def handle_statements(
     connection: sqlalchemy.Connection,
     response_data: dict[str, str],
-    statement: dict[str, str],
+    statements: dict[str, str],
 ) -> None:
-    for key, value in statement.items():
+    for name, statement in statements.items():
         try:
-            connection.execute(sqlalchemy.sql.text(value))
-            response_data[key] = str(value)
+            connection.execute(sqlalchemy.sql.text(statement))
+            response_data[name] = str(statement)
 
         except Exception as e:  # pylint: disable=broad-except
-            response_data[key] = str(e)
+            response_data[name] = str(e)
 
 
 def lambda_handler(event, context):
