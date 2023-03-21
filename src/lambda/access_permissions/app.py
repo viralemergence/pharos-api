@@ -35,9 +35,7 @@ def get_secret(secret_id):
 CREDENTIALS = get_secret("data-lab-rds-test")
 
 
-def handle_statements(
-    connection: sqlalchemy.Connection, response_data: dict[str, str], statement: dict
-) -> None:
+def handle_statements(connection, response_data, **statement: dict) -> None:
     for key, value in statement.items():
         try:
             connection.execute(value)
@@ -120,7 +118,7 @@ def lambda_handler(event, context):
         handle_statements(
             connection,
             response_data,
-            {
+            **{
                 "database": f'CREATE DATABASE "{DATABASE}";',
                 "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
                 "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
@@ -143,8 +141,7 @@ def lambda_handler(event, context):
         try:
             engine = sqlalchemy.create_engine(database_url)
             connection = engine.connect()
-            commit: str = "commit"
-            connection.execute(commit)
+            connection.execute(sqlalchemy.sql.text("commit"))
 
         except Exception as e:
             response_data["dbconnection"] = str(e)
@@ -153,7 +150,7 @@ def lambda_handler(event, context):
         handle_statements(
             connection,
             response_data,
-            {
+            **{
                 "postgis": "CREATE EXTENSION postgis;",
                 "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
             },
