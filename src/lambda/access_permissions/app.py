@@ -75,7 +75,7 @@ def lambda_handler(event, context):
     try:
         engine = sqlalchemy.create_engine(master_url)
         connection = engine.connect()
-        connection.execute(sqlalchemy.sql.text("commit"))
+        connection.execute(sqlalchemy.sql.text("COMMIT"))
 
     except Exception as e:
         response_data["mconnection"] = str(e)
@@ -141,7 +141,7 @@ def lambda_handler(event, context):
         try:
             engine = sqlalchemy.create_engine(database_url)
             connection = engine.connect()
-            connection.execute(sqlalchemy.sql.text("commit"))
+            connection.execute(sqlalchemy.sql.text("COMMIT"))
 
         except Exception as e:
             response_data["dbconnection"] = str(e)
