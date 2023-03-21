@@ -35,7 +35,9 @@ def get_secret(secret_id):
 CREDENTIALS = get_secret("data-lab-rds-test")
 
 
-def handle_statements(connection, response_data, **statement: dict) -> None:
+def handle_statements(
+    connection: sqlalchemy.Connection, response_data: dict[str, str], **statement: dict
+) -> None:
     for key, value in statement.items():
         try:
             connection.execute(value)
@@ -50,7 +52,7 @@ def lambda_handler(event, context):
     # Make it handle delete events instantly
     # TODO: Add cleanup here...
 
-    response_data = {}
+    response_data: dict[str, str] = {}
 
     if event["RequestType"] == "Delete":
         print("Handle Delete Event")
