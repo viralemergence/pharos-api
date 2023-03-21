@@ -3,7 +3,7 @@ line-length = 88
 target-version = ['py39']
 
 [tool.pylint.BASIC]
-ignored-modules='format, auth'
+# ignored-modules='format, auth'
 good-names = [
     "i",
     "e",
@@ -15,12 +15,47 @@ good-names = [
     "datapointID",
 ]
 
+[tool.pylint.MAIN]
+load-plugins = [
+  "pylint_pydantic"
+]
+# ignore-patterns="/env/*"
+ignore-paths=[
+  "env/",
+  "docs/"
+]
+
 [tool.pylint.messages_control]
-disable = "C0116, C0115, C0114"
+# disable = "C0116, C0115, C0114, C0103, E0213, R0903"
+init-hook = "import sys; sys.path.append('src/libraries/python/')"
+extension-pkg-whitelist = "pydantic"
+
+disable = [
+  "no-name-in-module",
+  "missing-class-docstring",
+  "missing-function-docstring",
+  "missing-module-docstring",
+  "duplicate-code",
+  "fixme",
+]
+
 
 [tool.pylint.format]
 max-line-length = "100"
 
-
 [tool.pyright]
 extraPaths = ["src/libraries/python/"]
+stubPath = ""
+include = ["src/"]
+exclude = [ "**/node_modules", "**/__pycache__", "**/.*", "env"]
+venvPath = "."
+venv = "env"
+
+[tool.pytest.ini_options]
+pythonpath = "src/libraries/python/"
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.coverage.report]
+skip_empty = true

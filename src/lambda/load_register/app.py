@@ -1,7 +1,8 @@
 import json
 import os
 import boto3
-from boto3.dynamodb.conditions import Key
+
+# from boto3.dynamodb.conditions import Key
 from auth import check_auth
 from format import format_response
 

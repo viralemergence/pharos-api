@@ -1,7 +1,6 @@
 import json
 import os
 import boto3
-from boto3.dynamodb.conditions import Key
 from auth import check_auth
 from format import format_response
 
@@ -22,14 +21,18 @@ def lambda_handler(event, _):
         user = USERS_TABLE.get_item(Key={"researcherID": post_data["researcherID"]})
         projectids = user["Item"]["projectIDs"]
 
-        projects = DYNAMODB.batch_get_item(
-            RequestItems={
-                PROJECTS_TABLE: {
-                    "Keys": [{"projectID": projectID} for projectID in projectids]
+        if isinstance(projectids, set):
+            projects = DYNAMODB.batch_get_item(
+                RequestItems={
+                    PROJECTS_TABLE: {
+                        "Keys": [{"projectID": projectID} for projectID in projectids]
+                    }
                 }
-            }
-        )
-        return format_response(200, projects["Responses"][PROJECTS_TABLE])
+            )
+
+            return format_response(200, projects["Responses"][PROJECTS_TABLE])
+
+        return format_response(500, "Project Format Error")
 
     except Exception as e:  # pylint: disable=broad-except
         return format_response(403, e)
