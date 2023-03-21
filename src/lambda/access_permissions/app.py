@@ -36,7 +36,7 @@ CREDENTIALS = get_secret("data-lab-rds-test")
 
 
 def handle_statements(
-    connection: sqlalchemy.Connection, response_data: dict[str, str], **statement: dict
+    connection: sqlalchemy.Connection, response_data: dict[str, str], statement: dict
 ) -> None:
     for key, value in statement.items():
         try:
@@ -120,7 +120,7 @@ def lambda_handler(event, context):
         handle_statements(
             connection,
             response_data,
-            **{
+            {
                 "database": f'CREATE DATABASE "{DATABASE}";',
                 "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
                 "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
@@ -152,7 +152,7 @@ def lambda_handler(event, context):
         handle_statements(
             connection,
             response_data,
-            **{
+            {
                 "postgis": "CREATE EXTENSION postgis;",
                 "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
             },
