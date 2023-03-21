@@ -40,13 +40,13 @@ def handle_statements(
     response_data: dict[str, str],
     statements: dict[str, str],
 ) -> None:
-    for name, statement in statements.items():
+    for key, statement in statements.items():
         try:
             connection.execute(sqlalchemy.sql.text(statement))
-            response_data[name] = str(statement)
+            response_data[key] = str(statement)
 
         except Exception as e:  # pylint: disable=broad-except
-            response_data[name] = str(e)
+            response_data[key] = str(e)
 
 
 def lambda_handler(event, context):
