@@ -2,26 +2,25 @@ import json
 import os
 import uuid
 import boto3
-from pydantic import BaseModel
 from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
 USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
 
 
-class CreateUserData(BaseModel):
-    """Data model for the create user request"""
+# class CreateUserData(BaseModel):
+#     """Data model for the create user request"""
 
-    researcherID: str
-    organization: str
-    email: str
-    name: str
+#     researcherID: str
+#     organization: str
+#     email: str
+#     name: str
 
 
-class Event(BaseModel):
-    """Data model for the event payload"""
+# class Event(BaseModel):
+#     """Data model for the event payload"""
 
-    body: str
+#     body: str
 
 
 def lambda_handler(event, _):
