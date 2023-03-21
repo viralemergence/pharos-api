@@ -36,6 +36,7 @@ disable = [
   "missing-function-docstring",
   "missing-module-docstring",
   "duplicate-code",
+  "fixme",
 ]
 
 
