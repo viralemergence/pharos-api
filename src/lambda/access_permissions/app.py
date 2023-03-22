@@ -4,7 +4,7 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 import sqlalchemy
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, Connection
 import cfnresponse
 
 RDS = boto3.client("rds")
@@ -34,7 +34,7 @@ CREDENTIALS = get_secret("data-lab-rds-test")
 
 
 def handle_statements(
-    connection: sqlalchemy.Connection,
+    connection: Connection,
     response_data: dict[str, str],
     statements: dict[str, str],
 ) -> None:
@@ -54,8 +54,6 @@ def lambda_handler(event, context):
     print(event)
 
     # Make it handle delete events instantly
-    # TODO: Add cleanup here...
-
     response_data: dict[str, str] = {}
 
     if event["RequestType"] == "Delete":
