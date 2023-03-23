@@ -1,3 +1,9 @@
+"""The mapping from pythonic snake case names
+to capitalized, space-separated names to display
+in the user interface. Unrecognized names will
+be unchanged.
+"""
+
 api_name_to_ui_name_map = {
     "sample_id": "Sample ID",
     "animal_id": "Animal ID",
@@ -33,4 +39,7 @@ api_name_to_ui_name_map = {
 
 
 def get_ui_name(api_name: str):
+    """Convert from a snake_case pythonic column name
+    to the capitalized, space-separated name to display
+    in the user interface."""
     return api_name_to_ui_name_map.get(api_name, api_name)
