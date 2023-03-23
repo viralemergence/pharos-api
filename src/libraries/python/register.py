@@ -27,14 +27,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Extra, validator
 
-
-## Helper function to transform column names containing
-## spaces to underscored names for use in the record class.
-def _snake_case_to_spaces(string: str):
-    """Replace underscores with spaces to map from
-    python attributes to display names.
-    """
-    return string.replace("_", " ")
+from column_alias import get_ui_name
 
 
 class ReportScore(Enum):
@@ -182,41 +175,41 @@ class Record(BaseModel):
     display in the user interface.
     """
 
-    Sample_ID: Optional[DefaultPassDatapoint] = None
-    Animal_ID: Optional[DefaultPassDatapoint] = None
-    Host_species: Optional[DefaultPassDatapoint] = None
-    Host_species_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    Latitude: Optional[DefaultPassDatapoint] = None
-    Longitude: Optional[DefaultPassDatapoint] = None
-    Spatial_uncertainty: Optional[DefaultPassDatapoint] = None
-    Collection_day: Optional[Datapoint] = None
-    Collection_month: Optional[Datapoint] = None
-    Collection_year: Optional[Datapoint] = None
-    Collection_method_or_tissue: Optional[DefaultPassDatapoint] = None
-    Detection_method: Optional[DefaultPassDatapoint] = None
-    Primer_sequence: Optional[DefaultPassDatapoint] = None
-    Primer_citation: Optional[DefaultPassDatapoint] = None
-    Detection_target: Optional[DefaultPassDatapoint] = None
-    Detection_target_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    Detection_outcome: Optional[DefaultPassDatapoint] = None
-    Detection_measurement: Optional[DefaultPassDatapoint] = None
-    Detection_measurement_units: Optional[DefaultPassDatapoint] = None
-    Pathogen: Optional[DefaultPassDatapoint] = None
-    Pathogen_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    GenBank_accession: Optional[DefaultPassDatapoint] = None
-    Detection_comments: Optional[DefaultPassDatapoint] = None
-    Organism_sex: Optional[DefaultPassDatapoint] = None
-    Dead_or_alive: Optional[DefaultPassDatapoint] = None
-    Health_notes: Optional[DefaultPassDatapoint] = None
-    Life_stage: Optional[DefaultPassDatapoint] = None
-    Age: Optional[DefaultPassDatapoint] = None
-    Mass: Optional[DefaultPassDatapoint] = None
-    Length: Optional[DefaultPassDatapoint] = None
+    sample_id: Optional[DefaultPassDatapoint] = None
+    animal_id: Optional[DefaultPassDatapoint] = None
+    host_species: Optional[DefaultPassDatapoint] = None
+    host_species_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    latitude: Optional[DefaultPassDatapoint] = None
+    longitude: Optional[DefaultPassDatapoint] = None
+    spatial_uncertainty: Optional[DefaultPassDatapoint] = None
+    collection_day: Optional[Datapoint] = None
+    collection_month: Optional[Datapoint] = None
+    collection_year: Optional[Datapoint] = None
+    collection_method_or_tissue: Optional[DefaultPassDatapoint] = None
+    detection_method: Optional[DefaultPassDatapoint] = None
+    primer_sequence: Optional[DefaultPassDatapoint] = None
+    primer_citation: Optional[DefaultPassDatapoint] = None
+    detection_target: Optional[DefaultPassDatapoint] = None
+    detection_target_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    detection_outcome: Optional[DefaultPassDatapoint] = None
+    detection_measurement: Optional[DefaultPassDatapoint] = None
+    detection_measurement_units: Optional[DefaultPassDatapoint] = None
+    pathogen: Optional[DefaultPassDatapoint] = None
+    pathogen_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    genbank_accession: Optional[DefaultPassDatapoint] = None
+    detection_comments: Optional[DefaultPassDatapoint] = None
+    organism_sex: Optional[DefaultPassDatapoint] = None
+    dead_or_alive: Optional[DefaultPassDatapoint] = None
+    health_notes: Optional[DefaultPassDatapoint] = None
+    life_stage: Optional[DefaultPassDatapoint] = None
+    age: Optional[DefaultPassDatapoint] = None
+    mass: Optional[DefaultPassDatapoint] = None
+    length: Optional[DefaultPassDatapoint] = None
 
     @validator(
-        "Host_species_NCBI_tax_ID",
-        "Detection_target_NCBI_tax_ID",
-        "Pathogen_NCBI_tax_ID",
+        "host_species_ncbi_tax_id",
+        "detection_target_ncbi_tax_id",
+        "pathogen_ncbi_tax_id",
     )
     @validator_skip_fail_warn
     def check_ncbi(cls, ncbi_id: DefaultPassDatapoint):
@@ -234,7 +227,7 @@ class Record(BaseModel):
 
         return ncbi_id
 
-    @validator("Latitude")
+    @validator("latitude")
     @validator_skip_fail_warn
     def check_lat(cls, latitude: DefaultPassDatapoint):
         """Check that the latitude is numeric and between -90 and 90."""
@@ -250,7 +243,7 @@ class Record(BaseModel):
 
         return latitude
 
-    @validator("Longitude")
+    @validator("longitude")
     @validator_skip_fail_warn
     def check_lon(cls, longitude: DefaultPassDatapoint):
         """Check that the longitude is numeric and between -180 and 180."""
@@ -266,14 +259,14 @@ class Record(BaseModel):
 
         return longitude
 
-    @validator("Collection_year")
+    @validator("collection_year")
     def check_date(cls, year: Datapoint, values: Dict[str, Datapoint]):
         """Check that the date is valid; skip validation if any of
         day, month, and year are missing, and check that the year is
         four digits long."""
 
-        day = values.get("Collection_day")
-        month = values.get("Collection_month")
+        day = values.get("collection_day")
+        month = values.get("collection_month")
 
         # Don't do any validation until all three are filled out
         if not day or not month:
@@ -309,7 +302,7 @@ class Record(BaseModel):
 
         return year
 
-    @validator("Age", "Mass", "Length")
+    @validator("age", "mass", "length")
     @validator_skip_fail_warn
     def check_float(cls, value: DefaultPassDatapoint):
         """Check that the value is a decimal."""
@@ -329,7 +322,7 @@ class Record(BaseModel):
     class Config:
         ## datapoint names are transformed by
         ## replaceing spaces with underscores
-        alias_generator = _snake_case_to_spaces
+        alias_generator = get_ui_name
         extra = Extra.allow
 
     def __init__(self, **data) -> None:
