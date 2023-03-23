@@ -18,11 +18,6 @@ USERNAME = os.environ["USERNAME"]
 
 extensions = {}
 
-# delete = {
-#     "database": f'DROP DATABASE "{DATABASE}";',
-#     "user": f'DROP USER "{USERNAME}";',
-# }
-
 
 def get_secret(secret_id):
     response = SECRETS_MANAGER.get_secret_value(SecretId=secret_id)
@@ -53,13 +48,16 @@ def lambda_handler(event, context):
     print("EVENT:")
     print(event)
 
-    # Make it handle delete events instantly
-    response_data: dict[str, str] = {}
-
+    # Make the custom resource handle delete events.
+    # At this point, we're not making this clean up the
+    # database so that we don't unintentionally delete
+    # them, they'll need to be cleaned up manually.
     if event["RequestType"] == "Delete":
         print("Handle Delete Event")
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
         return
+
+    response_data: dict[str, str] = {}
 
     print("Connect to DB as Superuser")
     master_url = URL.create(
