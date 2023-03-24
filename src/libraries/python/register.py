@@ -320,8 +320,8 @@ class Record(BaseModel):
         return value
 
     class Config:
-        ## datapoint names are transformed by
-        ## replaceing spaces with underscores
+        ## datapoint names are transformed using
+        ## a map between snake_case and UI names
         alias_generator = get_ui_name
         extra = Extra.allow
 
