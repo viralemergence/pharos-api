@@ -47,11 +47,7 @@ def test_transform_record():
     record = Record.parse_raw(VALID_RECORD)
     debug(record)
 
-    record_not_none = {k: v for k, v in record.__dict__.items() if v is not None}
-
-    debug(record_not_none)
-
-    test = PublishedRecord(**record_not_none)
+    test = PublishedRecord(**record.__dict__)
     # assert test.animal_id == record.animal_id
     # assert test.host_species == record.host_species
     debug(test)
