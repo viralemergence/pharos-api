@@ -12,6 +12,8 @@ class CoerceStr(TypeDecorator):
     impl = String
 
     def process_bind_param(self, value, _):
+        if value is None:
+            return None
         return str(value)
 
 
@@ -21,6 +23,8 @@ class CoerceInt(TypeDecorator):
     impl = BigInteger
 
     def process_bind_param(self, value, _):
+        if value is None:
+            return None
         return int(value)
 
 
@@ -30,6 +34,8 @@ class CoerceFloat(TypeDecorator):
     impl = Numeric
 
     def process_bind_param(self, value, _):
+        if value is None:
+            return None
         return float(value)
 
 
