@@ -19,12 +19,6 @@ def todict(obj):
 
 
 def wrap_type(value):
-    if isinstance(value, int):
-        return f"{value} {type(value)}"
-
-    if isinstance(value, float):
-        return f"{value} {type(value)}"
-
     if isinstance(value, str):
         return f'"{value}" {type(value)}'
 
