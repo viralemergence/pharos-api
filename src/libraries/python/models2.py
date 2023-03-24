@@ -3,7 +3,34 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import Session
 
 from devtools import debug
-from sqlalchemy import types
+from sqlalchemy.types import String, TypeDecorator
+
+
+class CoerceStr(TypeDecorator):
+    """Convert value to string"""
+
+    impl = String
+
+    def process_bind_param(self, value, _):
+        return str(value)
+
+
+class CoerceInt(TypeDecorator):
+    """Convert value to integer"""
+
+    impl = BigInteger
+
+    def process_bind_param(self, value, _):
+        return int(value)
+
+
+class CoerceFloat(TypeDecorator):
+    """Convert value to float"""
+
+    impl = Numeric
+
+    def process_bind_param(self, value, _):
+        return float(value)
 
 
 class Base(DeclarativeBase):
@@ -27,50 +54,61 @@ class Researcher(Base):
         )
 
 
-class Test(Base):
+class PublishedRecord(Base):
     __tablename__ = "test"
     test_id: Mapped[str] = mapped_column(primary_key=True)
-    animal_id: Mapped[str]
-    host_species: Mapped[str]
+
+    sample_id: Mapped[str] = mapped_column(CoerceStr)
+    animal_id: Mapped[str] = mapped_column(CoerceStr)
+    host_species: Mapped[str] = mapped_column(CoerceStr)
+    host_species_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
+    latitude: Mapped[int] = mapped_column(CoerceInt)
+    longitude: Mapped[int] = mapped_column(CoerceInt)
+    spatial_uncertainty: Mapped[str] = mapped_column(CoerceStr)
+    collection_day: Mapped[int] = mapped_column(CoerceInt)
+    collection_month: Mapped[int] = mapped_column(CoerceInt)
+    collection_year: Mapped[int] = mapped_column(CoerceInt)
+    collection_method_or_tissue: Mapped[str] = mapped_column(CoerceStr)
+    detection_method: Mapped[str] = mapped_column(CoerceStr)
+    primer_sequence: Mapped[str] = mapped_column(CoerceStr)
+    primer_citation: Mapped[str] = mapped_column(CoerceStr)
+    detection_target: Mapped[str] = mapped_column(CoerceStr)
+    detection_target_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
+    detection_outcome: Mapped[str] = mapped_column(CoerceStr)
+    detection_measurement: Mapped[str] = mapped_column(CoerceStr)
+    detection_measurement_units: Mapped[str] = mapped_column(CoerceStr)
+    pathogen: Mapped[str] = mapped_column(CoerceStr)
+    pathogen_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
+    genbank_accession: Mapped[str] = mapped_column(CoerceStr)
+    detection_comments: Mapped[str] = mapped_column(CoerceStr)
+    organism_sex: Mapped[str] = mapped_column(CoerceStr)
+    dead_or_alive: Mapped[str] = mapped_column(CoerceStr)
+    health_notes: Mapped[str] = mapped_column(CoerceStr)
+    life_stage: Mapped[str] = mapped_column(CoerceStr)
+    age: Mapped[int] = mapped_column(CoerceInt)
+    mass: Mapped[int] = mapped_column(CoerceInt)
+    length: Mapped[int] = mapped_column(CoerceInt)
 
     attributions: Mapped[list["Attribution"]] = relationship(back_populates="test")
 
     def __repr__(self):
         return (
             f"  test_id:        {self.test_id}\n"
-            f"  animal_id:      {self.animal_id}\n"
+            f"  length:         {self.length}\n"
             f"  host_species:   {self.host_species}\n"
         )
-
-
-class CoerceInt(types.TypeDecorator):
-    """Convert value to integer"""
-
-    impl = BigInteger
-
-    def process_bind_param(self, value, _):
-        return int(value)
-
-
-class CoerceFloat(types.TypeDecorator):
-    """Convert value to float"""
-
-    impl = Numeric
-
-    def process_bind_param(self, value, _):
-        return float(value)
 
 
 class Attribution(Base):
     __tablename__ = "attribution"
     attribution_id: Mapped[int] = mapped_column(primary_key=True)
 
-    test_id: Mapped["Test"] = mapped_column(ForeignKey("test.test_id"))
+    test_id: Mapped["PublishedRecord"] = mapped_column(ForeignKey("test.test_id"))
     researcher_id: Mapped["Researcher"] = mapped_column(
         ForeignKey("researcher.researcher_id")
     )
 
-    test: Mapped["Test"] = relationship(back_populates="attributions")
+    test: Mapped["PublishedRecord"] = relationship(back_populates="attributions")
     researcher: Mapped["Researcher"] = relationship(back_populates="attributions")
 
     version: Mapped[int] = mapped_column(CoerceInt)
@@ -81,15 +119,6 @@ class Attribution(Base):
             f"  researcher_id: {self.researcher_id}\n"
             f"  version:       {self.version}\n"
         )
-
-
-class IdTest:
-    def __init__(self, test_id):
-        self.test_id = test_id
-        self.other = "other"
-
-    def __int__(self):
-        return int(self.test_id)
 
 
 if __name__ == "__main__":
@@ -110,15 +139,13 @@ if __name__ == "__main__":
             last_name="Smith",
         )
 
-        testid = IdTest(test_id="45")
-
-        test = Test(
+        test = PublishedRecord(
             test_id=TEST_ID,
             animal_id="fred",
             host_species="bat",
             attributions=[
                 Attribution(version="023", researcher=researcher),
-                Attribution(version=testid, researcher=researcher2),
+                Attribution(version="34", researcher=researcher2),
             ],
         )
 
@@ -131,7 +158,7 @@ if __name__ == "__main__":
             debug(researcher)
             # debug(researcher.attributions)
 
-        tests = session.scalars(select(Test))
+        tests = session.scalars(select(PublishedRecord))
         for test in tests:
             debug(test)
             debug(test.attributions)
@@ -139,8 +166,8 @@ if __name__ == "__main__":
         print("\nSelecting tests by researcher_id\n")
 
         tests = session.scalars(
-            select(Test)
-            .join(Test.attributions)
+            select(PublishedRecord)
+            .join(PublishedRecord.attributions)
             .where(Attribution.researcher_id == "ASDF9098234SD")
         )
 
