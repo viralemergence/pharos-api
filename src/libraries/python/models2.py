@@ -22,10 +22,12 @@ def wrap_type(value):
     if isinstance(value, str):
         return f'"{value}" {type(value)}'
 
-    return f"{value} [{type(value)}"
+    return f"{value} {type(value)}"
 
 
 class Base(DeclarativeBase):
+    # Borrowing this automatic __repr__ from
+    # https://stackoverflow.com/a/54034230
     def __repr__(self):
         params = ",\n".join(
             f"    {k} = {wrap_type(v)}" for k, v in todict(self).items()
