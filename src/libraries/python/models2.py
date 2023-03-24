@@ -1,16 +1,9 @@
-from typing import Any
-from sqlalchemy import BigInteger, ForeignKey, Numeric, create_engine, select, orm
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    declarative_base,
-    mapped_column,
-    relationship,
-)
+from sqlalchemy import BigInteger, ForeignKey, Numeric, create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import Session
+from sqlalchemy.types import String, TypeDecorator
 
 from devtools import debug
-from sqlalchemy.types import String, TypeDecorator
 
 
 def todict(obj):
@@ -36,6 +29,14 @@ def wrap_type(value):
         return f'"{value}" {type(value)}'
 
     return f"{value} [{type(value)}"
+
+
+class Base(DeclarativeBase):
+    def __repr__(self):
+        params = ",\n".join(
+            f"    {k} = {wrap_type(v)}" for k, v in todict(self).items()
+        )
+        return f"\n{self.__class__.__name__}(\n{params}\n)"
 
 
 class CoerceFloat(TypeDecorator):
@@ -71,17 +72,6 @@ class CoerceInt(TypeDecorator):
         return int(value)
 
 
-class Base(DeclarativeBase):
-    def __repr__(self):
-        params = ",\n".join(
-            f"    {k} = {wrap_type(v)}" for k, v in todict(self).items()
-        )
-        return f"\n{self.__class__.__name__}(\n{params}\n)"
-
-
-# Base = declarative_base(cls=RepresentableBase)
-
-
 class Researcher(Base):
     __tablename__ = "researcher"
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
@@ -91,12 +81,6 @@ class Researcher(Base):
     attributions: Mapped[list["Attribution"]] = relationship(
         back_populates="researcher"
     )
-
-    # def __repr__(self):
-    #     return (
-    #         f"  researcher_id:  {self.researcher_id}\n"
-    #         f"  name:           {self.first_name} {self.last_name}\n"
-    #     )
 
 
 class PublishedRecord(Base):
@@ -136,13 +120,6 @@ class PublishedRecord(Base):
 
     attributions: Mapped[list["Attribution"]] = relationship(back_populates="test")
 
-    # def __repr__(self):
-    #     return (
-    #         f"  test_id:        {self.test_id}\n"
-    #         f"  length:         {self.length}\n"
-    #         f"  host_species:   {self.host_species}\n"
-    #     )
-
 
 class Attribution(Base):
     __tablename__ = "attribution"
@@ -157,13 +134,6 @@ class Attribution(Base):
     researcher: Mapped["Researcher"] = relationship(back_populates="attributions")
 
     version: Mapped[int] = mapped_column(CoerceInt)
-
-    # def __repr__(self):
-    #     return (
-    #         f"  test_id:       {self.test_id}\n"
-    #         f"  researcher_id: {self.researcher_id}\n"
-    #         f"  version:       {self.version}\n"
-    #     )
 
 
 if __name__ == "__main__":
