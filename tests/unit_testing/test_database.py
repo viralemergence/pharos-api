@@ -1,16 +1,11 @@
 """Basic tests for transforming records into database tests"""
 
 from devtools import debug
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 from register import Record
 
-from models2 import PublishedRecord, Researcher
-
-RESEARCHER = Researcher(
-    researcher_id="dev",
-    first_name="John",
-    last_name="Doe",
-)
-
+from models2 import Attribution, PublishedRecord, Researcher, Base
 
 VALID_RECORD = """
 {
@@ -42,19 +37,57 @@ VALID_RECORD = """
 }
 """
 
+ENGINE = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+Base.metadata.create_all(ENGINE)
+
+JANE_ID = "A098SKHLSD234"
+
+
+# def test_researcher():
+#     with Session(ENGINE) as session:
+#         researcher = Researcher(
+#             researcher_id=JANE_ID,
+#             first_name="Jane",
+#             last_name="Doe",
+#         )
+#         session.add(researcher)
+#         session.commit()
+
+#     with Session(ENGINE) as session:
+#         result = session.scalars(select(Researcher)).one()
+
+#         print(result)
+
+#         assert result.researcher_id == JANE_ID
+#         assert result.first_name == "Jane"
+#         assert result.last_name == "Doe"
+
+
+TEST_ID = "prjl90OaJvWZR-setxlj1qoFxLC-datJSdfsklklo"
+
 
 def test_transform_record():
     record = Record.parse_raw(VALID_RECORD)
     debug(record)
 
-    test = PublishedRecord(**record.__dict__)
-    # assert test.animal_id == record.animal_id
-    # assert test.host_species == record.host_species
-    debug(test)
+    researcher = Researcher(
+        researcher_id=JANE_ID,
+        first_name="Jane",
+        last_name="Doe",
+    )
 
-    # assert test.attributions[0].researcher == RESEARCHER
-    # assert test.attributions[0].version == record.version
+    attribution = Attribution(version="023", researcher=researcher)
 
+    published = PublishedRecord(
+        test_id=TEST_ID, attributions=[attribution], **record.__dict__
+    )
 
-if __name__ == "__main__":
-    test_transform_record()
+    with Session(ENGINE) as session:
+        session.add(published)
+        session.commit()
+
+    with Session(ENGINE) as session:
+        published = session.scalars(select(PublishedRecord)).one()
+        debug(published)
+        debug(published.attributions)
+        # debug(test)

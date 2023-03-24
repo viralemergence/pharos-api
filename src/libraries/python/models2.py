@@ -1,9 +1,52 @@
-from sqlalchemy import BigInteger, ForeignKey, Numeric, create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from typing import Any
+from sqlalchemy import BigInteger, ForeignKey, Numeric, create_engine, select, orm
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    declarative_base,
+    mapped_column,
+    relationship,
+)
 from sqlalchemy.orm.session import Session
 
 from devtools import debug
 from sqlalchemy.types import String, TypeDecorator
+
+
+def todict(obj):
+    """Return the object's dict excluding private attributes,
+    sqlalchemy state and relationship attributes.
+    """
+    excl = ("_sa_adapter", "_sa_instance_state")
+    return {
+        k: v
+        for k, v in vars(obj).items()
+        if not k.startswith("_") and not any(hasattr(v, a) for a in excl)
+    }
+
+
+def wrap_type(value):
+    if isinstance(value, int):
+        return f"{value} {type(value)}"
+
+    if isinstance(value, float):
+        return f"{value} {type(value)}"
+
+    if isinstance(value, str):
+        return f'"{value}" {type(value)}'
+
+    return f"{value} [{type(value)}"
+
+
+class CoerceFloat(TypeDecorator):
+    """Convert value to float"""
+
+    impl = Numeric
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return 0.01
+        return float(value)
 
 
 class CoerceStr(TypeDecorator):
@@ -13,7 +56,7 @@ class CoerceStr(TypeDecorator):
 
     def process_bind_param(self, value, _):
         if value is None:
-            return None
+            return "default value"
         return str(value)
 
 
@@ -24,23 +67,19 @@ class CoerceInt(TypeDecorator):
 
     def process_bind_param(self, value, _):
         if value is None:
-            return None
+            return 0
         return int(value)
 
 
-class CoerceFloat(TypeDecorator):
-    """Convert value to float"""
-
-    impl = Numeric
-
-    def process_bind_param(self, value, _):
-        if value is None:
-            return None
-        return float(value)
-
-
 class Base(DeclarativeBase):
-    pass
+    def __repr__(self):
+        params = ",\n".join(
+            f"    {k} = {wrap_type(v)}" for k, v in todict(self).items()
+        )
+        return f"\n{self.__class__.__name__}(\n{params}\n)"
+
+
+# Base = declarative_base(cls=RepresentableBase)
 
 
 class Researcher(Base):
@@ -53,11 +92,11 @@ class Researcher(Base):
         back_populates="researcher"
     )
 
-    def __repr__(self):
-        return (
-            f"  researcher_id:  {self.researcher_id}\n"
-            f"  name:           {self.first_name} {self.last_name}\n"
-        )
+    # def __repr__(self):
+    #     return (
+    #         f"  researcher_id:  {self.researcher_id}\n"
+    #         f"  name:           {self.first_name} {self.last_name}\n"
+    #     )
 
 
 class PublishedRecord(Base):
@@ -68,8 +107,8 @@ class PublishedRecord(Base):
     animal_id: Mapped[str] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
-    latitude: Mapped[int] = mapped_column(CoerceInt)
-    longitude: Mapped[int] = mapped_column(CoerceInt)
+    latitude: Mapped[float] = mapped_column(CoerceFloat)
+    longitude: Mapped[float] = mapped_column(CoerceFloat)
     spatial_uncertainty: Mapped[str] = mapped_column(CoerceStr)
     collection_day: Mapped[int] = mapped_column(CoerceInt)
     collection_month: Mapped[int] = mapped_column(CoerceInt)
@@ -97,12 +136,12 @@ class PublishedRecord(Base):
 
     attributions: Mapped[list["Attribution"]] = relationship(back_populates="test")
 
-    def __repr__(self):
-        return (
-            f"  test_id:        {self.test_id}\n"
-            f"  length:         {self.length}\n"
-            f"  host_species:   {self.host_species}\n"
-        )
+    # def __repr__(self):
+    #     return (
+    #         f"  test_id:        {self.test_id}\n"
+    #         f"  length:         {self.length}\n"
+    #         f"  host_species:   {self.host_species}\n"
+    #     )
 
 
 class Attribution(Base):
@@ -119,12 +158,12 @@ class Attribution(Base):
 
     version: Mapped[int] = mapped_column(CoerceInt)
 
-    def __repr__(self):
-        return (
-            f"  test_id:       {self.test_id}\n"
-            f"  researcher_id: {self.researcher_id}\n"
-            f"  version:       {self.version}\n"
-        )
+    # def __repr__(self):
+    #     return (
+    #         f"  test_id:       {self.test_id}\n"
+    #         f"  researcher_id: {self.researcher_id}\n"
+    #         f"  version:       {self.version}\n"
+    #     )
 
 
 if __name__ == "__main__":
