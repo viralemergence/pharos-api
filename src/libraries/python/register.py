@@ -37,7 +37,7 @@ REQUIRED_FIELDS = {
     "collection_day",
     "collection_month",
     "collection_year",
-    "detction_outcome",
+    "detection_outcome",
     "pathogen",
 }
 
@@ -383,14 +383,14 @@ class Register(BaseModel):
 
         for recordID, record in self.register_data.items():
             for field in REQUIRED_FIELDS:
-                if field not in record.__dict__:
+                if record.__dict__[field] is None:
                     report.missingCount += 1
                     if recordID not in report.missingFields:
                         report.missingFields[recordID] = []
-                    report.missingFields[recordID].append(field)
+                    report.missingFields[recordID].append(get_ui_name(field))
 
             for field, datapoint in record:
-                if datapoint.report is None:
+                if datapoint is None or datapoint.report is None:
                     # We can skip fields with no reports at this point
                     # because the only case where a field should not
                     # have a report after validation is when that report
@@ -406,14 +406,14 @@ class Register(BaseModel):
                     report.warningCount += 1
                     if recordID not in report.warningFields:
                         report.warningFields[recordID] = []
-                    report.warningFields[recordID].append(field)
+                    report.warningFields[recordID].append(get_ui_name(field))
                     continue
 
                 if datapoint.report.status == ReportScore.FAIL:
                     report.failCount += 1
                     if recordID not in report.failFields:
                         report.failFields[recordID] = []
-                    report.failFields[recordID].append(field)
+                    report.failFields[recordID].append(get_ui_name(field))
 
         if (
             report.missingCount == 0
