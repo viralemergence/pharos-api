@@ -12,6 +12,7 @@ good-names = [
     # the frontend (TS) conventions
     "researcherID",
     "datasetID",
+    "recordID",
     "datapointID",
 ]
 
