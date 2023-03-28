@@ -1,9 +1,10 @@
 """Tests for the register parsing and validation classes"""
 
 import datetime
+from devtools import debug
 import pytest
 
-from register import Record, ReportScore
+from register import Record, Register, ReportScore
 
 
 VALID_RECORD = """
@@ -107,7 +108,7 @@ def test_unknown_datapoint():
     assert datapoint.report.status == ReportScore.WARNING
 
 
-DATAPOINT_ILLEGAL_ADDITIONAL_KEYS = """
+DATAPOINT_ILLEGAL_KEYS = """
 {
     "Host species": {
         "dataValue": "Vulpes vulpes",
@@ -119,10 +120,10 @@ DATAPOINT_ILLEGAL_ADDITIONAL_KEYS = """
 """
 
 
-def test_datapoint_illegal_additional_keys():
+def test_datapoint_illegal_keys():
     """Datapoints with additional keys should throw an exception"""
     with pytest.raises(ValueError):
-        Record.parse_raw(DATAPOINT_ILLEGAL_ADDITIONAL_KEYS)
+        Record.parse_raw(DATAPOINT_ILLEGAL_KEYS)
 
 
 MISSING_REQUIRED_VALUE = """
@@ -246,9 +247,6 @@ def test_register_with_invalid_date():
     assert record.collection_month.report is not None
     assert record.collection_year is not None
     assert record.collection_year.report is not None
-
-    print(record.collection_day.report.status)
-
     assert record.collection_day.report.status == ReportScore.FAIL
     assert record.collection_month.report.status == ReportScore.FAIL
     assert record.collection_year.report.status == ReportScore.FAIL
@@ -426,3 +424,135 @@ def test_existing_warning():
     assert record.mass.report is not None
     assert record.mass.report.status == ReportScore.WARNING
     assert record.mass.report.message == "don't modify me"
+
+
+MINIMAL_RELEASEABLE_REGISTER = """
+{
+    "register": {
+        "rec12345": {
+            "Host species": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Latitude": {
+                "dataValue": "40.0150",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Longitude": {
+                "dataValue": "105.2705",
+                "modifiedBy": "dev",
+                "version": "1679692223"
+            },
+            "Collection day": {
+                "dataValue": "1",
+                "modifiedBy": "john",
+                "version": "1679692123"
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Detection outcome": {
+                "dataValue": "positive",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Pathogen": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            }
+        }
+    }
+}
+"""
+
+
+def test_release_report():
+    register = Register.parse_raw(MINIMAL_RELEASEABLE_REGISTER)
+    report = register.get_release_report()
+    assert report is not None
+    assert report.released is True
+    assert report.successCount == 8
+    assert report.warningCount == 0
+    assert report.failCount == 0
+    assert report.missingCount == 0
+    assert len(report.warningFields) == 0
+    assert len(report.failFields) == 0
+    assert len(report.missingFields) == 0
+
+
+REGISTER_NOT_READY_TO_RELEASE = """
+{
+    "register": {
+        "rec12345": {
+            "Host species": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Host species NCBI tax ID": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Latitude": {
+                "dataValue": "40.0150",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Longitude": {
+                "dataValue": "105.2705",
+                "modifiedBy": "dev",
+                "version": "1679692223"
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Pathogen": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Random column": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            }
+        }
+    }
+}
+"""
+
+
+def test_release_report_not_ready():
+    register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
+    report = register.get_release_report()
+    debug(report)
+    assert report is not None
+    assert report.released is False
+    assert report.successCount == 4
+    assert report.failCount == 1
+    assert report.warningCount == 1
+    assert report.missingCount == 2
+    assert report.warningFields["rec12345"][0] == "Random column"
+    assert report.failFields["rec12345"][0] == "Host species NCBI tax ID"
+    assert set(report.missingFields["rec12345"]) == {
+        "Collection day",
+        "Detection outcome",
+    }
