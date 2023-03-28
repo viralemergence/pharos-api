@@ -25,9 +25,21 @@ from typing import Any, Dict, Optional
 from functools import wraps
 from enum import Enum
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra, Field, validator
 
 from column_alias import get_ui_name
+
+
+REQUIRED_FIELDS = {
+    "host_species",
+    "latitude",
+    "longitude",
+    "collection_day",
+    "collection_month",
+    "collection_year",
+    "detction_outcome",
+    "pathogen",
+}
 
 
 class ReportScore(Enum):
@@ -336,17 +348,78 @@ class Record(BaseModel):
             )
             self.__dict__[key] = dat
 
-
-# class Register(BaseModel):
-#     """The register object is the top-level
-#     object in the register system, containing
-#     the dictionary of all the records.
-#     """
-
-#     data: Dict[str, Record] = Field(..., alias="register")
+    def __iter__(self):
+        iterable: Dict[str, Datapoint] = self.__dict__
+        return iter(iterable.items())
 
 
-#     @classmethod
-#     def parse(cls, data: str):
-#         """Parse a register json object and return a validated Register"""
-#         return cls.parse_raw(f'{{"data": {data}}}')
+class ReleaseReport(BaseModel):
+    released: bool = False
+    successCount: int = 0
+    warningCount: int = 0
+    failCount: int = 0
+    missingCount: int = 0
+    warningFields: dict[str, list] = {}
+    failFields: dict[str, list] = {}
+    missingFields: dict[str, list] = {}
+
+
+class Register(BaseModel):
+    """The register object is the top-level
+    object in the register system, containing
+    the dictionary of all the records.
+    """
+
+    register_data: Dict[str, Record] = Field(..., alias="register")
+
+    def get_release_report(self) -> ReleaseReport:
+        """The release report summarizes all errors and
+        warnings in the register, and adds additional
+        information such as missing required fields which
+        we want to test and display only when the user
+        tries to release the dataset.
+        """
+        report = ReleaseReport()
+
+        for recordID, record in self.register_data.items():
+            for field in REQUIRED_FIELDS:
+                if field not in record.__dict__:
+                    report.missingCount += 1
+                    if recordID not in report.missingFields:
+                        report.missingFields[recordID] = []
+                    report.missingFields[recordID].append(field)
+
+            for field, datapoint in record:
+                if datapoint.report is None:
+                    # We can skip fields with no reports at this point
+                    # because the only case where a field should not
+                    # have a report after validation is when that report
+                    # depends on another field, and that case will be
+                    # caught by the missing fields check above.
+                    continue
+
+                if datapoint.report.status == ReportScore.SUCCESS:
+                    report.successCount += 1
+                    continue
+
+                if datapoint.report.status == ReportScore.WARNING:
+                    report.warningCount += 1
+                    if recordID not in report.warningFields:
+                        report.warningFields[recordID] = []
+                    report.warningFields[recordID].append(field)
+                    continue
+
+                if datapoint.report.status == ReportScore.FAIL:
+                    report.failCount += 1
+                    if recordID not in report.failFields:
+                        report.failFields[recordID] = []
+                    report.failFields[recordID].append(field)
+
+        if (
+            report.missingCount == 0
+            and report.failCount == 0
+            and report.warningCount == 0
+        ):
+            report.released = True
+
+        return report
