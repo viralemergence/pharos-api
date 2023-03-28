@@ -1,7 +1,6 @@
 """Tests for the register parsing and validation classes"""
 
 import datetime
-from devtools import debug
 import pytest
 
 from register import Record, Register, ReportScore
@@ -507,8 +506,6 @@ def test_release_report():
     assert register.register_data["rec12345"].age is not None
     assert register.register_data["rec12345"].age.report is None
 
-    debug(report)
-
 
 REGISTER_NOT_READY_TO_RELEASE = """
 {
@@ -588,5 +585,3 @@ def test_release_report_not_ready():
         "Collection day",
         "Detection outcome",
     }
-
-    # debug(report)
