@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Optional
-from geoalchemy2.types import Geometry, GeometryDump
+from geoalchemy2.types import Geometry
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
