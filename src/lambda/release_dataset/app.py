@@ -2,7 +2,6 @@
 import json
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 import boto3
 from pydantic import BaseModel
@@ -19,18 +18,6 @@ S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
-@dataclass
-class ReleaseReport:
-    released: bool = False
-    successCount: int = 0
-    warningCount: int = 0
-    failCount: int = 0
-    missingCount: int = 0
-    warningFields: dict[str, list] = {}
-    failFields: dict[str, list] = {}
-    missingFields: dict[str, list] = {}
-
-
 REQUIRED_FIELDS = {
     "host_species",
     "latitude",
@@ -41,6 +28,18 @@ REQUIRED_FIELDS = {
     "detction_outcome",
     "pathogen",
 }
+
+
+@dataclass
+class ReleaseReport:
+    released: bool = False
+    successCount: int = 0
+    warningCount: int = 0
+    failCount: int = 0
+    missingCount: int = 0
+    warningFields: dict[str, list] = {}
+    failFields: dict[str, list] = {}
+    missingFields: dict[str, list] = {}
 
 
 class ReleaseDatasetBody(BaseModel):
