@@ -1,4 +1,14 @@
-from sqlalchemy import BigInteger, ForeignKey, Numeric, create_engine, select
+from datetime import date
+from typing import Optional
+from geoalchemy2.types import Geometry, GeometryDump
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    ForeignKey,
+    Numeric,
+    create_engine,
+    select,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import Session
 from sqlalchemy.types import String, TypeDecorator
@@ -36,40 +46,40 @@ class Base(DeclarativeBase):
 
 
 class CoerceFloat(TypeDecorator):
-    """Convert value to float"""
+    """Convert a given value to float"""
 
     impl = Numeric
 
     def process_bind_param(self, value, _):
         if value is None:
-            return 0.01
+            return None
         return float(value)
 
 
 class CoerceStr(TypeDecorator):
-    """Convert value to string"""
+    """Convert a given value to string"""
 
     impl = String
 
     def process_bind_param(self, value, _):
         if value is None:
-            return "default value"
+            return None
         return str(value)
 
 
 class CoerceInt(TypeDecorator):
-    """Convert value to integer"""
+    """Convert a given value to integer"""
 
     impl = BigInteger
 
     def process_bind_param(self, value, _):
         if value is None:
-            return 0
+            return None
         return int(value)
 
 
 class Researcher(Base):
-    __tablename__ = "researcher"
+    __tablename__ = "researchers"
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
     first_name: Mapped[str]
     last_name: Mapped[str]
@@ -80,53 +90,70 @@ class Researcher(Base):
 
 
 class PublishedRecord(Base):
-    __tablename__ = "test"
-    test_id: Mapped[str] = mapped_column(primary_key=True)
+    __tablename__ = "published_records"
+    __table_args__ = (
+        CheckConstraint("life_stage IN ('adult', 'juvenile', 'neo-natal', 'unknown')"),
+        CheckConstraint("organism_sex IN ('female', 'male', 'unknown')"),
+        CheckConstraint("dead_or_alive IN ('dead', 'alive', 'unknown')"),
+        CheckConstraint(
+            "detection_outcome IN ('positive', 'negative', 'inconclusive')"
+        ),
+    )
 
-    sample_id: Mapped[str] = mapped_column(CoerceStr)
-    animal_id: Mapped[str] = mapped_column(CoerceStr)
+    pharos_id: Mapped[str] = mapped_column(primary_key=True)
+
+    sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
-    host_species_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
-    latitude: Mapped[float] = mapped_column(CoerceFloat)
-    longitude: Mapped[float] = mapped_column(CoerceFloat)
-    spatial_uncertainty: Mapped[str] = mapped_column(CoerceStr)
-    collection_day: Mapped[int] = mapped_column(CoerceInt)
-    collection_month: Mapped[int] = mapped_column(CoerceInt)
-    collection_year: Mapped[int] = mapped_column(CoerceInt)
-    collection_method_or_tissue: Mapped[str] = mapped_column(CoerceStr)
-    detection_method: Mapped[str] = mapped_column(CoerceStr)
-    primer_sequence: Mapped[str] = mapped_column(CoerceStr)
-    primer_citation: Mapped[str] = mapped_column(CoerceStr)
-    detection_target: Mapped[str] = mapped_column(CoerceStr)
-    detection_target_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
+    host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    # latitude: Mapped[float] = mapped_column(CoerceFloat)
+    # longitude: Mapped[float] = mapped_column(CoerceFloat)
+    location: Mapped[Geometry] = mapped_column(Geometry("POINT"))
+    spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    # collection_day: Mapped[int] = mapped_column(CoerceInt)
+    # collection_month: Mapped[int] = mapped_column(CoerceInt)
+    # collection_year: Mapped[int] = mapped_column(CoerceInt)
+    collection_date: Mapped[date]
+    collection_method_or_tissue: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_method: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_sequence: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_target_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     detection_outcome: Mapped[str] = mapped_column(CoerceStr)
-    detection_measurement: Mapped[str] = mapped_column(CoerceStr)
-    detection_measurement_units: Mapped[str] = mapped_column(CoerceStr)
+    detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
     pathogen: Mapped[str] = mapped_column(CoerceStr)
-    pathogen_ncbi_tax_id: Mapped[int] = mapped_column(CoerceInt)
-    genbank_accession: Mapped[str] = mapped_column(CoerceStr)
-    detection_comments: Mapped[str] = mapped_column(CoerceStr)
-    organism_sex: Mapped[str] = mapped_column(CoerceStr)
-    dead_or_alive: Mapped[str] = mapped_column(CoerceStr)
-    health_notes: Mapped[str] = mapped_column(CoerceStr)
-    life_stage: Mapped[str] = mapped_column(CoerceStr)
-    age: Mapped[int] = mapped_column(CoerceInt)
-    mass: Mapped[int] = mapped_column(CoerceInt)
-    length: Mapped[int] = mapped_column(CoerceInt)
+    pathogen_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    genbank_accession: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_comments: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    organism_sex: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    dead_or_alive: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    health_notes: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    life_stage: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    age: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    mass: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    length: Mapped[Optional[int]] = mapped_column(CoerceInt)
 
-    attributions: Mapped[list["Attribution"]] = relationship(back_populates="test")
+    attributions: Mapped[list["Attribution"]] = relationship(
+        back_populates="published_record"
+    )
 
 
 class Attribution(Base):
-    __tablename__ = "attribution"
+    __tablename__ = "attributions"
     attribution_id: Mapped[int] = mapped_column(primary_key=True)
 
-    test_id: Mapped["PublishedRecord"] = mapped_column(ForeignKey("test.test_id"))
+    pharos_id: Mapped["PublishedRecord"] = mapped_column(
+        ForeignKey("published_records.pharos_id")
+    )
     researcher_id: Mapped["Researcher"] = mapped_column(
-        ForeignKey("researcher.researcher_id")
+        ForeignKey("researchers.researcher_id")
     )
 
-    test: Mapped["PublishedRecord"] = relationship(back_populates="attributions")
+    published_record: Mapped["PublishedRecord"] = relationship(
+        back_populates="attributions"
+    )
     researcher: Mapped["Researcher"] = relationship(back_populates="attributions")
 
     version: Mapped[int] = mapped_column(CoerceInt)
@@ -137,7 +164,7 @@ if __name__ == "__main__":
     Base.metadata.create_all(engine)
 
     with Session(engine) as session:
-        TEST_ID = "prjl90OaJvWZR-setxlj1qoFxLC-datJSdfsklklo"
+        PHAROS_ID = "prjl90OaJvWZR-setxlj1qoFxLC-datJSdfsklklo"
 
         researcher = Researcher(
             researcher_id="A098SKHLSD234",
@@ -150,8 +177,8 @@ if __name__ == "__main__":
             last_name="Smith",
         )
 
-        test = PublishedRecord(
-            test_id=TEST_ID,
+        row = PublishedRecord(
+            pharos_id=PHAROS_ID,
             animal_id="fred",
             host_species="bat",
             attributions=[
@@ -160,19 +187,18 @@ if __name__ == "__main__":
             ],
         )
 
-        session.add_all([researcher2, researcher, test])
+        session.add_all([researcher2, researcher, row])
         session.commit()
 
         statement = select(Researcher)
 
         for researcher in session.scalars(statement):
             debug(researcher)
-            # debug(researcher.attributions)
 
         tests = session.scalars(select(PublishedRecord))
-        for test in tests:
-            debug(test)
-            debug(test.attributions)
+        for row in tests:
+            debug(row)
+            debug(row.attributions)
 
         print("\nSelecting tests by researcher_id\n")
 
@@ -182,5 +208,6 @@ if __name__ == "__main__":
             .where(Attribution.researcher_id == "ASDF9098234SD")
         )
 
-        for test in tests:
-            debug(test)
+        for row in tests:
+            debug(row)
+            debug(row.animal_id)
