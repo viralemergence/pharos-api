@@ -155,7 +155,7 @@ class DefaultPassDatapoint(Datapoint):
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
-        if not self.report:
+        if not self.report and self.dataValue != "":
             self.report = Report(
                 status=ReportScore.SUCCESS, message="Ready to release."
             )
@@ -170,6 +170,23 @@ def validator_skip_fail_warn(func):
             ReportScore.FAIL,
             ReportScore.WARNING,
         ):
+            return args[1]
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+## If the datavalue is an empty string,
+## set the report to None and skip further
+## validation. These datapoints are valid
+## and important because they include history,
+## but should not be validated or included in
+## the PublishedRecord.
+def validator_skip_empty_string(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if args[1].dataValue == "":
+            args[1].report = None
             return args[1]
         return func(*args, **kwargs)
 
@@ -224,6 +241,7 @@ class Record(BaseModel):
         "pathogen_ncbi_tax_id",
     )
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_ncbi(cls, ncbi_id: DefaultPassDatapoint):
         """Check that the NCBI taxonomic identifier is
         numeric and between 1 and 7 digits long.
@@ -241,6 +259,7 @@ class Record(BaseModel):
 
     @validator("latitude")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_lat(cls, latitude: DefaultPassDatapoint):
         """Check that the latitude is numeric and between -90 and 90."""
         try:
@@ -257,6 +276,7 @@ class Record(BaseModel):
 
     @validator("longitude")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_lon(cls, longitude: DefaultPassDatapoint):
         """Check that the longitude is numeric and between -180 and 180."""
         try:
@@ -272,6 +292,7 @@ class Record(BaseModel):
         return longitude
 
     @validator("collection_year")
+    @validator_skip_empty_string
     def check_date(cls, year: Datapoint, values: Dict[str, Datapoint]):
         """Check that the date is valid; skip validation if any of
         day, month, and year are missing, and check that the year is
@@ -316,6 +337,7 @@ class Record(BaseModel):
 
     @validator("age", "mass", "length")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_float(cls, value: DefaultPassDatapoint):
         """Check that the value is a decimal."""
         try:
@@ -383,19 +405,38 @@ class Register(BaseModel):
 
         for recordID, record in self.register_data.items():
             for field in REQUIRED_FIELDS:
-                if record.__dict__[field] is None:
+                if (
+                    record.__dict__[field] is None
+                    ## dataValue can be an empty string if the datapoint
+                    ## was edited and then "cleared" in the UI
+                    or record.__dict__[field].dataValue == ""
+                ):
                     report.missingCount += 1
                     if recordID not in report.missingFields:
                         report.missingFields[recordID] = []
                     report.missingFields[recordID].append(get_ui_name(field))
 
             for field, datapoint in record:
-                if datapoint is None or datapoint.report is None:
+                if (
+                    datapoint is None
+                    or datapoint.report is None
+                    or datapoint.dataValue == ""
+                ):
                     # We can skip fields with no reports at this point
                     # because the only case where a field should not
                     # have a report after validation is when that report
                     # depends on another field, and that case will be
                     # caught by the missing fields check above.
+
+                    # This line will be marked as "not covered" in
+                    # coverage reports run in python 3.9, because the
+                    # cpython compiler optimizes away the statement.
+                    # It will be marked as covered in python 3.10.
+                    # https://github.com/nedbat/coveragepy/issues/198
+
+                    # I'm intentionally not adding something here (like
+                    # a print statement) to make it show up as covered
+                    # because the optimization is correct.
                     continue
 
                 if datapoint.report.status == ReportScore.SUCCESS:

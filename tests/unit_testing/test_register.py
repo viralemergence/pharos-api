@@ -469,6 +469,16 @@ MINIMAL_RELEASEABLE_REGISTER = """
                 "dataValue": "SARS-CoV-2",
                 "modifiedBy": "dev",
                 "version": "1679692123"
+            },
+            "Age": {
+                "dataValue": "",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+                "previous": {
+                    "dataValue": "1",
+                    "modifiedBy": "dev",
+                    "version": "1679682123"
+                }
             }
         }
     }
@@ -488,6 +498,16 @@ def test_release_report():
     assert len(report.warningFields) == 0
     assert len(report.failFields) == 0
     assert len(report.missingFields) == 0
+
+    # A user has deleted "Age" in the interface, so its value is
+    # an empty string, so it should be included to keep the history
+    # but it should not have a validation report and it should
+    # be treated as a missing in the release report. That woun't
+    # stop the release because it is not a required field.
+    assert register.register_data["rec12345"].age is not None
+    assert register.register_data["rec12345"].age.report is None
+
+    debug(report)
 
 
 REGISTER_NOT_READY_TO_RELEASE = """
@@ -529,6 +549,11 @@ REGISTER_NOT_READY_TO_RELEASE = """
                 "modifiedBy": "dev",
                 "version": "1679692123"
             },
+            "Detection outcome": {
+                "dataValue": "",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
             "Random column": {
                 "dataValue": "SARS-CoV-2",
                 "modifiedBy": "dev",
@@ -543,7 +568,6 @@ REGISTER_NOT_READY_TO_RELEASE = """
 def test_release_report_not_ready():
     register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
     report = register.get_release_report()
-    debug(report)
     assert report is not None
     assert report.released is False
     assert report.successCount == 4
@@ -552,7 +576,17 @@ def test_release_report_not_ready():
     assert report.missingCount == 2
     assert report.warningFields["rec12345"][0] == "Random column"
     assert report.failFields["rec12345"][0] == "Host species NCBI tax ID"
+
+    # detection_outcome has a dataValue of "" so but it is
+    # a required field so it should be in the parsed register
+    # but it should not have a report and should show up as a
+    # missing field in the release report.
+    assert register.register_data["rec12345"].detection_outcome is not None
+    assert register.register_data["rec12345"].detection_outcome.report is None
+
     assert set(report.missingFields["rec12345"]) == {
         "Collection day",
         "Detection outcome",
     }
+
+    # debug(report)
