@@ -1,15 +1,15 @@
 """Lambda function to check if a stored register is valid and ready to release."""
-import json
 import os
-from dataclasses import dataclass
 
 import boto3
+from botocore.exceptions import ClientError
+
 from pydantic import BaseModel
 from pydantic.error_wrappers import ValidationError
 
 from auth import check_auth
 from format import format_response
-from register import Register, ReportScore
+from register import Register
 
 DYNAMODB = boto3.resource("dynamodb")
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
@@ -35,6 +35,7 @@ def lambda_handler(event, _):
     authorized = check_auth(event_body.researcherID)
     if not authorized:
         return format_response(403, "Not Authorized")
+
     try:
         key_list = S3CLIENT.list_objects_v2(
             Bucket=DATASETS_S3_BUCKET, Prefix=f"{event_body.datasetID}/"
@@ -44,14 +45,15 @@ def lambda_handler(event, _):
         key = key_list[0]["Key"]
 
         register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-        register_json = json.loads(register_response["Body"].read().decode("UTF-8"))
-        register = Register.parse_raw(register_json)
+        register_json = register_response["Body"].read().decode("UTF-8")
 
-        release_report = register.get_release_report()
+    except (ValueError, ClientError):
+        return format_response(400, "Dataset not found")
 
-        # need to actually set released value in the dataset metadata object in dynamodb
+    register = Register.parse_raw(register_json)
 
-        return format_response(200, release_report)
+    release_report = register.get_release_report()
 
-    except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, e)
+    # need to actually set released value in the dataset metadata object in dynamodb
+
+    return format_response(200, release_report.json(), preformatted=True)
