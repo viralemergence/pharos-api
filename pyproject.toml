@@ -14,6 +14,14 @@ good-names = [
     "datasetID",
     "recordID",
     "datapointID",
+    # the release report ts names
+    "successCount",
+    "warningCount",
+    "failCount",
+    "missingCount",
+    "warningFields",
+    "failFields",
+    "missingFields",
 ]
 
 [tool.pylint.MAIN]
@@ -34,6 +42,7 @@ extension-pkg-whitelist = "pydantic"
 disable = [
   "no-name-in-module",
   "missing-class-docstring",
+  "too-many-instance-attributes",
   "missing-function-docstring",
   "missing-module-docstring",
   "too-few-public-methods",
