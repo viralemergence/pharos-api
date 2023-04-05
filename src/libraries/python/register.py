@@ -29,7 +29,7 @@ from pydantic import BaseModel, Extra, Field, validator
 
 from column_alias import get_ui_name
 
-
+# Fields requried to release a dataset
 REQUIRED_FIELDS = {
     "host_species",
     "latitude",
@@ -40,6 +40,72 @@ REQUIRED_FIELDS = {
     "detection_outcome",
     "pathogen",
 }
+
+
+class DatasetReleaseStatus(str, Enum):
+    """The state the dataset in the release process"""
+
+    UNRELEASED = "Unreleased"
+    RELEASED = "Released"
+    PUBLISHED = "Published"
+
+    class Config:  # pylint: disable=too-few-public-methods
+        extra = Extra.forbid
+
+
+class Version(BaseModel):
+    """Version objects, which represent specific
+    timestamps within a register which the user
+    may want to refer back to. This has been
+    largely removed from the user interface."""
+
+    date: str
+    name: str
+
+
+class Dataset(BaseModel):
+    """The dataset object which contains
+    metadata about the dataset.
+    """
+
+    datasetID: str
+    """Unique identifier for the dataset."""
+
+    name: str
+    """The display-name of the dataset, shown in the UI."""
+
+    lastUpdated: Optional[str]
+    """lastUpdated is the timestamp of the last time any datapoint
+    in the dataset was updated. This is a string at the moment
+    because the api doesn't need to manipulate it."""
+
+    earliestDate: Optional[str]
+    """The earliest date in the dataset, as a string. This is
+    used to display and sort the datasets in the UI."""
+
+    latestDate: Optional[str]
+    """The latest date in the dataset, as a string. This is
+    used to display and sort the datasets in the UI."""
+
+    releaseStatus: Optional[DatasetReleaseStatus]
+    """Whether the dataset is unreleased, released, or published."""
+
+    versions: Optional[list[Version]]
+    """versions have been largely removed from the UI, these poperties
+    are deprecated and will be removed in the future"""
+
+    activeVersion: Optional[str]
+    """In the user interface, the activeVersion is now just always the
+    current version, but that might change as we flesh out the publish
+    workflow."""
+
+    highestVersion: Optional[str]
+    """highestVersion is not used; it is largely just replaced by
+    the lastUpdated property now that versions are timestamp-based"""
+
+    class Config:
+        extra = Extra.forbid
+        use_enum_values = True
 
 
 class ReportScore(Enum):
@@ -75,9 +141,6 @@ class Datapoint(BaseModel):
     the data, metadata, and the recursive
     history of the datapoint.
     """
-
-    displayValue: Optional[str]
-    """Deprecating this; do not use."""
 
     dataValue: str
     """The value of the datapoint, as a string.
@@ -376,7 +439,7 @@ class Record(BaseModel):
 
 
 class ReleaseReport(BaseModel):
-    released: bool = False
+    released: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
     successCount: int = 0
     warningCount: int = 0
     failCount: int = 0
@@ -461,6 +524,6 @@ class Register(BaseModel):
             and report.failCount == 0
             and report.warningCount == 0
         ):
-            report.released = True
+            report.released = DatasetReleaseStatus.RELEASED
 
         return report
