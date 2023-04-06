@@ -9,7 +9,7 @@ from pydantic.error_wrappers import ValidationError
 
 from auth import check_auth
 from format import format_response
-from register import Register
+from register import DatasetReleaseStatus, Register
 
 DYNAMODB = boto3.resource("dynamodb")
 DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
@@ -27,18 +27,18 @@ class ReleaseDatasetBody(BaseModel):
 
 def lambda_handler(event, _):
     try:
-        event_body = ReleaseDatasetBody.parse_raw(event["body"])
+        validated = ReleaseDatasetBody.parse_raw(event["body"])
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    authorized = check_auth(event_body.researcherID)
+    authorized = check_auth(validated.researcherID)
     if not authorized:
         return format_response(403, "Not Authorized")
 
     try:
         key_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{event_body.datasetID}/"
+            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
         )["Contents"]
 
         key_list.sort(key=lambda item: item["LastModified"], reverse=True)
@@ -50,10 +50,22 @@ def lambda_handler(event, _):
     except (ValueError, ClientError):
         return format_response(400, "Dataset not found")
 
-    register = Register.parse_raw(register_json)
+    try:
+        register = Register.parse_raw(register_json)
+        release_report = register.get_release_report()
 
-    release_report = register.get_release_report()
+        # need to actually set released value in the dataset metadata object in dynamodb
+        if release_report.releaseStatus == DatasetReleaseStatus.RELEASED:
+            DATASETS_TABLE.update_item(
+                Key={"datasetID": validated.datasetID, "recordID": "_meta"},
+                UpdateExpression="set releaseStatus = :r",
+                ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASED.value},
+            )
 
-    # need to actually set released value in the dataset metadata object in dynamodb
+        return format_response(200, release_report.json(), preformatted=True)
 
-    return format_response(200, release_report.json(), preformatted=True)
+    except ValidationError as e:
+        return {
+            "statusCode": 400,
+            "body": f'{{"message":"Couldn\'t release dataset.", "error":"{e.json()}}}',
+        }
