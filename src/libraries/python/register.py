@@ -125,7 +125,7 @@ class ReportScore(Enum):
 
 
 class Report(BaseModel):
-    """The report object a validated datapoint,
+    """The report object for a validated datapoint,
     containing both the score and a message to
     show the user in the frontend.
     """
