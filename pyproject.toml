@@ -14,6 +14,7 @@ good-names = [
     "datasetID",
     "recordID",
     "datapointID",
+    "releaseStatus",
     # the release report ts names
     "successCount",
     "warningCount",

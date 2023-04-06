@@ -489,7 +489,7 @@ def test_release_report():
     register = Register.parse_raw(MINIMAL_RELEASEABLE_REGISTER)
     report = register.get_release_report()
     assert report is not None
-    assert report.released is DatasetReleaseStatus.RELEASED
+    assert report.releaseStatus is DatasetReleaseStatus.RELEASED
     assert report.successCount == 8
     assert report.warningCount == 0
     assert report.failCount == 0
@@ -566,7 +566,7 @@ def test_release_report_not_ready():
     register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
     report = register.get_release_report()
     assert report is not None
-    assert report.released is DatasetReleaseStatus.UNRELEASED
+    assert report.releaseStatus is DatasetReleaseStatus.UNRELEASED
     assert report.successCount == 4
     assert report.failCount == 1
     assert report.warningCount == 1

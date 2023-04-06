@@ -49,9 +49,6 @@ class DatasetReleaseStatus(str, Enum):
     RELEASED = "Released"
     PUBLISHED = "Published"
 
-    class Config:  # pylint: disable=too-few-public-methods
-        extra = Extra.forbid
-
 
 class Version(BaseModel):
     """Version objects, which represent specific
@@ -439,7 +436,7 @@ class Record(BaseModel):
 
 
 class ReleaseReport(BaseModel):
-    released: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
+    releaseStatus: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
     successCount: int = 0
     warningCount: int = 0
     failCount: int = 0
@@ -524,6 +521,6 @@ class Register(BaseModel):
             and report.failCount == 0
             and report.warningCount == 0
         ):
-            report.released = DatasetReleaseStatus.RELEASED
+            report.releaseStatus = DatasetReleaseStatus.RELEASED
 
         return report
