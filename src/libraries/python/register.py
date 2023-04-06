@@ -100,6 +100,12 @@ class Dataset(BaseModel):
     """highestVersion is not used; it is largely just replaced by
     the lastUpdated property now that versions are timestamp-based"""
 
+    recordID: Optional[str]
+    """Left over from dynamoDB register implementation, where
+    the recordID was the sort key and was hardcoded to "_meta"
+    to indicate the record which held the metadata for the dataset.
+    This is not used anymore."""
+
     class Config:
         extra = Extra.forbid
         use_enum_values = True
