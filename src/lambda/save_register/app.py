@@ -25,12 +25,6 @@ class SaveRegisterData(BaseModel):
     register_data: Dict[str, Record] = Field(..., alias="register")
 
 
-class Event(BaseModel):
-    """Data model for the event payload"""
-
-    body: SaveRegisterData
-
-
 def lambda_handler(event, _):
     # parse and validate event data
     try:

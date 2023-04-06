@@ -1,5 +1,8 @@
 {
   "python.linting.pylintEnabled": true,
   "python.linting.enabled": true,
-  "python.analysis.extraPaths": ["src/libraries/python/"]
+  "python.analysis.extraPaths": [
+    "src/libraries/python/"
+  ],
+  "pylint.importStrategy": "fromEnvironment"
 }
