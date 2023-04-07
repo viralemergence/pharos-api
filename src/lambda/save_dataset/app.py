@@ -40,8 +40,8 @@ def lambda_handler(event, _):
         # the "_meta" special-case sort key
         DATASETS_TABLE.put_item(
             Item={
-                "recordID": "_meta",
                 **validated.dataset.dict(),
+                "recordID": "_meta",
             }
         )
 
