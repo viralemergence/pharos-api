@@ -29,6 +29,29 @@ from pydantic import BaseModel, Extra, Field, validator
 
 from column_alias import get_ui_name
 
+
+class User(BaseModel):
+    """The user class which holds metadata in dynamodb."""
+
+    researcherID: str
+    """Unique identifier, and used as the partition key in dynamodb."""
+
+    organization: str
+    """Org affiliation of the user."""
+
+    email: str
+    """The email address of the user."""
+
+    name: str
+    """The display-name of the user, shown in the UI."""
+
+    projectIDs: Optional[list[str]]
+    """The projectIDs of the projects this user can access and edit."""
+
+    class Config:
+        extra = Extra.forbid
+
+
 # Fields requried to release a dataset
 REQUIRED_FIELDS = {
     "host_species",
