@@ -9,15 +9,18 @@ Parameters:
   CorsAllow:
     Type: String
     Default: "http://localhost:8000"
-  UsersTableName:
+  MetadataTableName:
     Type: String
-    Default: users
-  DatasetsTableName:
-    Type: String
-    Default: datasets
-  ProjectsTableName:
-    Type: String
-    Default: projects
+    Default: metadata
+  # UsersTableName:
+  #   Type: String
+  #   Default: users
+  # DatasetsTableName:
+  #   Type: String
+  #   Default: datasets
+  # ProjectsTableName:
+  #   Type: String
+  #   Default: projects
   LayerName:
     Type: String
     Default: layer
@@ -78,50 +81,50 @@ Resources:
         - AttributeName: "sk"
           KeyType: "RANGE" # Sort Key
       BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
-  UsersTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "researcherID"
-          AttributeType: "S"
-      KeySchema:
-        - AttributeName: "researcherID"
-          KeyType: "HASH"
-      BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+  # UsersTable:
+  #   Type: AWS::DynamoDB::Table
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: "researcherID"
+  #         AttributeType: "S"
+  #     KeySchema:
+  #       - AttributeName: "researcherID"
+  #         KeyType: "HASH"
+  #     BillingMode: "PAY_PER_REQUEST"
+  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
 
-  DatasetsTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "datasetID"
-          AttributeType: "S"
-        - AttributeName: "recordID"
-          AttributeType: "S"
-      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-        - AttributeName: "datasetID"
-          KeyType: "HASH" # Partition key
-        - AttributeName: "recordID"
-          KeyType: "RANGE" # Sort Key
-      BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+  # DatasetsTable:
+  #   Type: AWS::DynamoDB::Table
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: "datasetID"
+  #         AttributeType: "S"
+  #       - AttributeName: "recordID"
+  #         AttributeType: "S"
+  #     KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+  #       - AttributeName: "datasetID"
+  #         KeyType: "HASH" # Partition key
+  #       - AttributeName: "recordID"
+  #         KeyType: "RANGE" # Sort Key
+  #     BillingMode: "PAY_PER_REQUEST"
+  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
-  ProjectsTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "projectID"
-          AttributeType: "S"
-      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-        - AttributeName: "projectID"
-          KeyType: "HASH" # Partition key
-      BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+  # ProjectsTable:
+  #   Type: AWS::DynamoDB::Table
+  #   DeletionPolicy: Retain
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: "projectID"
+  #         AttributeType: "S"
+  #     KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+  #       - AttributeName: "projectID"
+  #         KeyType: "HASH" # Partition key
+  #     BillingMode: "PAY_PER_REQUEST"
+  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   DatasetsS3:
     Type: AWS::S3::Bucket
@@ -159,11 +162,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -181,11 +185,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -205,21 +210,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-          PROJECTS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -239,21 +235,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-          PROJECTS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -277,18 +264,14 @@ Resources:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
           N_VERSIONS: !Ref NVersions # S3 implmentation
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
@@ -314,18 +297,14 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
@@ -348,16 +327,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          PROJECTS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -377,16 +352,12 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          PROJECTS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   ReleaseDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -409,18 +380,14 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
@@ -450,24 +417,15 @@ Resources:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-          DATASETS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-          PROJECTS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
-        - DynamoDBCrudPolicy:
             TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
@@ -522,14 +480,15 @@ Resources:
           PASSWORD: testingrds
           REGION: !Ref AWS::Region
           BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-          USERS_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
-            TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
