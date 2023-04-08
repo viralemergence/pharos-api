@@ -36,14 +36,16 @@ def lambda_handler(event, _):
         # set "releaseStatus" it should be overridden.
         validated.dataset.releaseStatus = DatasetReleaseStatus.UNRELEASED
 
+        dataset_dict = validated.dataset.dict()
+
+        # remove projectID and datasetID from the dict and
+        # use the values for the pk and sk attributes
+        dataset_dict["pk"] = dataset_dict.pop("projectID")
+        dataset_dict["sk"] = dataset_dict.pop("datasetID")
+
         # store in datasets table as a row with
         # the "_meta" special-case sort key
-        DATASETS_TABLE.put_item(
-            Item={
-                **validated.dataset.dict(),
-                "recordID": "_meta",
-            }
-        )
+        DATASETS_TABLE.put_item(Item=dataset_dict)
 
         return format_response(200, "Succesful Upload")
 
