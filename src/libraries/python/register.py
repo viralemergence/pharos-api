@@ -65,8 +65,12 @@ class Dataset(BaseModel):
     metadata about the dataset.
     """
 
+    projectID: str
+    """The projectID of the project to which this dataset
+    belongs; used as the partition key in dynamodb."""
+
     datasetID: str
-    """Unique identifier for the dataset."""
+    """Unique identifier for the dataset; used as the sort key."""
 
     name: str
     """The display-name of the dataset, shown in the UI."""
@@ -100,11 +104,11 @@ class Dataset(BaseModel):
     """highestVersion is not used; it is largely just replaced by
     the lastUpdated property now that versions are timestamp-based"""
 
-    recordID: Optional[str]
-    """Left over from dynamoDB register implementation, where
-    the recordID was the sort key and was hardcoded to "_meta"
-    to indicate the record which held the metadata for the dataset.
-    This is not used anymore."""
+    # recordID: Optional[str]
+    # """Left over from dynamoDB register implementation, where
+    # the recordID was the sort key and was hardcoded to "_meta"
+    # to indicate the record which held the metadata for the dataset.
+    # This is not used anymore."""
 
     class Config:
         extra = Extra.forbid
