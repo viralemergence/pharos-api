@@ -1,50 +1,43 @@
-import json
 import os
 import uuid
 import boto3
+from botocore.exceptions import ClientError
+
+from pydantic import ValidationError
+
 from format import format_response
+from register import User
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
-
-
-# class CreateUserData(BaseModel):
-#     """Data model for the create user request"""
-
-#     researcherID: str
-#     organization: str
-#     email: str
-#     name: str
-
-
-# class Event(BaseModel):
-#     """Data model for the event payload"""
-
-#     body: str
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
     try:
-        post_data = json.loads(event.get("body", "{}"))
+        validated = User.parse_raw(event.get("body", "{}"))
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
-        # If resercherID is not provided, generate a new one
-        researcherID = post_data.get("researcherID")
-        if not researcherID:
-            researcherID = uuid.uuid4().hex
+    # If resercherID is not provided, generate a new one
+    researcherID = validated.researcherID
+    if not researcherID:
+        researcherID = uuid.uuid4().hex
 
-        # This overwrites the existing record completely
-        # What we actually need here is a merge; so that
-        # an out of date client can't take away project
-        # permissions or roll back other data.
-        users_response = USERS_TABLE.put_item(
-            Item={
-                "researcherID": researcherID,
-                "organization": post_data["organization"],
-                "email": post_data["email"],
-                "name": post_data["name"],
-            }
-        )
+    user_dict = validated.dict()
 
+    # remove researcherID from the dict and use it as partition key
+    user_dict["pk"] = user_dict.pop("researcherID")
+    # sort key is just _meta
+    user_dict["sk"] = "_meta"
+
+    # Need to add handling merging of the user's list of
+    # projects here, because for now an out-of-sync client
+    # could write a project list which is missing projects
+    # created on another client by the same user.
+
+    try:
+        users_response = METADATA_TABLE.put_item(Item=user_dict)
         return format_response(
             200,
             {
@@ -53,5 +46,5 @@ def lambda_handler(event, _):
             },
         )
 
-    except Exception as e:  # pylint: disable=broad-except
+    except ClientError as e:
         return format_response(500, e)
