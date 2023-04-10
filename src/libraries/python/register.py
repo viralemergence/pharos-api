@@ -45,11 +45,27 @@ class User(BaseModel):
     name: str
     """The display-name of the user, shown in the UI."""
 
-    projectIDs: Optional[list[str]]
+    projectIDs: Optional[set[str]]
     """The projectIDs of the projects this user can access and edit."""
 
     class Config:
         extra = Extra.forbid
+
+    def table_item(self):
+        """Return the user as a dict, with the researcherID
+        as the partition key and the sort key as _meta.
+        """
+        user_dict = self.dict()
+        user_dict["pk"] = user_dict.pop("researcherID")
+        user_dict["sk"] = "_meta"
+        return user_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the user from a MetadataTable item."""
+        table_item["researcherID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return User.parse_obj(table_item)
 
 
 # Fields requried to release a dataset
