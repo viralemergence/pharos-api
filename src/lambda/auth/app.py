@@ -1,12 +1,6 @@
-import os
 import json
-import boto3
 from auth import check_auth
 from format import format_response
-
-
-DYNAMODB = boto3.resource("dynamodb")
-METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
