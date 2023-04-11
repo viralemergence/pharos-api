@@ -180,19 +180,6 @@ class Dataset(BaseModel):
     releaseStatus: Optional[DatasetReleaseStatus]
     """Whether the dataset is unreleased, released, or published."""
 
-    versions: Optional[list[Version]]
-    """versions have been largely removed from the UI, these poperties
-    are deprecated and will be removed in the future"""
-
-    activeVersion: Optional[str]
-    """In the user interface, the activeVersion is now just always the
-    current version, but that might change as we flesh out the publish
-    workflow."""
-
-    highestVersion: Optional[str]
-    """highestVersion is not used; it is largely just replaced by
-    the lastUpdated property now that versions are timestamp-based"""
-
     class Config:
         extra = Extra.forbid
         use_enum_values = True
