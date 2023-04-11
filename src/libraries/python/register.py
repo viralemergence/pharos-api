@@ -25,16 +25,183 @@ from typing import Any, Dict, Optional
 from functools import wraps
 from enum import Enum
 
-from pydantic import BaseModel, Extra, validator
+from pydantic import BaseModel, Extra, Field, validator
+
+from column_alias import get_ui_name
 
 
-## Helper function to transform column names containing
-## spaces to underscored names for use in the record class.
-def _snake_case_to_spaces(string: str):
-    """Replace underscores with spaces to map from
-    python attributes to display names.
+class User(BaseModel):
+    """The user class which holds metadata in dynamodb."""
+
+    researcherID: str
+    """Unique identifier, and used as the partition key in dynamodb."""
+
+    organization: str
+    """Org affiliation of the user."""
+
+    email: str
+    """The email address of the user."""
+
+    name: str
+    """The display-name of the user, shown in the UI."""
+
+    projectIDs: Optional[set[str]]
+    """The projectIDs of the projects this user can access and edit."""
+
+    class Config:
+        extra = Extra.forbid
+
+    def table_item(self):
+        """Return the user as a dict, with the researcherID
+        as the partition key and the sort key as _meta.
+        """
+        user_dict = self.dict()
+        user_dict["pk"] = user_dict.pop("researcherID")
+        user_dict["sk"] = "_meta"
+        return user_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the user from a MetadataTable item."""
+        table_item["researcherID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return User.parse_obj(table_item)
+
+
+class Author(BaseModel):
+    researcherID: str
+    role: str
+
+
+class ProjectPublishStatus(str, Enum):
+    """The state the project in the publishing process"""
+
+    UNPUBLISHED = "Unpublished"
+    PUBLISHED = "Published"
+
+
+class Project(BaseModel):
+    """The metadata object which describes a project."""
+
+    projectID: str
+    name: str
+    datasetIDs: list[str]
+    lastUpdated: Optional[str]
+    description: Optional[str]
+    projectType: Optional[str]
+    surveillanceStatus: Optional[str]
+    citation: Optional[str]
+    relatedMaterials: Optional[list[str]]
+    projectPublications: Optional[list[str]]
+    othersCiting: Optional[list[str]]
+    authors: Optional[list[Author]]
+    publishStatus: ProjectPublishStatus
+
+    class Config:
+        extra = Extra.forbid
+        use_enum_values = True
+
+    def table_item(self):
+        """Return the project as a dict, with the projectID
+        as the partition key and the sort key as _meta.
+        """
+        project_dict = self.dict()
+        project_dict["pk"] = project_dict.pop("projectID")
+        project_dict["sk"] = "_meta"
+        return project_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the project from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return Project.parse_obj(table_item)
+
+
+# Fields requried to release a dataset
+REQUIRED_FIELDS = {
+    "host_species",
+    "latitude",
+    "longitude",
+    "collection_day",
+    "collection_month",
+    "collection_year",
+    "detection_outcome",
+    "pathogen",
+}
+
+
+class DatasetReleaseStatus(str, Enum):
+    """The state the dataset in the release process"""
+
+    UNRELEASED = "Unreleased"
+    RELEASED = "Released"
+    PUBLISHED = "Published"
+
+
+class Version(BaseModel):
+    """Version objects, which represent specific
+    timestamps within a register which the user
+    may want to refer back to. This has been
+    largely removed from the user interface."""
+
+    date: str
+    name: str
+
+
+class Dataset(BaseModel):
+    """The dataset object which contains
+    metadata about the dataset.
     """
-    return string.replace("_", " ")
+
+    projectID: str
+    """The projectID of the project to which this dataset
+    belongs; used as the partition key in dynamodb."""
+
+    datasetID: str
+    """Unique identifier for the dataset; used as the sort key."""
+
+    name: str
+    """The display-name of the dataset, shown in the UI."""
+
+    lastUpdated: Optional[str]
+    """lastUpdated is the timestamp of the last time any datapoint
+    in the dataset was updated. This is a string at the moment
+    because the api doesn't need to manipulate it."""
+
+    earliestDate: Optional[str]
+    """The earliest date in the dataset, as a string. This is
+    used to display and sort the datasets in the UI."""
+
+    latestDate: Optional[str]
+    """The latest date in the dataset, as a string. This is
+    used to display and sort the datasets in the UI."""
+
+    releaseStatus: Optional[DatasetReleaseStatus]
+    """Whether the dataset is unreleased, released, or published."""
+
+    class Config:
+        extra = Extra.forbid
+        use_enum_values = True
+
+    def table_item(self):
+        """Return the dataset as a dict, with the projectID
+        as the partition key and the datasetID as the sort key.
+        """
+        dataset_dict = self.dict()
+
+        # remove projectID and datasetID from the dict and
+        # use the values for the pk and sk attributes
+        dataset_dict["pk"] = dataset_dict.pop("projectID")
+        dataset_dict["sk"] = dataset_dict.pop("datasetID")
+        return dataset_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the dataset from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item["datasetID"] = table_item.pop("sk")
+        return Dataset.parse_obj(table_item)
 
 
 class ReportScore(Enum):
@@ -51,7 +218,7 @@ class ReportScore(Enum):
 
 
 class Report(BaseModel):
-    """The report object a validated datapoint,
+    """The report object for a validated datapoint,
     containing both the score and a message to
     show the user in the frontend.
     """
@@ -70,9 +237,6 @@ class Datapoint(BaseModel):
     the data, metadata, and the recursive
     history of the datapoint.
     """
-
-    displayValue: Optional[str]
-    """Deprecating this; do not use."""
 
     dataValue: str
     """The value of the datapoint, as a string.
@@ -150,7 +314,7 @@ class DefaultPassDatapoint(Datapoint):
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
-        if not self.report:
+        if not self.report and self.dataValue != "":
             self.report = Report(
                 status=ReportScore.SUCCESS, message="Ready to release."
             )
@@ -171,6 +335,23 @@ def validator_skip_fail_warn(func):
     return wrapper
 
 
+## If the datavalue is an empty string,
+## set the report to None and skip further
+## validation. These datapoints are valid
+## and important because they include history,
+## but should not be validated or included in
+## the PublishedRecord.
+def validator_skip_empty_string(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if args[1].dataValue == "":
+            args[1].report = None
+            return args[1]
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class Record(BaseModel):
     """The record object is displayed as a "row"
     to the user in the user interface, and closely
@@ -182,43 +363,44 @@ class Record(BaseModel):
     display in the user interface.
     """
 
-    Sample_ID: Optional[DefaultPassDatapoint] = None
-    Animal_ID: Optional[DefaultPassDatapoint] = None
-    Host_species: Optional[DefaultPassDatapoint] = None
-    Host_species_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    Latitude: Optional[DefaultPassDatapoint] = None
-    Longitude: Optional[DefaultPassDatapoint] = None
-    Spatial_uncertainty: Optional[DefaultPassDatapoint] = None
-    Collection_day: Optional[Datapoint] = None
-    Collection_month: Optional[Datapoint] = None
-    Collection_year: Optional[Datapoint] = None
-    Collection_method_or_tissue: Optional[DefaultPassDatapoint] = None
-    Detection_method: Optional[DefaultPassDatapoint] = None
-    Primer_sequence: Optional[DefaultPassDatapoint] = None
-    Primer_citation: Optional[DefaultPassDatapoint] = None
-    Detection_target: Optional[DefaultPassDatapoint] = None
-    Detection_target_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    Detection_outcome: Optional[DefaultPassDatapoint] = None
-    Detection_measurement: Optional[DefaultPassDatapoint] = None
-    Detection_measurement_units: Optional[DefaultPassDatapoint] = None
-    Pathogen: Optional[DefaultPassDatapoint] = None
-    Pathogen_NCBI_tax_ID: Optional[DefaultPassDatapoint] = None
-    GenBank_accession: Optional[DefaultPassDatapoint] = None
-    Detection_comments: Optional[DefaultPassDatapoint] = None
-    Organism_sex: Optional[DefaultPassDatapoint] = None
-    Dead_or_alive: Optional[DefaultPassDatapoint] = None
-    Health_notes: Optional[DefaultPassDatapoint] = None
-    Life_stage: Optional[DefaultPassDatapoint] = None
-    Age: Optional[DefaultPassDatapoint] = None
-    Mass: Optional[DefaultPassDatapoint] = None
-    Length: Optional[DefaultPassDatapoint] = None
+    sample_id: Optional[DefaultPassDatapoint] = None
+    animal_id: Optional[DefaultPassDatapoint] = None
+    host_species: Optional[DefaultPassDatapoint] = None
+    host_species_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    latitude: Optional[DefaultPassDatapoint] = None
+    longitude: Optional[DefaultPassDatapoint] = None
+    spatial_uncertainty: Optional[DefaultPassDatapoint] = None
+    collection_day: Optional[Datapoint] = None
+    collection_month: Optional[Datapoint] = None
+    collection_year: Optional[Datapoint] = None
+    collection_method_or_tissue: Optional[DefaultPassDatapoint] = None
+    detection_method: Optional[DefaultPassDatapoint] = None
+    primer_sequence: Optional[DefaultPassDatapoint] = None
+    primer_citation: Optional[DefaultPassDatapoint] = None
+    detection_target: Optional[DefaultPassDatapoint] = None
+    detection_target_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    detection_outcome: Optional[DefaultPassDatapoint] = None
+    detection_measurement: Optional[DefaultPassDatapoint] = None
+    detection_measurement_units: Optional[DefaultPassDatapoint] = None
+    pathogen: Optional[DefaultPassDatapoint] = None
+    pathogen_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
+    genbank_accession: Optional[DefaultPassDatapoint] = None
+    detection_comments: Optional[DefaultPassDatapoint] = None
+    organism_sex: Optional[DefaultPassDatapoint] = None
+    dead_or_alive: Optional[DefaultPassDatapoint] = None
+    health_notes: Optional[DefaultPassDatapoint] = None
+    life_stage: Optional[DefaultPassDatapoint] = None
+    age: Optional[DefaultPassDatapoint] = None
+    mass: Optional[DefaultPassDatapoint] = None
+    length: Optional[DefaultPassDatapoint] = None
 
     @validator(
-        "Host_species_NCBI_tax_ID",
-        "Detection_target_NCBI_tax_ID",
-        "Pathogen_NCBI_tax_ID",
+        "host_species_ncbi_tax_id",
+        "detection_target_ncbi_tax_id",
+        "pathogen_ncbi_tax_id",
     )
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_ncbi(cls, ncbi_id: DefaultPassDatapoint):
         """Check that the NCBI taxonomic identifier is
         numeric and between 1 and 7 digits long.
@@ -234,8 +416,9 @@ class Record(BaseModel):
 
         return ncbi_id
 
-    @validator("Latitude")
+    @validator("latitude")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_lat(cls, latitude: DefaultPassDatapoint):
         """Check that the latitude is numeric and between -90 and 90."""
         try:
@@ -250,8 +433,9 @@ class Record(BaseModel):
 
         return latitude
 
-    @validator("Longitude")
+    @validator("longitude")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_lon(cls, longitude: DefaultPassDatapoint):
         """Check that the longitude is numeric and between -180 and 180."""
         try:
@@ -266,14 +450,15 @@ class Record(BaseModel):
 
         return longitude
 
-    @validator("Collection_year")
+    @validator("collection_year")
+    @validator_skip_empty_string
     def check_date(cls, year: Datapoint, values: Dict[str, Datapoint]):
         """Check that the date is valid; skip validation if any of
         day, month, and year are missing, and check that the year is
         four digits long."""
 
-        day = values.get("Collection_day")
-        month = values.get("Collection_month")
+        day = values.get("collection_day")
+        month = values.get("collection_month")
 
         # Don't do any validation until all three are filled out
         if not day or not month:
@@ -309,8 +494,9 @@ class Record(BaseModel):
 
         return year
 
-    @validator("Age", "Mass", "Length")
+    @validator("age", "mass", "length")
     @validator_skip_fail_warn
+    @validator_skip_empty_string
     def check_float(cls, value: DefaultPassDatapoint):
         """Check that the value is a decimal."""
         try:
@@ -327,9 +513,9 @@ class Record(BaseModel):
         return value
 
     class Config:
-        ## datapoint names are transformed by
-        ## replaceing spaces with underscores
-        alias_generator = _snake_case_to_spaces
+        ## datapoint names are transformed using
+        ## a map between snake_case and UI names
+        alias_generator = get_ui_name
         extra = Extra.allow
 
     def __init__(self, **data) -> None:
@@ -343,17 +529,97 @@ class Record(BaseModel):
             )
             self.__dict__[key] = dat
 
-
-# class Register(BaseModel):
-#     """The register object is the top-level
-#     object in the register system, containing
-#     the dictionary of all the records.
-#     """
-
-#     data: Dict[str, Record] = Field(..., alias="register")
+    def __iter__(self):
+        iterable: Dict[str, Datapoint] = self.__dict__
+        return iter(iterable.items())
 
 
-#     @classmethod
-#     def parse(cls, data: str):
-#         """Parse a register json object and return a validated Register"""
-#         return cls.parse_raw(f'{{"data": {data}}}')
+class ReleaseReport(BaseModel):
+    releaseStatus: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
+    successCount: int = 0
+    warningCount: int = 0
+    failCount: int = 0
+    missingCount: int = 0
+    warningFields: dict[str, list] = {}
+    failFields: dict[str, list] = {}
+    missingFields: dict[str, list] = {}
+
+
+class Register(BaseModel):
+    """The register object is the top-level
+    object in the register system, containing
+    the dictionary of all the records.
+    """
+
+    register_data: Dict[str, Record] = Field(..., alias="register")
+
+    def get_release_report(self) -> ReleaseReport:
+        """The release report summarizes all errors and
+        warnings in the register, and adds additional
+        information such as missing required fields which
+        we want to test and display only when the user
+        tries to release the dataset.
+        """
+        report = ReleaseReport()
+
+        for recordID, record in self.register_data.items():
+            for field in REQUIRED_FIELDS:
+                if (
+                    record.__dict__[field] is None
+                    ## dataValue can be an empty string if the datapoint
+                    ## was edited and then "cleared" in the UI
+                    or record.__dict__[field].dataValue == ""
+                ):
+                    report.missingCount += 1
+                    if recordID not in report.missingFields:
+                        report.missingFields[recordID] = []
+                    report.missingFields[recordID].append(get_ui_name(field))
+
+            for field, datapoint in record:
+                if (
+                    datapoint is None
+                    or datapoint.report is None
+                    or datapoint.dataValue == ""
+                ):
+                    # We can skip fields with no reports at this point
+                    # because the only case where a field should not
+                    # have a report after validation is when that report
+                    # depends on another field, and that case will be
+                    # caught by the missing fields check above.
+
+                    # This line will be marked as "not covered" in
+                    # coverage reports run in python 3.9, because the
+                    # cpython compiler optimizes away the statement.
+                    # It will be marked as covered in python 3.10.
+                    # https://github.com/nedbat/coveragepy/issues/198
+
+                    # I'm intentionally not adding something here (like
+                    # a print statement) to make it show up as covered
+                    # because the optimization is correct.
+                    continue
+
+                if datapoint.report.status == ReportScore.SUCCESS:
+                    report.successCount += 1
+                    continue
+
+                if datapoint.report.status == ReportScore.WARNING:
+                    report.warningCount += 1
+                    if recordID not in report.warningFields:
+                        report.warningFields[recordID] = []
+                    report.warningFields[recordID].append(get_ui_name(field))
+                    continue
+
+                if datapoint.report.status == ReportScore.FAIL:
+                    report.failCount += 1
+                    if recordID not in report.failFields:
+                        report.failFields[recordID] = []
+                    report.failFields[recordID].append(get_ui_name(field))
+
+        if (
+            report.missingCount == 0
+            and report.failCount == 0
+            and report.warningCount == 0
+        ):
+            report.releaseStatus = DatasetReleaseStatus.RELEASED
+
+        return report

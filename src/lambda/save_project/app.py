@@ -1,40 +1,53 @@
-import json
 import os
 
 import boto3
+from botocore.exceptions import ClientError
+from pydantic import BaseModel, Extra, ValidationError
+
 from auth import check_auth
 from format import format_response
+from register import Project
 
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
-PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
+
+
+class SaveProjectBody(BaseModel):
+    """Event data payload to save a project."""
+
+    researcherID: str
+    project: Project
+
+    class Config:
+        extra = Extra.forbid
 
 
 def lambda_handler(event, _):
-    post_data = json.loads(event.get("body", "{}"))
+    try:
+        validated = SaveProjectBody.parse_raw(event.get("body", "{}"))
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
-    authorized = check_auth(post_data["authors"][0]["researcherID"])
-    if not authorized:
+    user = check_auth(validated.researcherID)
+
+    # This should also check if the user has permission to
+    # edit this project, but to add that we need to create
+    # a dedicated route for creating projects because when
+    # a project is created, the user is updated with the new
+    # projectID at the same time as the save_project lambda
+    # is called. Those two updates need to be in the same
+    # api route in the case of new project creation.
+    if not user:
         return format_response(403, "Not Authorized")
 
+    # in the future need to query the existing project (if it
+    # exists) and merge the new data with the old data
+
     try:
-        PROJECTS_TABLE.put_item(Item=post_data)
-
-        # Update project set for every author in the project
-
-        # Looks like the idea for this code is to handle the
-        # case where a new author is added to a project
-        for author in post_data["authors"]:
-            researcher = author["researcherID"]
-            USERS_TABLE.update_item(
-                Key={"researcherID": researcher},
-                # Dynamodb docs specify ADD for sets
-                UpdateExpression="ADD projectIDs :i",
-                # Need to indicate it is a string set - SS
-                ExpressionAttributeValues={":i": set([post_data["projectID"]])},
-            )
+        METADATA_TABLE.put_item(Item=validated.project.table_item())
         return format_response(200, "Succesful upload")
 
-    except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, e)
+    except ClientError as e:
+        return format_response(500, e)

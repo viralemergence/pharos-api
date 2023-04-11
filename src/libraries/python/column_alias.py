@@ -1,0 +1,45 @@
+"""The mapping from pythonic snake case names
+to capitalized, space-separated names to display
+in the user interface. Unrecognized names will
+be unchanged.
+"""
+
+api_name_to_ui_name_map = {
+    "sample_id": "Sample ID",
+    "animal_id": "Animal ID",
+    "host_species": "Host species",
+    "host_species_ncbi_tax_id": "Host species NCBI tax ID",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "spatial_uncertainty": "Spatial uncertainty",
+    "collection_day": "Collection day",
+    "collection_month": "Collection month",
+    "collection_year": "Collection year",
+    "collection_method_or_tissue": "Collection method or tissue",
+    "detection_method": "Detection method",
+    "primer_sequence": "Primer sequence",
+    "primer_citation": "Primer citation",
+    "detection_target": "Detection target",
+    "detection_target_ncbi_tax_id": "Detection target NCBI tax ID",
+    "detection_outcome": "Detection outcome",
+    "detection_measurement": "Detection measurement",
+    "detection_measurement_units": "Detection measurement units",
+    "pathogen": "Pathogen",
+    "pathogen_ncbi_tax_id": "Pathogen NCBI tax ID",
+    "genbank_accession": "GenBank accession",
+    "detection_comments": "Detection comments",
+    "organism_sex": "Organism sex",
+    "dead_or_alive": "Dead or alive",
+    "health_notes": "Health notes",
+    "life_stage": "Life stage",
+    "age": "Age",
+    "mass": "Mass",
+    "length": "Length",
+}
+
+
+def get_ui_name(api_name: str):
+    """Convert from a snake_case pythonic column name
+    to the capitalized, space-separated name to display
+    in the user interface."""
+    return api_name_to_ui_name_map.get(api_name, api_name)

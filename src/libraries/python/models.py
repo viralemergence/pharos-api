@@ -99,5 +99,5 @@
 #     length = Column(
 #         StringToNumeric(8, 6), default=None
 #     )  # length units to meters xx.xxxxxx / length, length units / m - mm
-#     # pool = Column(Boolean)
-#     # host_uncertanity = Column(String(15))
+#     pool = Column(Boolean)
+#     host_uncertanity = Column(String(15))
