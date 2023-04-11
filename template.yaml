@@ -12,15 +12,12 @@ Parameters:
   MetadataTableName:
     Type: String
     Default: metadata
-  # UsersTableName:
-  #   Type: String
-  #   Default: users
-  # DatasetsTableName:
-  #   Type: String
-  #   Default: datasets
-  # ProjectsTableName:
-  #   Type: String
-  #   Default: projects
+  DatasetsTableName:
+    Type: String
+    Default: datasets
+  ProjectsTableName:
+    Type: String
+    Default: projects
   LayerName:
     Type: String
     Default: layer
@@ -83,48 +80,35 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
-  # UsersTable:
-  #   Type: AWS::DynamoDB::Table
-  #   DeletionPolicy: Retain
-  #   Properties:
-  #     AttributeDefinitions:
-  #       - AttributeName: "researcherID"
-  #         AttributeType: "S"
-  #     KeySchema:
-  #       - AttributeName: "researcherID"
-  #         KeyType: "HASH"
-  #     BillingMode: "PAY_PER_REQUEST"
-  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+  DatasetsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "datasetID"
+          AttributeType: "S"
+        - AttributeName: "recordID"
+          AttributeType: "S"
+      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+        - AttributeName: "datasetID"
+          KeyType: "HASH" # Partition key
+        - AttributeName: "recordID"
+          KeyType: "RANGE" # Sort Key
+      BillingMode: "PAY_PER_REQUEST"
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
 
-  # DatasetsTable:
-  #   Type: AWS::DynamoDB::Table
-  #   DeletionPolicy: Retain
-  #   Properties:
-  #     AttributeDefinitions:
-  #       - AttributeName: "datasetID"
-  #         AttributeType: "S"
-  #       - AttributeName: "recordID"
-  #         AttributeType: "S"
-  #     KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-  #       - AttributeName: "datasetID"
-  #         KeyType: "HASH" # Partition key
-  #       - AttributeName: "recordID"
-  #         KeyType: "RANGE" # Sort Key
-  #     BillingMode: "PAY_PER_REQUEST"
-  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-
-  # ProjectsTable:
-  #   Type: AWS::DynamoDB::Table
-  #   DeletionPolicy: Retain
-  #   Properties:
-  #     AttributeDefinitions:
-  #       - AttributeName: "projectID"
-  #         AttributeType: "S"
-  #     KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-  #       - AttributeName: "projectID"
-  #         KeyType: "HASH" # Partition key
-  #     BillingMode: "PAY_PER_REQUEST"
-  #     TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: "projectID"
+          AttributeType: "S"
+      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
+        - AttributeName: "projectID"
+          KeyType: "HASH" # Partition key
+      BillingMode: "PAY_PER_REQUEST"
+      TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   DatasetsS3:
     Type: AWS::S3::Bucket
@@ -171,7 +155,8 @@ Resources:
 
   CreateUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    DependsOn: UsersTable
+    DependsOn:
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/create_user/
       Events:
@@ -195,8 +180,7 @@ Resources:
   SaveDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - DatasetsTable
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/save_dataset/
       Events:
@@ -220,8 +204,7 @@ Resources:
   ListDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - DatasetsTable
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/list_datasets/
       Events:
@@ -245,9 +228,7 @@ Resources:
   SaveRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - DatasetsTable
-      - DatasetsS3
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/save_register/
       Events:
@@ -279,9 +260,7 @@ Resources:
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - DatasetsTable
-      - DatasetsS3
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/load_register/
       Events:
@@ -312,8 +291,7 @@ Resources:
   SaveProjectFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - ProjectsTable
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/save_project/
       Events:
@@ -337,8 +315,7 @@ Resources:
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - ProjectsTable
+      - MetadataTable
     Properties:
       CodeUri: src/lambda/list_projects/
       Events:
@@ -362,8 +339,7 @@ Resources:
   ReleaseDatasetFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
-      - UsersTable
-      - DatasetsTable
+      - MetadataTable
       - DatasetsS3
     Properties:
       CodeUri: src/lambda/release_dataset/
@@ -564,9 +540,9 @@ Outputs:
   PharosApi:
     Description: "API Endpoint:"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  UsersTableName:
-    Description: "Users Table Name"
-    Value: !Join ["-", [!Ref AWS::StackName, !Ref UsersTableName]]
+  MetadataTableName:
+    Description: "Metadata Table Name"
+    Value: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
   # AuthFunctionIamRole:
   #   Description: "Implicit IAM Role created for Fake Auth function"
   #   Value: !GetAtt AuthFunction.Arn
