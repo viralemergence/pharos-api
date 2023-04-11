@@ -2,7 +2,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Extra, ValidationError
 from auth import check_auth
 from format import format_response
 from register import Dataset, DatasetReleaseStatus
@@ -16,6 +16,9 @@ class UploadDatasetBody(BaseModel):
 
     researcherID: str
     dataset: Dataset
+
+    class Config:
+        extra = Extra.forbid
 
 
 def lambda_handler(event, _):
