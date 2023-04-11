@@ -143,15 +143,28 @@ class Dataset(BaseModel):
     """highestVersion is not used; it is largely just replaced by
     the lastUpdated property now that versions are timestamp-based"""
 
-    # recordID: Optional[str]
-    # """Left over from dynamoDB register implementation, where
-    # the recordID was the sort key and was hardcoded to "_meta"
-    # to indicate the record which held the metadata for the dataset.
-    # This is not used anymore."""
-
     class Config:
         extra = Extra.forbid
         use_enum_values = True
+
+    def table_item(self):
+        """Return the dataset as a dict, with the projectID
+        as the partition key and the datasetID as the sort key.
+        """
+        dataset_dict = self.dict()
+
+        # remove projectID and datasetID from the dict and
+        # use the values for the pk and sk attributes
+        dataset_dict["pk"] = dataset_dict.pop("projectID")
+        dataset_dict["sk"] = dataset_dict.pop("datasetID")
+        return dataset_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the dataset from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item["datasetID"] = table_item.pop("sk")
+        return Dataset.parse_obj(table_item)
 
 
 class ReportScore(Enum):
