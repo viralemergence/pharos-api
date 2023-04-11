@@ -12,12 +12,6 @@ Parameters:
   MetadataTableName:
     Type: String
     Default: metadata
-  DatasetsTableName:
-    Type: String
-    Default: datasets
-  ProjectsTableName:
-    Type: String
-    Default: projects
   LayerName:
     Type: String
     Default: layer
@@ -79,36 +73,6 @@ Resources:
           KeyType: "RANGE" # Sort Key
       BillingMode: "PAY_PER_REQUEST"
       TableName: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-
-  DatasetsTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "datasetID"
-          AttributeType: "S"
-        - AttributeName: "recordID"
-          AttributeType: "S"
-      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-        - AttributeName: "datasetID"
-          KeyType: "HASH" # Partition key
-        - AttributeName: "recordID"
-          KeyType: "RANGE" # Sort Key
-      BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref DatasetsTableName]]
-
-  ProjectsTable:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: "projectID"
-          AttributeType: "S"
-      KeySchema: # DynamoDB does not index data if primary key is not partition+sort hence unable to query
-        - AttributeName: "projectID"
-          KeyType: "HASH" # Partition key
-      BillingMode: "PAY_PER_REQUEST"
-      TableName: !Join ["-", [!Ref AWS::StackName, !Ref ProjectsTableName]]
 
   DatasetsS3:
     Type: AWS::S3::Bucket
