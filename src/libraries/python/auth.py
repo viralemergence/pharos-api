@@ -9,7 +9,6 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 def check_auth(researcherID):
-    # Verify researcher id is in USERS_TABLE - Authentication FAKE
     try:
         users_response = METADATA_TABLE.get_item(
             Key={"pk": researcherID, "sk": "_meta"}
