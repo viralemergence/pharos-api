@@ -8,7 +8,7 @@ from format import format_response
 from register import Dataset, DatasetReleaseStatus
 
 DYNAMODB = boto3.resource("dynamodb")
-DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 class UploadDatasetBody(BaseModel):
@@ -42,7 +42,7 @@ def lambda_handler(event, _):
     validated.dataset.releaseStatus = DatasetReleaseStatus.UNRELEASED
 
     try:
-        DATASETS_TABLE.put_item(Item=validated.dataset.table_item())
+        METADATA_TABLE.put_item(Item=validated.dataset.table_item())
         return format_response(200, "Dataset saved.")
 
     except ClientError as e:
