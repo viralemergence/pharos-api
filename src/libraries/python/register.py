@@ -68,6 +68,56 @@ class User(BaseModel):
         return User.parse_obj(table_item)
 
 
+class Author(BaseModel):
+    researcherID: str
+    role: str
+
+
+class ProjectPublishStatus(str, Enum):
+    """The state the project in the publishing process"""
+
+    UNPUBLISHED = "Unpublished"
+    PUBLISHED = "Published"
+
+
+class Project(BaseModel):
+    """The metadata object which describes a project."""
+
+    projectID: str
+    name: str
+    datasetIDs: list[str]
+    lastUpdated: Optional[str]
+    description: Optional[str]
+    projectType: Optional[str]
+    surveillanceStatus: Optional[str]
+    citation: Optional[str]
+    relatedMaterials: Optional[list[str]]
+    projectPublications: Optional[list[str]]
+    othersCiting: Optional[list[str]]
+    authors: Optional[list[Author]]
+    publishStatus: ProjectPublishStatus
+
+    class Config:
+        extra = Extra.forbid
+        use_enum_values = True
+
+    def table_item(self):
+        """Return the project as a dict, with the projectID
+        as the partition key and the sort key as _meta.
+        """
+        project_dict = self.dict()
+        project_dict["pk"] = project_dict.pop("projectID")
+        project_dict["sk"] = "_meta"
+        return project_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the project from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return Project.parse_obj(table_item)
+
+
 # Fields requried to release a dataset
 REQUIRED_FIELDS = {
     "host_species",
