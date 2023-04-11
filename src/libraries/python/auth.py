@@ -1,19 +1,24 @@
 import os
 import boto3
+from botocore.exceptions import ClientError
+
+from register import User
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ.get("USERS_TABLE_NAME", "mock-table-name"))
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 def check_auth(researcherID):
-    # Verify researcher id is in USERS_TABLE - Authentication FAKE
     try:
-        users_response = USERS_TABLE.get_item(Key={"researcherID": researcherID})
-        # Exit if user is not in the database.
-        if "Item" not in users_response:
-            return False
+        users_response = METADATA_TABLE.get_item(
+            Key={"pk": researcherID, "sk": "_meta"}
+        )
 
-    except Exception:  # pylint: disable=broad-except
+    except ClientError:
         return False
 
-    return True
+    if "Item" not in users_response:
+        return False
+
+    user = User.parse_table_item(users_response["Item"])
+    return user

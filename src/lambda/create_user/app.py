@@ -1,57 +1,44 @@
-import json
 import os
 import uuid
+import json
+
 import boto3
+from botocore.exceptions import ClientError
+from pydantic import ValidationError
+
 from format import format_response
+from register import User
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
-
-
-# class CreateUserData(BaseModel):
-#     """Data model for the create user request"""
-
-#     researcherID: str
-#     organization: str
-#     email: str
-#     name: str
-
-
-# class Event(BaseModel):
-#     """Data model for the event payload"""
-
-#     body: str
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 def lambda_handler(event, _):
     try:
-        post_data = json.loads(event.get("body", "{}"))
+        user_data = json.loads(event.get("body", "{}"))
+        if not "researcherID" in user_data:
+            user_data["researcherID"] = "res" + uuid.uuid4().hex
 
-        # If resercherID is not provided, generate a new one
-        researcherID = post_data.get("researcherID")
-        if not researcherID:
-            researcherID = uuid.uuid4().hex
+        validated = User.parse_obj(user_data)
 
-        # This overwrites the existing record completely
-        # What we actually need here is a merge; so that
-        # an out of date client can't take away project
-        # permissions or roll back other data.
-        users_response = USERS_TABLE.put_item(
-            Item={
-                "researcherID": researcherID,
-                "organization": post_data["organization"],
-                "email": post_data["email"],
-                "name": post_data["name"],
-            }
-        )
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
+    # Need to add handling merging of the user's list of
+    # projects here, because for now an out-of-sync client
+    # could write a project list which is missing projects
+    # created on another client by the same user.
+
+    try:
+        users_response = METADATA_TABLE.put_item(Item=validated.table_item())
         return format_response(
             200,
             {
-                "researcherID": researcherID,
+                "researcherID": validated.researcherID,
                 "table_response": users_response,
             },
         )
 
-    except Exception as e:  # pylint: disable=broad-except
+    except ClientError as e:
         return format_response(500, e)

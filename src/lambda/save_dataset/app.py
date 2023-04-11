@@ -1,13 +1,14 @@
 import os
 
 import boto3
-from pydantic import BaseModel, ValidationError
+from botocore.exceptions import ClientError
+from pydantic import BaseModel, Extra, ValidationError
 from auth import check_auth
 from format import format_response
 from register import Dataset, DatasetReleaseStatus
 
 DYNAMODB = boto3.resource("dynamodb")
-DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
 class UploadDatasetBody(BaseModel):
@@ -16,36 +17,37 @@ class UploadDatasetBody(BaseModel):
     researcherID: str
     dataset: Dataset
 
+    class Config:
+        extra = Extra.forbid
+
 
 def lambda_handler(event, _):
-
     try:
         validated = UploadDatasetBody.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    authorized = check_auth(validated.researcherID)
-    if not authorized:
+    user = check_auth(validated.researcherID)
+
+    # check if the user is valid and has access to the project
+    if (
+        not user
+        or not user.projectIDs
+        or not validated.dataset.projectID in user.projectIDs
+    ):
         return format_response(403, "Not Authorized")
 
+    # Whenever the dataset is saved via this route, it must
+    # be marked as unreleased; the only way to release it is
+    # via the release route, and if the client-side tries to
+    # set "releaseStatus" it should be overridden.
+    validated.dataset.releaseStatus = DatasetReleaseStatus.UNRELEASED
+
     try:
-        # Whenever the dataset is saved via this route, it must
-        # be marked as unreleased; the only way to release it is
-        # via the release route, and if the client-side tries to
-        # set "releaseStatus" it should be overridden.
-        validated.dataset.releaseStatus = DatasetReleaseStatus.UNRELEASED
+        METADATA_TABLE.put_item(Item=validated.dataset.table_item())
+        return format_response(200, "Dataset saved.")
 
-        # store in datasets table as a row with
-        # the "_meta" special-case sort key
-        DATASETS_TABLE.put_item(
-            Item={
-                **validated.dataset.dict(),
-                "recordID": "_meta",
-            }
-        )
-
-        return format_response(200, "Succesful Upload")
-
-    except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, e)
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error saving dataset")

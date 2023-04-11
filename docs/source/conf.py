@@ -14,7 +14,7 @@ print("\n\n\n")
 
 
 os.environ["CORS_ALLOW"] = "http://localhost:8000/"
-os.environ["USERS_TABLE_NAME"] = "users-table-name"
+os.environ["METADATA_TABLE_NAME"] = "metadata-table-name"
 
 
 # Configuration file for the Sphinx documentation builder.

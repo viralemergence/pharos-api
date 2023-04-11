@@ -29,6 +29,95 @@ from pydantic import BaseModel, Extra, Field, validator
 
 from column_alias import get_ui_name
 
+
+class User(BaseModel):
+    """The user class which holds metadata in dynamodb."""
+
+    researcherID: str
+    """Unique identifier, and used as the partition key in dynamodb."""
+
+    organization: str
+    """Org affiliation of the user."""
+
+    email: str
+    """The email address of the user."""
+
+    name: str
+    """The display-name of the user, shown in the UI."""
+
+    projectIDs: Optional[set[str]]
+    """The projectIDs of the projects this user can access and edit."""
+
+    class Config:
+        extra = Extra.forbid
+
+    def table_item(self):
+        """Return the user as a dict, with the researcherID
+        as the partition key and the sort key as _meta.
+        """
+        user_dict = self.dict()
+        user_dict["pk"] = user_dict.pop("researcherID")
+        user_dict["sk"] = "_meta"
+        return user_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the user from a MetadataTable item."""
+        table_item["researcherID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return User.parse_obj(table_item)
+
+
+class Author(BaseModel):
+    researcherID: str
+    role: str
+
+
+class ProjectPublishStatus(str, Enum):
+    """The state the project in the publishing process"""
+
+    UNPUBLISHED = "Unpublished"
+    PUBLISHED = "Published"
+
+
+class Project(BaseModel):
+    """The metadata object which describes a project."""
+
+    projectID: str
+    name: str
+    datasetIDs: list[str]
+    lastUpdated: Optional[str]
+    description: Optional[str]
+    projectType: Optional[str]
+    surveillanceStatus: Optional[str]
+    citation: Optional[str]
+    relatedMaterials: Optional[list[str]]
+    projectPublications: Optional[list[str]]
+    othersCiting: Optional[list[str]]
+    authors: Optional[list[Author]]
+    publishStatus: ProjectPublishStatus
+
+    class Config:
+        extra = Extra.forbid
+        use_enum_values = True
+
+    def table_item(self):
+        """Return the project as a dict, with the projectID
+        as the partition key and the sort key as _meta.
+        """
+        project_dict = self.dict()
+        project_dict["pk"] = project_dict.pop("projectID")
+        project_dict["sk"] = "_meta"
+        return project_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the project from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item.pop("sk")
+        return Project.parse_obj(table_item)
+
+
 # Fields requried to release a dataset
 REQUIRED_FIELDS = {
     "host_species",
@@ -65,8 +154,12 @@ class Dataset(BaseModel):
     metadata about the dataset.
     """
 
+    projectID: str
+    """The projectID of the project to which this dataset
+    belongs; used as the partition key in dynamodb."""
+
     datasetID: str
-    """Unique identifier for the dataset."""
+    """Unique identifier for the dataset; used as the sort key."""
 
     name: str
     """The display-name of the dataset, shown in the UI."""
@@ -87,28 +180,28 @@ class Dataset(BaseModel):
     releaseStatus: Optional[DatasetReleaseStatus]
     """Whether the dataset is unreleased, released, or published."""
 
-    versions: Optional[list[Version]]
-    """versions have been largely removed from the UI, these poperties
-    are deprecated and will be removed in the future"""
-
-    activeVersion: Optional[str]
-    """In the user interface, the activeVersion is now just always the
-    current version, but that might change as we flesh out the publish
-    workflow."""
-
-    highestVersion: Optional[str]
-    """highestVersion is not used; it is largely just replaced by
-    the lastUpdated property now that versions are timestamp-based"""
-
-    recordID: Optional[str]
-    """Left over from dynamoDB register implementation, where
-    the recordID was the sort key and was hardcoded to "_meta"
-    to indicate the record which held the metadata for the dataset.
-    This is not used anymore."""
-
     class Config:
         extra = Extra.forbid
         use_enum_values = True
+
+    def table_item(self):
+        """Return the dataset as a dict, with the projectID
+        as the partition key and the datasetID as the sort key.
+        """
+        dataset_dict = self.dict()
+
+        # remove projectID and datasetID from the dict and
+        # use the values for the pk and sk attributes
+        dataset_dict["pk"] = dataset_dict.pop("projectID")
+        dataset_dict["sk"] = dataset_dict.pop("datasetID")
+        return dataset_dict
+
+    @classmethod
+    def parse_table_item(cls, table_item):
+        """Parse the dataset from a MetadataTable item."""
+        table_item["projectID"] = table_item.pop("pk")
+        table_item["datasetID"] = table_item.pop("sk")
+        return Dataset.parse_obj(table_item)
 
 
 class ReportScore(Enum):

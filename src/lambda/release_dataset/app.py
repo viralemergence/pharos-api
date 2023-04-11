@@ -12,7 +12,7 @@ from format import format_response
 from register import DatasetReleaseStatus, Register
 
 DYNAMODB = boto3.resource("dynamodb")
-DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
@@ -21,8 +21,9 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class ReleaseDatasetBody(BaseModel):
     """Event data payload to release a dataset."""
 
-    datasetID: str
     researcherID: str
+    projectID: str
+    datasetID: str
 
 
 def lambda_handler(event, _):
@@ -32,9 +33,11 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    authorized = check_auth(validated.researcherID)
-    if not authorized:
+    user = check_auth(validated.researcherID)
+    if not user:
         return format_response(403, "Not Authorized")
+    if not user.projectIDs or not validated.projectID in user.projectIDs:
+        return format_response(403, "Researcher is not authorized for this project")
 
     try:
         key_list = S3CLIENT.list_objects_v2(
@@ -56,8 +59,8 @@ def lambda_handler(event, _):
 
         # need to actually set released value in the dataset metadata object in dynamodb
         if release_report.releaseStatus == DatasetReleaseStatus.RELEASED:
-            DATASETS_TABLE.update_item(
-                Key={"datasetID": validated.datasetID, "recordID": "_meta"},
+            METADATA_TABLE.update_item(
+                Key={"pk": validated.projectID, "sk": validated.datasetID},
                 UpdateExpression="set releaseStatus = :r",
                 ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASED.value},
             )
