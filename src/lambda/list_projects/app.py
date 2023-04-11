@@ -37,12 +37,18 @@ def lambda_handler(event, _):
             RequestItems={
                 METADATA_TABLE: {
                     "Keys": [
-                        {"sk": projectID, "pk": "_meta"}
+                        {"pk": projectID, "sk": "_meta"}
                         for projectID in user.projectIDs
                     ]
                 }
             }
         )
+
+        # rename pk to projectID and drop the sk
+        for project in projects["Responses"][METADATA_TABLE]:
+            project["projectID"] = project.pop("pk")
+            project.pop("sk")
+
         return format_response(200, projects["Responses"][METADATA_TABLE])
 
     except ClientError as e:
