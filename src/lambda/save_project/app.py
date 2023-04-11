@@ -2,7 +2,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Extra, ValidationError
 
 from auth import check_auth
 from format import format_response
@@ -18,6 +18,9 @@ class SaveProjectBody(BaseModel):
 
     researcherID: str
     project: Project
+
+    class Config:
+        extra = Extra.forbid
 
 
 def lambda_handler(event, _):
@@ -47,4 +50,4 @@ def lambda_handler(event, _):
         return format_response(200, "Succesful upload")
 
     except ClientError as e:
-        return format_response(403, e)
+        return format_response(500, e)
