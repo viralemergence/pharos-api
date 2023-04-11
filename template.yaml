@@ -21,12 +21,12 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
-  RDSStackName:
-    Type: String
-    Default: data-lab-rds
-  DatabaseName:
-    Type: String
-    Default: pharos
+  # RDSStackName:
+  #   Type: String
+  #   Default: data-lab-rds
+  # DatabaseName:
+  #   Type: String
+  #   Default: pharos
   DataDownloadBucket:
     Type: String
     Default: data-bucket
