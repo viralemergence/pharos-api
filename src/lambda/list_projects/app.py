@@ -1,4 +1,3 @@
-import json
 import os
 import boto3
 from botocore.utils import ClientError
@@ -34,7 +33,10 @@ def lambda_handler(event, _):
         projects = DYNAMODB.batch_get_item(
             RequestItems={
                 METADATA_TABLE: {
-                    "Keys": [{"projectID": projectID} for projectID in user.projectIDs]
+                    "Keys": [
+                        {"sk": projectID, "pk": "_meta"}
+                        for projectID in user.projectIDs
+                    ]
                 }
             }
         )
