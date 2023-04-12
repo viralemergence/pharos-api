@@ -1,38 +1,55 @@
-import json
 import os
 import boto3
+from botocore.utils import ClientError
+from pydantic import BaseModel, Extra, ValidationError
 from auth import check_auth
 from format import format_response
 
 DYNAMODB = boto3.resource("dynamodb")
-USERS_TABLE = DYNAMODB.Table(os.environ["USERS_TABLE_NAME"])
-PROJECTS_TABLE = os.environ["PROJECTS_TABLE_NAME"]
+METADATA_TABLE = os.environ["METADATA_TABLE_NAME"]
+
+
+class ListProjectsBody(BaseModel):
+    """Event data payload to list projects."""
+
+    researcherID: str
+
+    class Config:
+        extra = Extra.forbid
 
 
 def lambda_handler(event, _):
-    post_data = json.loads(event.get("body", "{}"))
+    try:
+        validated = ListProjectsBody.parse_raw(event.get("body", "{}"))
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
-    authorized = check_auth(post_data["researcherID"])
-    if not authorized:
+    user = check_auth(validated.researcherID)
+    if not user:
         return format_response(403, "Not Authorized")
 
+    if not user.projectIDs:
+        return format_response(200, [])
+
     try:
-
-        user = USERS_TABLE.get_item(Key={"researcherID": post_data["researcherID"]})
-        projectids = user["Item"]["projectIDs"]
-
-        if isinstance(projectids, set):
-            projects = DYNAMODB.batch_get_item(
-                RequestItems={
-                    PROJECTS_TABLE: {
-                        "Keys": [{"projectID": projectID} for projectID in projectids]
-                    }
+        projects = DYNAMODB.batch_get_item(
+            RequestItems={
+                METADATA_TABLE: {
+                    "Keys": [
+                        {"pk": projectID, "sk": "_meta"}
+                        for projectID in user.projectIDs
+                    ]
                 }
-            )
+            }
+        )
 
-            return format_response(200, projects["Responses"][PROJECTS_TABLE])
+        # rename pk to projectID and drop the sk
+        for project in projects["Responses"][METADATA_TABLE]:
+            project["projectID"] = project.pop("pk")
+            project.pop("sk")
 
-        return format_response(500, "Project Format Error")
+        return format_response(200, projects["Responses"][METADATA_TABLE])
 
-    except Exception as e:  # pylint: disable=broad-except
-        return format_response(403, e)
+    except ClientError as e:
+        return format_response(500, e)
