@@ -21,12 +21,12 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
-  RDSStackName:
-    Type: String
-    Default: data-lab-rds
-  DatabaseName:
-    Type: String
-    Default: pharos
+  # RDSStackName:
+  #   Type: String
+  #   Default: data-lab-rds
+  # DatabaseName:
+  #   Type: String
+  #   Default: pharos
   DataDownloadBucket:
     Type: String
     Default: data-bucket
@@ -60,6 +60,7 @@ Resources:
   MetadataTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AttributeDefinitions:
         - AttributeName: "pk"
@@ -83,6 +84,14 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            NoncurrentVersionExpiration:
+              NewerNoncurrentVersions: 2
+              NoncurrentDays: 5
 
   DataDownload:
     Type: AWS::S3::Bucket
