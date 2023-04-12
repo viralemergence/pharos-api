@@ -1,7 +1,6 @@
 """Lambda function to save a register to S3"""
 
 import os
-import hashlib
 from typing import Dict
 
 import boto3
