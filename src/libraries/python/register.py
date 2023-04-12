@@ -28,6 +28,11 @@ from enum import Enum
 from pydantic import BaseModel, Extra, Field, validator
 
 from column_alias import get_ui_name
+from value_alias import (
+    DEAD_OR_ALIVE_VALUES_MAP,
+    DETECTION_OUTCOME_VALUES_MAP,
+    ORGANISM_SEX_VALUES_MAP,
+)
 
 
 class User(BaseModel):
@@ -415,6 +420,69 @@ class Record(BaseModel):
             ncbi_id.report = Report(status=ReportScore.FAIL, message=str(e))
 
         return ncbi_id
+
+    @validator("detection_outcome")
+    @validator_skip_fail_warn
+    @validator_skip_empty_string
+    def check_detection_outcome(cls, detection_outcome: DefaultPassDatapoint):
+        """Check that the detection outcome is a valid value."""
+        try:
+            if str(detection_outcome).lower() not in DETECTION_OUTCOME_VALUES_MAP:
+                detection_outcome.report = Report(
+                    status=ReportScore.FAIL,
+                    message=(
+                        "Detection outcome must be an "
+                        "unambiguous value such as 'positive', "
+                        "'negative', or 'inconclusive'."
+                    ),
+                )
+
+        except ValueError as e:
+            detection_outcome.report = Report(status=ReportScore.FAIL, message=str(e))
+
+        return detection_outcome
+
+    @validator("organism_sex")
+    @validator_skip_fail_warn
+    @validator_skip_empty_string
+    def check_organism_sex(cls, organism_sex: DefaultPassDatapoint):
+        """Check if organism sex is a valid value."""
+        try:
+            if str(organism_sex).lower() not in ORGANISM_SEX_VALUES_MAP:
+                organism_sex.report = Report(
+                    status=ReportScore.FAIL,
+                    message=(
+                        "Organism sex must be an "
+                        "unambiguous value such as "
+                        "male, female, or unknown."
+                    ),
+                )
+
+        except ValueError as e:
+            organism_sex.report = Report(status=ReportScore.FAIL, message=str(e))
+
+        return organism_sex
+
+    @validator("dead_or_alive")
+    @validator_skip_fail_warn
+    @validator_skip_empty_string
+    def check_dead_or_alive(cls, dead_or_alive: DefaultPassDatapoint):
+        """Check if dead or alive is a valid value."""
+        try:
+            if str(dead_or_alive).lower() not in DEAD_OR_ALIVE_VALUES_MAP:
+                dead_or_alive.report = Report(
+                    status=ReportScore.FAIL,
+                    message=(
+                        "Dead or alive must be an "
+                        "unambiguous value such as "
+                        "dead, alive, or unknown."
+                    ),
+                )
+
+        except ValueError as e:
+            dead_or_alive.report = Report(status=ReportScore.FAIL, message=str(e))
+
+        return dead_or_alive
 
     @validator("latitude")
     @validator_skip_fail_warn
