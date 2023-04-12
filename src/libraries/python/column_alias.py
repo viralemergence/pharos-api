@@ -4,7 +4,8 @@ in the user interface. Unrecognized names will
 be unchanged.
 """
 
-api_name_to_ui_name_map = {
+
+API_NAME_TO_UI_NAME_MAP = {
     "sample_id": "Sample ID",
     "organism_id": "Organism ID",
     "host_species": "Host species",
@@ -38,8 +39,8 @@ api_name_to_ui_name_map = {
 }
 
 
-def get_ui_name(api_name: str):
+def get_ui_name(api_name: str) -> str:
     """Convert from a snake_case pythonic column name
     to the capitalized, space-separated name to display
     in the user interface."""
-    return api_name_to_ui_name_map.get(api_name, api_name)
+    return API_NAME_TO_UI_NAME_MAP.get(api_name, api_name)
