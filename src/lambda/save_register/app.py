@@ -39,30 +39,17 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     try:
-        # Dump the validated register to JSON, excluding datasetID and researcherID
+        # Dump the validated register to JSON
         register_json = validated.json(
             include={"register_data"}, by_alias=True, exclude_none=True
         )
         # Create a unique key by combining the datasetID and the register hash
         encoded_data = bytes(register_json.encode("utf-8"))
-        md5hash = str(hashlib.md5(encoded_data).hexdigest())
-        key = f"{validated.datasetID}/{md5hash}.json"
+
+        key = f"{validated.datasetID}/data.json"
 
         # Save new register object to S3 bucket
         S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
-
-        # Check the number of files inside the folder
-        dataset_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
-        )
-
-        length = len(dataset_list["Contents"])
-
-        # Delete the oldest element of the list if greater than n_versions
-        if length > int(N_VERSIONS):
-            dataset_list["Contents"].sort(key=lambda item: item["LastModified"])
-            delkey = dataset_list["Contents"][0]["Key"]
-            S3CLIENT.delete_object(Bucket=DATASETS_S3_BUCKET, Key=delkey)
 
         return format_response(200, register_json, preformatted=True)
 

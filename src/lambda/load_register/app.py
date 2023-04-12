@@ -41,27 +41,17 @@ def lambda_handler(event, _):
         return format_response(403, "Researcher does not have access to this project")
 
     try:
-        objects = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
+
+        key = f"{validated.datasetID}/data.json"
+        register_json = (
+            S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
+            .read()
+            .decode("utf-8")
         )
-
-    except ClientError as e:
-        return format_response(403, e)
-
-    if "Contents" in objects and len(objects["Contents"]) == 0:
-        return format_response(200, "No records in register")
-
-    try:
-        objects["Contents"].sort(key=lambda item: item["LastModified"], reverse=True)
-        key = objects["Contents"][0]["Key"]
-
-        register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-        register_json = register_response["Body"].read().decode("UTF-8")
-
         return format_response(200, register_json, preformatted=True)
 
-    except (KeyError, ClientError) as e:
-        return format_response(500, "Register not found")
+    except ClientError as e:
+        return format_response(500, e)
 
 
 ## DynamoDB implmentation

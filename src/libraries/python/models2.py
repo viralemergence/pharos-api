@@ -103,7 +103,7 @@ class PublishedRecord(Base):
     pharos_id: Mapped[str] = mapped_column(primary_key=True)
 
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    organism_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     # latitude: Mapped[float] = mapped_column(CoerceFloat)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
         row = PublishedRecord(
             pharos_id=PHAROS_ID,
-            animal_id="fred",
+            organism_id="fred",
             host_species="bat",
             attributions=[
                 Attribution(version="023", researcher=researcher),
@@ -210,4 +210,4 @@ if __name__ == "__main__":
 
         for row in tests:
             debug(row)
-            debug(row.animal_id)
+            debug(row.organism_id)
