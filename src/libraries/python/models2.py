@@ -92,7 +92,6 @@ class Researcher(Base):
 class PublishedRecord(Base):
     __tablename__ = "published_records"
     __table_args__ = (
-        CheckConstraint("life_stage IN ('adult', 'juvenile', 'neo-natal', 'unknown')"),
         CheckConstraint("organism_sex IN ('female', 'male', 'unknown')"),
         CheckConstraint("dead_or_alive IN ('dead', 'alive', 'unknown')"),
         CheckConstraint(
