@@ -20,7 +20,7 @@ from register import (
     User,
 )
 
-from models2 import Attribution, PublishedRecord, Researcher, Base
+from models2 import Researcher, Base
 
 MOCK_PROJECT_ID = "prjl90OaJvWZR"
 
@@ -150,8 +150,7 @@ def test_researcher():
     with Session(ENGINE) as session:
         researcher = Researcher(
             researcher_id=JANE_ID,
-            first_name="Jane",
-            last_name="Doe",
+            name="Jane Doe",
         )
         session.add(researcher)
         session.commit()
@@ -162,8 +161,7 @@ def test_researcher():
         print(result)
 
         assert result.researcher_id == JANE_ID
-        assert result.first_name == "Jane"
-        assert result.last_name == "Doe"
+        assert result.name == "Jane Doe"
 
 
 def researchers_from_datapoint(datapoint: Datapoint, researchers: set[str]) -> set[str]:

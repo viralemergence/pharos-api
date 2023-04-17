@@ -94,8 +94,7 @@ attribution_table = Table(
 class Researcher(Base):
     __tablename__ = "researchers"
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
-    first_name: Mapped[str]
-    last_name: Mapped[str]
+    name: Mapped[str]
 
     published_records: Mapped[list["PublishedRecord"]] = relationship(
         secondary=attribution_table, back_populates="researchers"
