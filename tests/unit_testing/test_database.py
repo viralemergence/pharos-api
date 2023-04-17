@@ -4,11 +4,11 @@
 # from datetime import date
 # from typing import Union
 # from devtools import debug
-from devtools import debug
 from geoalchemy2 import load_spatialite
 from sqlalchemy import create_engine, select
 from sqlalchemy.event import listen
 from sqlalchemy.orm import Session
+from publish_register import publish_register_to_session
 from register import (
     Dataset,
     Project,
@@ -16,7 +16,7 @@ from register import (
     User,
 )
 
-from models2 import Researcher, Base
+from models2 import PublishedRecord, Researcher, Base
 
 
 JOHN_SMITH = User.parse_table_item(
@@ -179,7 +179,7 @@ def test_researcher():
         assert result.name == "Jane Doe"
 
 
-def test_transform_record():
+def test_publish_record():
     with Session(ENGINE) as session:
         researchers = session.scalars(
             select(Researcher).filter(
@@ -189,107 +189,28 @@ def test_transform_record():
             )
         ).all()
 
-    debug(researchers)
+        publish_register_to_session(
+            session=session,
+            register=MOCK_REGISTER,
+            project_id=MOCK_PROJECT.project_id,
+            dataset_id=MOCK_DATASET.dataset_id,
+            researchers=list(researchers),
+        )
 
+        session.commit()
 
-#     #     john = Researcher(
-#     #         researcher_id=JOHN_ID,
-#     #         first_name="John",
-#     #         last_name="Smith",
-#     #     )
-#     #     session.add(john)
-#     #     session.commit()
+    with Session(ENGINE) as session:
 
-#     with Session(ENGINE) as session:
-#         record = Record.parse_raw(VALID_RECORD)
+        published_record = session.scalars(select(PublishedRecord)).one()
+        assert published_record.pharos_id == (
+            f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
+        )
 
-#         # attribution = Attribution(version="023")
+        assert len(published_record.researchers) == 2
 
-#         # john = session.scalar(
-#         #     select(Researcher).where(Researcher.researcher_id == JOHN_ID)
-#         # )
+        jane = session.scalars(
+            select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
+        ).one()
 
-#         # if john is None:
-#         #     john = Researcher(
-#         #         researcher_id=JOHN_ID,
-#         #         first_name="John",
-#         #         last_name="Smith",
-#         #     )
-
-#         # john.attributions.append(attribution)
-#         record_dict: dict[str, Datapoint] = record.__dict__
-
-#         exclude = {
-#             "collection_day",
-#             "collection_month",
-#             "collection_year",
-#             "latitude",
-#             "longitude",
-#         }
-
-#         prepublish: dict[str, Union[Datapoint, date]] = {}
-#         researchers: set[str] = set()
-#         attributions: list[Attribution] = []
-
-#         for field, datapoint in record_dict.items():
-#             if datapoint is not None:
-#                 researchers = researchers_from_datapoint(datapoint, researchers)
-
-#                 if field not in exclude:
-#                     prepublish[field] = datapoint
-
-#         debug(prepublish)
-#         debug(researchers)
-
-#         if (
-#             not record.collection_day
-#             or not record.collection_month
-#             or not record.collection_year
-#         ):
-#             raise ValueError(
-#                 "Record is missing collection date, should not have passed validator"
-#             )
-
-#         collection_date = date(
-#             int(record.collection_year),
-#             int(record.collection_month),
-#             int(record.collection_day),
-#         )
-
-#         if not record.latitude or not record.longitude:
-#             raise ValueError(
-#                 "Record is missing location, should not have passed validator"
-#             )
-
-#         location = f"POINT({record.latitude},{record.longitude})"
-
-#         published = PublishedRecord(
-#             pharos_id=PHAROS_ID,
-#             attributions=attributions,
-#             collection_date=collection_date,
-#             location=location,
-#             **prepublish,
-#         )
-
-#         session.add(published)
-#         session.commit()
-
-#     with Session(ENGINE) as session:
-#         published = session.scalars(select(PublishedRecord)).one()
-#         debug(published)
-#         debug(published.attributions)
-
-#         # john = session.scalar(
-#         #     select(Researcher).where(Researcher.researcher_id == JOHN_ID)
-#         # )
-
-#         # if john:
-#         #     debug(john)
-#         #     debug(john.attributions)
-
-#         researchers_result = session.scalars(select(Researcher)).all()
-
-#         for researcher in researchers_result:
-#             debug(researcher)
-#             # if researcher.attributions:
-#             #     debug(researcher.attributions)
+        assert len(jane.published_records) == 1
+        assert jane.published_records[0].pharos_id == published_record.pharos_id
