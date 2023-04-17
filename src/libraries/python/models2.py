@@ -98,7 +98,7 @@ class AliasOrganismSex(TypeDecorator):
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return ORGANISM_SEX_VALUES_MAP[value]
+        return ORGANISM_SEX_VALUES_MAP[str(value).lower()]
 
 
 class AliasDetectionOutcome(TypeDecorator):
@@ -109,7 +109,7 @@ class AliasDetectionOutcome(TypeDecorator):
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return DETECTION_OUTCOME_VALUES_MAP[value]
+        return DETECTION_OUTCOME_VALUES_MAP[str(value).lower()]
 
 
 class AliasDeadOrAlive(TypeDecorator):
@@ -120,7 +120,7 @@ class AliasDeadOrAlive(TypeDecorator):
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return DEAD_OR_ALIVE_VALUES_MAP[value]
+        return DEAD_OR_ALIVE_VALUES_MAP[str(value).lower()]
 
 
 # The many-to-many relationship between researchers and published
