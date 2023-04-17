@@ -18,8 +18,8 @@ from register import (
 from models2 import Researcher, Base
 
 
-# mock user item from dynamodb
 JOHN_SMITH = User.parse_table_item(
+    # mock user item from dynamodb
     {
         "pk": "resl90OaJvWZR",
         "sk": "_meta",
@@ -30,8 +30,8 @@ JOHN_SMITH = User.parse_table_item(
     }
 )
 
-# mock user item from dynamodb
 JANE_DOE = User.parse_table_item(
+    # mock user item from dynamodb
     {
         "pk": "resl90l123kxd",
         "sk": "_meta",
@@ -42,8 +42,8 @@ JANE_DOE = User.parse_table_item(
     }
 )
 
-# mock project item from dynamodb
 MOCK_PROJECT = Project.parse_table_item(
+    # mock project item from dynamodb
     {
         "pk": "prjl90OaJvWZR",
         "sk": "_meta",
@@ -71,8 +71,8 @@ MOCK_PROJECT = Project.parse_table_item(
     }
 )
 
-# mock dataset item from dynamodb
 MOCK_DATASET = Dataset.parse_table_item(
+    # mock dataset item from dynamodb
     {
         "pk": "prjl90OaJvWZR",
         "sk": "setxlj1qoFxLC",
@@ -84,8 +84,8 @@ MOCK_DATASET = Dataset.parse_table_item(
     }
 )
 
-# mock register json string from s3
 MOCK_REGISTER = Register.parse_raw(
+    # mock json register string from s3
     """
     {
         "register": {
