@@ -489,14 +489,14 @@ def test_success_release_report():
     register = Register.parse_raw(MINIMAL_RELEASEABLE_REGISTER)
     report = register.get_release_report()
     assert report is not None
-    assert report.releaseStatus is DatasetReleaseStatus.RELEASED
-    assert report.successCount == 8
-    assert report.warningCount == 0
-    assert report.failCount == 0
-    assert report.missingCount == 0
-    assert len(report.warningFields) == 0
-    assert len(report.failFields) == 0
-    assert len(report.missingFields) == 0
+    assert report.release_status is DatasetReleaseStatus.RELEASED
+    assert report.success_count == 8
+    assert report.warning_count == 0
+    assert report.fail_count == 0
+    assert report.missing_count == 0
+    assert len(report.warning_fields) == 0
+    assert len(report.fail_fields) == 0
+    assert len(report.missing_fields) == 0
 
     # A user has deleted "Age" in the interface, so its value is
     # an empty string, so it should be included to keep the history
@@ -566,13 +566,13 @@ def test_fail_release_report():
     register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
     report = register.get_release_report()
     assert report is not None
-    assert report.releaseStatus is DatasetReleaseStatus.UNRELEASED
-    assert report.successCount == 4
-    assert report.failCount == 1
-    assert report.warningCount == 1
-    assert report.missingCount == 2
-    assert report.warningFields["rec12345"][0] == "Random column"
-    assert report.failFields["rec12345"][0] == "Host species NCBI tax ID"
+    assert report.release_status is DatasetReleaseStatus.UNRELEASED
+    assert report.success_count == 4
+    assert report.fail_count == 1
+    assert report.warning_count == 1
+    assert report.missing_count == 2
+    assert report.warning_fields["rec12345"][0] == "Random column"
+    assert report.fail_fields["rec12345"][0] == "Host species NCBI tax ID"
 
     # detection_outcome has a data_value of "" so but it is
     # a required field so it should be in the parsed register
@@ -581,7 +581,7 @@ def test_fail_release_report():
     assert register.register_data["rec12345"].detection_outcome is not None
     assert register.register_data["rec12345"].detection_outcome.report is None
 
-    assert set(report.missingFields["rec12345"]) == {
+    assert set(report.missing_fields["rec12345"]) == {
         "Collection day",
         "Detection outcome",
     }
