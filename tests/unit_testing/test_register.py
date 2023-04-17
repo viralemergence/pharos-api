@@ -157,7 +157,7 @@ REGISTER_WITH_PARTIAL_DATE = """
 """
 
 
-def test_register_with_partial_date():
+def test_partial_date():
     """If a date is missing a day or month or year,
     no reports should be generated
     """
@@ -189,7 +189,7 @@ REGISTER_WITH_DATE = """
 """
 
 
-def test_register_with_date():
+def test_date():
     """If a date is complete, all datapoints in
     the date should get a success report
     """
@@ -235,7 +235,7 @@ REGISTER_WITH_INVALID_DATE = """
 """
 
 
-def test_register_with_invalid_date():
+def test_invalid_date():
     """If a date is invalid, all date datapoints should
     get a fail report with an explanation why.
     """
@@ -272,7 +272,7 @@ REGISTER_WITH_SHORT_YEAR = """
 """
 
 
-def test_register_with_short_year():
+def test_with_short_year():
     """All years must have four digits"""
     record = Record.parse_raw(REGISTER_WITH_SHORT_YEAR)
     assert record.collection_year is not None
@@ -324,7 +324,7 @@ NON_NUMERIC_INVALID_LOCATION = """
 """
 
 
-def test_non_numeric_invalid_location():
+def test_non_numeric_location():
     """This lat/lon pair is invalid because they are not numeric"""
     record = Record.parse_raw(NON_NUMERIC_INVALID_LOCATION)
     assert record.latitude is not None
@@ -485,7 +485,7 @@ MINIMAL_RELEASEABLE_REGISTER = """
 """
 
 
-def test_release_report():
+def test_success_release_report():
     register = Register.parse_raw(MINIMAL_RELEASEABLE_REGISTER)
     report = register.get_release_report()
     assert report is not None
@@ -562,7 +562,7 @@ REGISTER_NOT_READY_TO_RELEASE = """
 """
 
 
-def test_release_report_not_ready():
+def test_fail_release_report():
     register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
     report = register.get_release_report()
     assert report is not None
