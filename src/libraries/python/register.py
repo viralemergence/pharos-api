@@ -73,6 +73,12 @@ class User(BaseModel):
         return User.parse_obj(table_item)
 
 
+class ProjectAuthorRole(str, Enum):
+    """The role of the author in the project."""
+
+    ADMIN = "Admin"
+
+
 class Author(BaseModel):
     researcherID: str
     role: str
