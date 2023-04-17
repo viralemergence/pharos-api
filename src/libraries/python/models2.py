@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Optional
+from geoalchemy2 import WKTElement
 from geoalchemy2.types import Geometry
 from sqlalchemy import (
     BigInteger,
@@ -107,7 +108,7 @@ class PublishedRecord(Base):
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     # latitude: Mapped[float] = mapped_column(CoerceFloat)
     # longitude: Mapped[float] = mapped_column(CoerceFloat)
-    location: Mapped[Geometry] = mapped_column(Geometry("POINT"))
+    location: Mapped[WKTElement] = mapped_column(Geometry("POINT"))
     spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
     # collection_day: Mapped[int] = mapped_column(CoerceInt)
     # collection_month: Mapped[int] = mapped_column(CoerceInt)
