@@ -11,6 +11,7 @@ good-names = [
     # variables we want to match with
     # the frontend (TS) conventions
     "researcherID",
+    "projectID",
     "datasetID",
     "recordID",
     "datapointID",
