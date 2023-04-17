@@ -5,8 +5,10 @@ from geoalchemy2.types import Geometry
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
+    Column,
     ForeignKey,
     Numeric,
+    Table,
     create_engine,
     select,
 )
@@ -79,14 +81,24 @@ class CoerceInt(TypeDecorator):
         return int(value)
 
 
+# The many-to-many relationship between researchers and published
+# records is managed by the sqlalchemy orm using a secondary table.
+attribution_table = Table(
+    "attributions",
+    Base.metadata,
+    Column("pharos_id", ForeignKey("published_records.pharos_id"), primary_key=True),
+    Column("researcher_id", ForeignKey("researchers.researcher_id"), primary_key=True),
+)
+
+
 class Researcher(Base):
     __tablename__ = "researchers"
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
     first_name: Mapped[str]
     last_name: Mapped[str]
 
-    attributions: Mapped[list["Attribution"]] = relationship(
-        back_populates="researcher"
+    published_records: Mapped[list["PublishedRecord"]] = relationship(
+        secondary=attribution_table, back_populates="researchers"
     )
 
 
@@ -135,26 +147,9 @@ class PublishedRecord(Base):
     mass: Mapped[Optional[int]] = mapped_column(CoerceInt)
     length: Mapped[Optional[int]] = mapped_column(CoerceInt)
 
-    attributions: Mapped[list["Attribution"]] = relationship(
-        back_populates="published_record"
+    researchers: Mapped[list["Researcher"]] = relationship(
+        secondary=attribution_table, back_populates="published_records"
     )
-
-
-class Attribution(Base):
-    __tablename__ = "attributions"
-    attribution_id: Mapped[int] = mapped_column(primary_key=True)
-
-    pharos_id: Mapped["PublishedRecord"] = mapped_column(
-        ForeignKey("published_records.pharos_id")
-    )
-    researcher_id: Mapped["Researcher"] = mapped_column(
-        ForeignKey("researchers.researcher_id")
-    )
-
-    published_record: Mapped["PublishedRecord"] = relationship(
-        back_populates="attributions"
-    )
-    researcher: Mapped["Researcher"] = relationship(back_populates="attributions")
 
 
 if __name__ == "__main__":
