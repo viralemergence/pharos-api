@@ -33,8 +33,8 @@ def lambda_handler(event, _):
     # check if the user is valid and has access to the project
     if (
         not user
-        or not user.projectIDs
-        or not validated.dataset.projectID in user.projectIDs
+        or not user.project_ids
+        or not validated.dataset.project_id in user.project_ids
     ):
         return format_response(403, "Not Authorized")
 
