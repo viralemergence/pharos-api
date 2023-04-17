@@ -1,5 +1,4 @@
 from datetime import date
-from devtools import debug
 from geoalchemy2 import WKTElement
 from sqlalchemy.orm import Session
 from models2 import PublishedRecord, Researcher
