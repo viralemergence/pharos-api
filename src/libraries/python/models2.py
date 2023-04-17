@@ -8,14 +8,10 @@ from sqlalchemy import (
     ForeignKey,
     Numeric,
     Table,
-    create_engine,
-    select,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.orm.session import Session
 from sqlalchemy.types import String, TypeDecorator
 
-from devtools import debug
 
 from value_alias import (
     DeadOrAlive,
