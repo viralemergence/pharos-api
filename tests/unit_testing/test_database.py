@@ -9,75 +9,82 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.event import listen
 from sqlalchemy.orm import Session
 from register import (
-    Author,
-    Datapoint,
     Dataset,
-    DatasetReleaseStatus,
     Project,
-    ProjectAuthorRole,
-    ProjectPublishStatus,
     Register,
     User,
 )
 
 from models2 import Researcher, Base
 
-MOCK_PROJECT_ID = "prjl90OaJvWZR"
 
-
-JOHN_SMITH = User(
-    researcherID="resl90OaJvWZR",
-    name="John Smith",
-    email="john.smith@institute.org",
-    organization="Institute of Research",
-    projectIDs={MOCK_PROJECT_ID},
+# mock user item from dynamodb
+JOHN_SMITH = User.parse_table_item(
+    {
+        "pk": "resl90OaJvWZR",
+        "sk": "_meta",
+        "name": "John Smith",
+        "email": "john.smith@institute.org",
+        "organization": "Institute of Research",
+        "projectIDs": {"prjl90OaJvWZR"},
+    }
 )
 
-JANE_DOE = User(
-    researcherID="resl90l123kxd",
-    name="Jane Doe",
-    email="jane.doe@institute.org",
-    organization="Institute of Research",
-    projectIDs={MOCK_PROJECT_ID},
+# mock user item from dynamodb
+JANE_DOE = User.parse_table_item(
+    {
+        "pk": "resl90l123kxd",
+        "sk": "_meta",
+        "name": "Jane Doe",
+        "email": "jane.doe@institute.org",
+        "organization": "Institute of Research",
+        "projectIDs": {"prjl90OaJvWZR"},
+    }
 )
 
-JOHN_AUTHOR = Author(
-    researcherID=JOHN_SMITH.researcherID,
-    role=ProjectAuthorRole.ADMIN,
+# mock project item from dynamodb
+MOCK_PROJECT = Project.parse_table_item(
+    {
+        "pk": "prjl90OaJvWZR",
+        "sk": "_meta",
+        "name": "Mock Project",
+        "description": "Test project description",
+        "authors": [
+            {
+                "researcherID": "resl90OaJvWZR",
+                "role": "Admin",
+            },
+            {
+                "researcherID": "resl90l123kxd",
+                "role": "Admin",
+            },
+        ],
+        "citation": "Test citation",
+        "datasetIDs": ["setxlj1qoFxLC"],
+        "lastUpdated": "2021-01-01",
+        "othersCiting": [""],
+        "projectPublications": [""],
+        "projectType": "",
+        "publishStatus": "Unpublished",
+        "relatedMaterials": [""],
+        "surveillanceStatus": "Ongoing",
+    }
 )
 
-JANE_AUTHOR = Author(
-    researcherID=JANE_DOE.researcherID,
-    role=ProjectAuthorRole.ADMIN,
+# mock dataset item from dynamodb
+MOCK_DATASET = Dataset.parse_table_item(
+    {
+        "pk": "prjl90OaJvWZR",
+        "sk": "setxlj1qoFxLC",
+        "releaseStatus": "Released",
+        "name": "Mock Dataset",
+        "lastUpdated": "2021-01-01",
+        "earliestDate": "2019-01-01",
+        "latestDate": "2020-01-01",
+    }
 )
 
-
-MOCK_PROJECT = Project(
-    projectID=MOCK_PROJECT_ID,
-    name="Mock Project",
-    description="Test project description",
-    authors=[JANE_AUTHOR, JOHN_AUTHOR],
-    citation="Test citation",
-    datasetIDs=["setxlj1qoFxLC"],
-    lastUpdated="2021-01-01",
-    othersCiting=[""],
-    projectPublications=[""],
-    projectType="",
-    publishStatus=ProjectPublishStatus.UNPUBLISHED,
-    relatedMaterials=[""],
-    surveillanceStatus="Ongoing",
-)
-
-MOCK_DATASET = Dataset(
-    datasetID="setxlj1qoFxLC",
-    projectID=MOCK_PROJECT_ID,
-    releaseStatus=DatasetReleaseStatus.RELEASED,
-    name="Mock Dataset",
-    lastUpdated="2021-01-01",
-    earliestDate="2019-01-01",
-    latestDate="2020-01-01",
-)
-
+# mock register json string from s3
 MOCK_REGISTER = Register.parse_raw(
     """
     {
@@ -143,33 +150,32 @@ ENGINE = create_engine("sqlite+pysqlite:///:memory:", echo=True)
 listen(ENGINE, "connect", load_spatialite)
 Base.metadata.create_all(ENGINE)
 
-JANE_ID = "A098SKHLSD234"
-
 
 def test_researcher():
     with Session(ENGINE) as session:
-        researcher = Researcher(
-            researcher_id=JANE_ID,
-            name="Jane Doe",
+        session.add(
+            Researcher(
+                researcher_id=JOHN_SMITH.researcher_id,
+                name=JOHN_SMITH.name,
+            )
         )
-        session.add(researcher)
+        session.add(
+            Researcher(
+                researcher_id=JANE_DOE.researcher_id,
+                name=JANE_DOE.name,
+            )
+        )
         session.commit()
 
     with Session(ENGINE) as session:
-        result = session.scalars(select(Researcher)).one()
+        result = session.scalars(
+            select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
+        ).one()
 
         print(result)
 
-        assert result.researcher_id == JANE_ID
+        assert result.researcher_id == JANE_DOE.researcher_id
         assert result.name == "Jane Doe"
-
-
-def researchers_from_datapoint(datapoint: Datapoint, researchers: set[str]) -> set[str]:
-    if datapoint.previous is not None:
-        researchers = researchers_from_datapoint(datapoint.previous, researchers)
-
-    researchers.add(datapoint.modifiedBy)
-    return researchers
 
 
 # def test_transform_record():
