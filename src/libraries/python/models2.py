@@ -145,16 +145,8 @@ class Researcher(Base):
 
 class PublishedRecord(Base):
     __tablename__ = "published_records"
-    __table_args__ = (
-        CheckConstraint("organism_sex IN ('female', 'male', 'unknown')"),
-        CheckConstraint("dead_or_alive IN ('dead', 'alive', 'unknown')"),
-        CheckConstraint(
-            "detection_outcome IN ('positive', 'negative', 'inconclusive')"
-        ),
-    )
 
     pharos_id: Mapped[str] = mapped_column(primary_key=True)
-
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     organism_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
