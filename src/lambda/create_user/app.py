@@ -35,7 +35,7 @@ def lambda_handler(event, _):
         return format_response(
             200,
             {
-                "researcherID": validated.researcherID,
+                "researcherID": validated.researcher_id,
                 "table_response": users_response,
             },
         )
