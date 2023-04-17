@@ -8,10 +8,10 @@ DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 
-def check_auth(researcherID):
+def check_auth(researcher_id):
     try:
         users_response = METADATA_TABLE.get_item(
-            Key={"pk": researcherID, "sk": "_meta"}
+            Key={"pk": researcher_id, "sk": "_meta"}
         )
 
     except ClientError:

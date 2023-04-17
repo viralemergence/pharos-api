@@ -2,7 +2,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError
 from auth import check_auth
 from format import format_response
 from register import Dataset, DatasetReleaseStatus
@@ -14,7 +14,7 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 class UploadDatasetBody(BaseModel):
     """Event data payload to upload a dataset."""
 
-    researcherID: str
+    researcher_id: str = Field(..., alias="researcherID")
     dataset: Dataset
 
     class Config:
@@ -28,7 +28,7 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcherID)
+    user = check_auth(validated.researcher_id)
 
     # check if the user is valid and has access to the project
     if (

@@ -14,10 +14,10 @@ def publish_register_to_session(
 ):
     """Publish a register to the database session"""
 
-    for recordID, record in register.register_data.items():
+    for record_id, record in register.register_data.items():
 
         published_record = PublishedRecord(
-            pharos_id=project_id + "-" + dataset_id + "-" + recordID,
+            pharos_id=project_id + "-" + dataset_id + "-" + record_id,
         )
 
         # Add all simple fields where one datapoint maps to

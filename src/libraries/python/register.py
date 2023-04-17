@@ -609,14 +609,16 @@ class Record(BaseModel):
 
 
 class ReleaseReport(BaseModel):
-    releaseStatus: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
-    successCount: int = 0
-    warningCount: int = 0
-    failCount: int = 0
-    missingCount: int = 0
-    warningFields: dict[str, list] = {}
-    failFields: dict[str, list] = {}
-    missingFields: dict[str, list] = {}
+    release_status: DatasetReleaseStatus = Field(
+        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
+    )
+    success_count: int = Field(default=0, alias="successCount")
+    warning_count: int = Field(default=0, alias="warningCount")
+    fail_count: int = Field(default=0, alias="failCount")
+    missing_count: int = Field(default=0, alias="missingCount")
+    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
+    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
+    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
 
 
 class Register(BaseModel):
@@ -636,7 +638,7 @@ class Register(BaseModel):
         """
         report = ReleaseReport()
 
-        for recordID, record in self.register_data.items():
+        for record_id, record in self.register_data.items():
             for field in REQUIRED_FIELDS:
                 if (
                     record.__dict__[field] is None
@@ -644,10 +646,10 @@ class Register(BaseModel):
                     ## was edited and then "cleared" in the UI
                     or record.__dict__[field].data_value == ""
                 ):
-                    report.missingCount += 1
-                    if recordID not in report.missingFields:
-                        report.missingFields[recordID] = []
-                    report.missingFields[recordID].append(get_ui_name(field))
+                    report.missing_count += 1
+                    if record_id not in report.missing_fields:
+                        report.missing_fields[record_id] = []
+                    report.missing_fields[record_id].append(get_ui_name(field))
 
             for field, datapoint in record:
                 if (
@@ -673,27 +675,27 @@ class Register(BaseModel):
                     continue
 
                 if datapoint.report.status == ReportScore.SUCCESS:
-                    report.successCount += 1
+                    report.success_count += 1
                     continue
 
                 if datapoint.report.status == ReportScore.WARNING:
-                    report.warningCount += 1
-                    if recordID not in report.warningFields:
-                        report.warningFields[recordID] = []
-                    report.warningFields[recordID].append(get_ui_name(field))
+                    report.warning_count += 1
+                    if record_id not in report.warning_fields:
+                        report.warning_fields[record_id] = []
+                    report.warning_fields[record_id].append(get_ui_name(field))
                     continue
 
                 if datapoint.report.status == ReportScore.FAIL:
-                    report.failCount += 1
-                    if recordID not in report.failFields:
-                        report.failFields[recordID] = []
-                    report.failFields[recordID].append(get_ui_name(field))
+                    report.fail_count += 1
+                    if record_id not in report.fail_fields:
+                        report.fail_fields[record_id] = []
+                    report.fail_fields[record_id].append(get_ui_name(field))
 
         if (
-            report.missingCount == 0
-            and report.failCount == 0
-            and report.warningCount == 0
+            report.missing_count == 0
+            and report.fail_count == 0
+            and report.warning_count == 0
         ):
-            report.releaseStatus = DatasetReleaseStatus.RELEASED
+            report.release_status = DatasetReleaseStatus.RELEASED
 
         return report

@@ -10,4 +10,4 @@ def lambda_handler(event, _):
     if not user:
         return format_response(401, {"message": "Unauthorized"})
 
-    return format_response(200, user.json(), preformatted=True)
+    return format_response(200, user.json(by_alias=True), preformatted=True)

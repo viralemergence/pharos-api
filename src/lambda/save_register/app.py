@@ -19,8 +19,8 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class SaveRegisterData(BaseModel):
     """Data model for the save register request"""
 
-    researcherID: str
-    datasetID: str
+    researcher_id: str = Field(..., alias="researcherID")
+    dataset_id: str = Field(..., alias="datasetID")
     register_data: Dict[str, Record] = Field(..., alias="register")
 
 
@@ -33,7 +33,7 @@ def lambda_handler(event, _):
         return {"statusCode": 400, "body": e.json()}
 
     # Placeholder check user authorization
-    authorized = check_auth(validated.researcherID)
+    authorized = check_auth(validated.researcher_id)
     if not authorized:
         return format_response(403, "Not Authorized")
 
@@ -45,7 +45,7 @@ def lambda_handler(event, _):
         # Create a unique key by combining the datasetID and the register hash
         encoded_data = bytes(register_json.encode("utf-8"))
 
-        key = f"{validated.datasetID}/data.json"
+        key = f"{validated.dataset_id}/data.json"
 
         # Save new register object to S3 bucket
         S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
