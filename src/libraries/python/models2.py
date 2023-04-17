@@ -18,6 +18,15 @@ from sqlalchemy.types import String, TypeDecorator
 
 from devtools import debug
 
+from value_alias import (
+    DeadOrAlive,
+    DetectionOutcome,
+    OrganismSex,
+    DEAD_OR_ALIVE_VALUES_MAP,
+    DETECTION_OUTCOME_VALUES_MAP,
+    ORGANISM_SEX_VALUES_MAP,
+)
+
 
 def todict(obj):
     """Return the object's dict excluding private attributes,
@@ -81,6 +90,39 @@ class CoerceInt(TypeDecorator):
         return int(value)
 
 
+class AliasOrganismSex(TypeDecorator):
+    """Convert allowed organism_sex datapoint to standardized database value"""
+
+    impl = String
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return ORGANISM_SEX_VALUES_MAP[value]
+
+
+class AliasDetectionOutcome(TypeDecorator):
+    """Convert allowed detection_outcome datapoint to standardized database value"""
+
+    impl = String
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return DETECTION_OUTCOME_VALUES_MAP[value]
+
+
+class AliasDeadOrAlive(TypeDecorator):
+    """Convert allowed dead_or_alive datapoint to standardized database value"""
+
+    impl = String
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return DEAD_OR_ALIVE_VALUES_MAP[value]
+
+
 # The many-to-many relationship between researchers and published
 # records is managed by the sqlalchemy orm using a secondary table.
 attribution_table = Table(
@@ -126,15 +168,15 @@ class PublishedRecord(Base):
     primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_target_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    detection_outcome: Mapped[str] = mapped_column(CoerceStr)
+    detection_outcome: Mapped[DetectionOutcome] = mapped_column(AliasDetectionOutcome)
     detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
     pathogen: Mapped[str] = mapped_column(CoerceStr)
     pathogen_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     genbank_accession: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_comments: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    organism_sex: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    dead_or_alive: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    organism_sex: Mapped[Optional[OrganismSex]] = mapped_column(AliasOrganismSex)
+    dead_or_alive: Mapped[Optional[DeadOrAlive]] = mapped_column(AliasDeadOrAlive)
     health_notes: Mapped[Optional[str]] = mapped_column(CoerceStr)
     life_stage: Mapped[Optional[str]] = mapped_column(CoerceStr)
     age: Mapped[Optional[float]] = mapped_column(CoerceFloat)
