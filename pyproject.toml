@@ -8,22 +8,6 @@ good-names = [
     "i",
     "e",
     "logger",
-    # variables we want to match with
-    # the frontend (TS) conventions
-    "researcherID",
-    "projectID",
-    "datasetID",
-    "recordID",
-    "datapointID",
-    "releaseStatus",
-    # the release report ts names
-    "successCount",
-    "warningCount",
-    "failCount",
-    "missingCount",
-    "warningFields",
-    "failFields",
-    "missingFields",
 ]
 
 [tool.pylint.MAIN]
