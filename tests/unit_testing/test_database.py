@@ -4,6 +4,7 @@
 # from datetime import date
 # from typing import Union
 # from devtools import debug
+from devtools import debug
 from geoalchemy2 import load_spatialite
 from sqlalchemy import create_engine, select
 from sqlalchemy.event import listen
@@ -178,8 +179,19 @@ def test_researcher():
         assert result.name == "Jane Doe"
 
 
-# def test_transform_record():
-#     # with Session(ENGINE) as session:
+def test_transform_record():
+    with Session(ENGINE) as session:
+        researchers = session.scalars(
+            select(Researcher).filter(
+                Researcher.researcher_id.in_(
+                    [JOHN_SMITH.researcher_id, JANE_DOE.researcher_id]
+                )
+            )
+        ).all()
+
+    debug(researchers)
+
+
 #     #     john = Researcher(
 #     #         researcher_id=JOHN_ID,
 #     #         first_name="John",
