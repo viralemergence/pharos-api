@@ -41,11 +41,11 @@ def test_valid_record():
     """Testing a basic, valid record"""
     record = Record.parse_raw(VALID_RECORD)
     assert record.host_species is not None
-    assert record.host_species.dataValue == "Vulpes vulpes"
+    assert record.host_species.data_value == "Vulpes vulpes"
     assert record.host_species.report is not None
     assert record.host_species.report.status == ReportScore.SUCCESS
     assert record.host_species.previous is not None
-    assert record.host_species.previous.dataValue == "Previous Data Value"
+    assert record.host_species.previous.data_value == "Previous Data Value"
     assert record.host_species.version == 2
     assert record.host_species.previous.version == 1
 
@@ -54,7 +54,7 @@ def test_valid_coersion():
     """Testing coersions of data points which are expected to be successful"""
     record = Record.parse_raw(VALID_RECORD)
     assert record.age is not None
-    assert record.age.dataValue == "10"
+    assert record.age.data_value == "10"
     assert float(record.age) == 10.0
     assert str(record.age) == "10"
     assert int(record.age) == 10
@@ -574,7 +574,7 @@ def test_fail_release_report():
     assert report.warningFields["rec12345"][0] == "Random column"
     assert report.failFields["rec12345"][0] == "Host species NCBI tax ID"
 
-    # detection_outcome has a dataValue of "" so but it is
+    # detection_outcome has a data_value of "" so but it is
     # a required field so it should be in the parsed register
     # but it should not have a report and should show up as a
     # missing field in the release report.
