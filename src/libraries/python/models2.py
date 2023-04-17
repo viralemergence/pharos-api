@@ -117,13 +117,8 @@ class PublishedRecord(Base):
     organism_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    # latitude: Mapped[float] = mapped_column(CoerceFloat)
-    # longitude: Mapped[float] = mapped_column(CoerceFloat)
     location: Mapped[WKTElement] = mapped_column(Geometry("POINT"))
     spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    # collection_day: Mapped[int] = mapped_column(CoerceInt)
-    # collection_month: Mapped[int] = mapped_column(CoerceInt)
-    # collection_year: Mapped[int] = mapped_column(CoerceInt)
     collection_date: Mapped[date]
     collection_method_or_tissue: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_method: Mapped[Optional[str]] = mapped_column(CoerceStr)
@@ -142,9 +137,9 @@ class PublishedRecord(Base):
     dead_or_alive: Mapped[Optional[str]] = mapped_column(CoerceStr)
     health_notes: Mapped[Optional[str]] = mapped_column(CoerceStr)
     life_stage: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    age: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    mass: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    length: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    age: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    mass: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    length: Mapped[Optional[float]] = mapped_column(CoerceFloat)
 
     researchers: Mapped[list["Researcher"]] = relationship(
         secondary=attribution_table, back_populates="published_records"
