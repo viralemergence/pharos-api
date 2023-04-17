@@ -155,8 +155,6 @@ class Attribution(Base):
     )
     researcher: Mapped["Researcher"] = relationship(back_populates="attributions")
 
-    version: Mapped[int] = mapped_column(CoerceInt)
-
 
 if __name__ == "__main__":
     engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
