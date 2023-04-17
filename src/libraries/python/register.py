@@ -196,8 +196,9 @@ class Dataset(BaseModel):
         use_enum_values = True
 
     def table_item(self):
-        """Return the dataset as a dict, with the projectID
-        as the partition key and the datasetID as the sort key.
+        """Return the dataset as a dict structured as a
+        metadata table item, with the projectID as the
+        partition key and the datasetID as the sort key.
         """
         dataset_dict = self.dict(by_alias=True)
 
