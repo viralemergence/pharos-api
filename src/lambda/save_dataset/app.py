@@ -42,7 +42,7 @@ def lambda_handler(event, _):
     # be marked as unreleased; the only way to release it is
     # via the release route, and if the client-side tries to
     # set "releaseStatus" it should be overridden.
-    validated.dataset.releaseStatus = DatasetReleaseStatus.UNRELEASED
+    validated.dataset.release_status = DatasetReleaseStatus.UNRELEASED
 
     try:
         METADATA_TABLE.put_item(Item=validated.dataset.table_item())
