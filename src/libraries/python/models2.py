@@ -4,7 +4,6 @@ from geoalchemy2 import WKTElement
 from geoalchemy2.types import Geometry
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     Column,
     ForeignKey,
     Numeric,
