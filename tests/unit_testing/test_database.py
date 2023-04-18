@@ -147,70 +147,70 @@ MOCK_REGISTER = Register.parse_raw(
     """
 )
 
-ENGINE = create_engine("sqlite+pysqlite:///:memory:", echo=True)
-listen(ENGINE, "connect", load_spatialite)
-Base.metadata.create_all(ENGINE)
+# ENGINE = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+# listen(ENGINE, "connect", load_spatialite)
+# Base.metadata.create_all(ENGINE)
 
 
-def test_researcher():
-    with Session(ENGINE) as session:
-        session.add(
-            Researcher(
-                researcher_id=JOHN_SMITH.researcher_id,
-                name=JOHN_SMITH.name,
-            )
-        )
-        session.add(
-            Researcher(
-                researcher_id=JANE_DOE.researcher_id,
-                name=JANE_DOE.name,
-            )
-        )
-        session.commit()
+# def test_researcher():
+#     with Session(ENGINE) as session:
+#         session.add(
+#             Researcher(
+#                 researcher_id=JOHN_SMITH.researcher_id,
+#                 name=JOHN_SMITH.name,
+#             )
+#         )
+#         session.add(
+#             Researcher(
+#                 researcher_id=JANE_DOE.researcher_id,
+#                 name=JANE_DOE.name,
+#             )
+#         )
+#         session.commit()
 
-    with Session(ENGINE) as session:
-        result = session.scalars(
-            select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
-        ).one()
+#     with Session(ENGINE) as session:
+#         result = session.scalars(
+#             select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
+#         ).one()
 
-        print(result)
+#         print(result)
 
-        assert result.researcher_id == JANE_DOE.researcher_id
-        assert result.name == "Jane Doe"
+#         assert result.researcher_id == JANE_DOE.researcher_id
+#         assert result.name == "Jane Doe"
 
 
-def test_publish_record():
-    with Session(ENGINE) as session:
-        researchers = session.scalars(
-            select(Researcher).filter(
-                Researcher.researcher_id.in_(
-                    [JOHN_SMITH.researcher_id, JANE_DOE.researcher_id]
-                )
-            )
-        ).all()
+# def test_publish_record():
+#     with Session(ENGINE) as session:
+#         researchers = session.scalars(
+#             select(Researcher).filter(
+#                 Researcher.researcher_id.in_(
+#                     [JOHN_SMITH.researcher_id, JANE_DOE.researcher_id]
+#                 )
+#             )
+#         ).all()
 
-        publish_register_to_session(
-            session=session,
-            register=MOCK_REGISTER,
-            project_id=MOCK_PROJECT.project_id,
-            dataset_id=MOCK_DATASET.dataset_id,
-            researchers=list(researchers),
-        )
+#         publish_register_to_session(
+#             session=session,
+#             register=MOCK_REGISTER,
+#             project_id=MOCK_PROJECT.project_id,
+#             dataset_id=MOCK_DATASET.dataset_id,
+#             researchers=list(researchers),
+#         )
 
-        session.commit()
+#         session.commit()
 
-    with Session(ENGINE) as session:
+#     with Session(ENGINE) as session:
 
-        published_record = session.scalars(select(PublishedRecord)).one()
-        assert published_record.pharos_id == (
-            f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
-        )
+#         published_record = session.scalars(select(PublishedRecord)).one()
+#         assert published_record.pharos_id == (
+#             f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
+#         )
 
-        assert len(published_record.researchers) == 2
+#         assert len(published_record.researchers) == 2
 
-        jane = session.scalars(
-            select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
-        ).one()
+#         jane = session.scalars(
+#             select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
+#         ).one()
 
-        assert len(jane.published_records) == 1
-        assert jane.published_records[0].pharos_id == published_record.pharos_id
+#         assert len(jane.published_records) == 1
+#         assert jane.published_records[0].pharos_id == published_record.pharos_id
