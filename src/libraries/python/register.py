@@ -138,7 +138,6 @@ REQUIRED_FIELDS = {
     "collection_month",
     "collection_year",
     "detection_outcome",
-    "pathogen",
 }
 
 
