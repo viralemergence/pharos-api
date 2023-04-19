@@ -180,7 +180,7 @@ class PublishedRecord(Base):
     detection_outcome: Mapped[DetectionOutcome] = mapped_column(AliasDetectionOutcome)
     detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    pathogen: Mapped[str] = mapped_column(CoerceStr)
+    pathogen: Mapped[Optional[str]] = mapped_column(CoerceStr)
     pathogen_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     genbank_accession: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_comments: Mapped[Optional[str]] = mapped_column(CoerceStr)
