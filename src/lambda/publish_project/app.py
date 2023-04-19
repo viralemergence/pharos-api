@@ -1,125 +1,152 @@
-# pylint: skip-file
-# import os
-# import json
-# import boto3
-# import sqlalchemy
-# from sqlalchemy.engine import URL
-# from sqlalchemy.orm import sessionmaker
+import os
+from typing import Union
 
-# # from auth import check_auth
-# from format import format_response
-# from models import Tests, ResearchersTests
-# from create_record import create_records, verify_record
+import boto3
+from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
+from pydantic import BaseModel, Extra, Field, ValidationError
+from sqlalchemy.orm import Session
 
-# SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
+from auth import check_auth
+from engine import get_engine
+from format import format_response
+from models2 import Researcher
+from publish_register import publish_register_to_session
+from register import Dataset, DatasetReleaseStatus, Project, Register, User
 
-# DYNAMODB = boto3.resource("dynamodb")
-# PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
-# DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
-# S3CLIENT = boto3.client("s3")
-# DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+DYNAMODB = boto3.resource("dynamodb")
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
-# RDS = boto3.client("rds")
-# DATABASE = os.environ["DATABASE"]
-
-# response = SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
-# CREDENTIALS = json.loads(response["SecretString"])
+S3CLIENT = boto3.client("s3")
+DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
-# def lambda_handler(event, _):
+class PublishProjectData(BaseModel):
+    """Event data payload to publish a project."""
 
-#     post_data = json.loads(event.get("body", "{}"))
+    project_id: str = Field(..., alias="projectID")
+    researcher_id: str = Field(..., alias="researcherID")
 
-#     # Retrieve datasets from project table
-#     print("Retrieve datasets from project table")
-#     try:
+    class Config:
+        extra = Extra.forbid
 
-#         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
-#         datasets_ids = project["Item"]["datasetIDs"]
 
-#     except Exception as e:
-#         return format_response(403, e)
+def lambda_handler(event, _):
 
-#     # Retrieve meta from datasets and filter released
-#     print("Retrieve meta from datasets and filter released")
-#     try:
-#         for dataset_id in datasets_ids:
-#             dataset_meta = DATASETS_TABLE.get_item(
-#                 Key={"datasetID": dataset_id, "recordID": "_meta"}
-#             )
-#             if dataset_meta["Item"]["releaseStatus"] != "Released":
-#                 datasets_ids.remove(dataset_id)
+    try:
+        validated = PublishProjectData.parse_raw(event.get("body", "{}"))
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
-#     except Exception as e:
-#         return format_response(403, e)
+    user = check_auth(validated.researcher_id)
+    if not user or not user.project_ids or not validated.project_id in user.project_ids:
+        return format_response(403, "Not Authorized")
 
-#     try:
+    try:
+        # Retrieve project metadata and datasets
+        metadata_response = METADATA_TABLE.query(
+            KeyConditionExpression=Key("pk").eq(validated.project_id)
+        )
 
-#         print("Connect to database")
-#         database_url = URL.create(
-#             drivername="postgresql+psycopg2",
-#             host=CREDENTIALS["host"],
-#             database=DATABASE,
-#             username=CREDENTIALS["username"],
-#             port=CREDENTIALS["port"],
-#             password=CREDENTIALS["password"],
-#             query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
-#         )
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error retrieving project metadata")
 
-#         engine = sqlalchemy.create_engine(database_url)
+    if not metadata_response["Items"]:
+        return format_response(403, "Metadata not found")
 
-#         Session = sessionmaker(bind=engine)
+    project: Union[Project, None] = None
+    released_datasets: list[Dataset] = []
+    for item in metadata_response["Items"]:
+        if item["sk"] == "_meta":
+            project = Project.parse_table_item(item)
+            continue
 
-#         Tests.__table__.create(engine, checkfirst=True)
-#         ResearchersTests.__table__.create(engine, checkfirst=True)
+        dataset = Dataset.parse_table_item(item)
+        if dataset.release_status == DatasetReleaseStatus.RELEASED:
+            released_datasets.append(dataset)
 
-#         with Session() as session:
+    if not project:
+        return format_response(403, "Project not found")
 
-#             print("Session established")
-#             records = []
+    if len(released_datasets) == 0:
+        return format_response(403, "No released datasets found")
 
-#             for dataset_id in datasets_ids:
-#                 print(f"Ingesting dataset: {dataset_id}")
-#                 # Retrieve last version of the register
-#                 key_list = S3CLIENT.list_objects_v2(
-#                     Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset_id}/"
-#                 )["Contents"]
+    if not project.authors:
+        return format_response(403, "No authors found")
 
-#                 key_list.sort(key=lambda item: item["LastModified"], reverse=True)
-#                 key = key_list[0]["Key"]
+    try:
+        # Retrieve project authors
+        users_metadata = DYNAMODB.batch_get_item(
+            RequestItems={
+                METADATA_TABLE.name: {
+                    "Keys": [
+                        {"pk": author.researcher_id, "sk": "_meta"}
+                        for author in project.authors
+                    ]
+                }
+            }
+        )
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error retrieving researchers")
 
-#                 register_response = S3CLIENT.get_object(
-#                     Bucket=DATASETS_S3_BUCKET, Key=key
-#                 )
-#                 register = register_response["Body"].read().decode("UTF-8")
+    project_users: list[User] = [
+        User.parse_table_item(item)
+        for item in users_metadata["Responses"][METADATA_TABLE.name]
+    ]
 
-#                 register = json.loads(register)
+    if len(project_users) == 0:
+        return format_response(403, "No authors found")
 
-#                 # Create records
-#                 for record_id, record in register.items():
+    engine = get_engine()
 
-#                     is_valid_record = verify_record(record)
+    with Session(engine) as session:
+        researcher_ids = [user.researcher_id for user in project_users]
 
-#                     if not is_valid_record:
-#                         return format_response(400, "Invalid record found.")
+        # Get existing researchers
+        existing_researchers = (
+            session.query(Researcher)
+            .filter(Researcher.researcher_id.in_(researcher_ids))
+            .all()
+        )
 
-#                     test_record, researcher_test_record = create_records(
-#                         post_data["projectID"],
-#                         dataset_id,
-#                         record_id,
-#                         post_data["researcherID"],
-#                         record,
-#                     )
+        existing_researcher_ids = [r.researcher_id for r in existing_researchers]
 
-#                     records.extend([test_record, researcher_test_record])
+        new_researchers: list[Researcher] = []
 
-#             # Upload records
-#             print("Commit records to db")
-#             session.add_all(records)
-#             session.commit()
+        # Add new researchers
+        for user in project_users:
+            if user.researcher_id in existing_researcher_ids:
+                continue
 
-#         return format_response(200, "Works")
+            new_researchers.append(
+                Researcher(researcher_id=user.researcher_id, name=user.name)
+            )
 
-#     except Exception as e:
-#         return format_response(403, e)
+        session.add_all(new_researchers)
+
+        for dataset in released_datasets:
+            key = f"{dataset.dataset_id}/data.json"
+            register_json = (
+                S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
+                .read()
+                .decode("utf-8")
+            )
+
+            register = Register.parse_raw(register_json)
+
+            publish_register_to_session(
+                session=session,
+                register=register,
+                project_id=project.project_id,
+                dataset_id=dataset.dataset_id,
+                researchers=existing_researchers + new_researchers,
+            )
+
+        session.commit()
+
+    return format_response(200, "Success")
