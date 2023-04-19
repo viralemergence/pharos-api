@@ -53,36 +53,45 @@ class Base(DeclarativeBase):
 
 
 class CoerceFloat(TypeDecorator):
-    """Convert a given value to float"""
+    """Convert a given value to float, or return None"""
 
     impl = Numeric
 
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return float(value)
+        try:
+            return float(value)
+        except ValueError:
+            return None
 
 
 class CoerceStr(TypeDecorator):
-    """Convert a given value to string"""
+    """Convert a given value to string, or return None"""
 
     impl = String
 
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return str(value)
+        try:
+            return str(value)
+        except ValueError:
+            return None
 
 
 class CoerceInt(TypeDecorator):
-    """Convert a given value to integer"""
+    """Convert a given value to integer, or return None"""
 
     impl = BigInteger
 
     def process_bind_param(self, value, _):
         if value is None:
             return None
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            return None
 
 
 class AliasOrganismSex(TypeDecorator):
