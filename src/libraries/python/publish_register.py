@@ -18,6 +18,9 @@ def publish_register_to_session(
 
         published_record = PublishedRecord(
             pharos_id=project_id + "-" + dataset_id + "-" + record_id,
+            project_id=project_id,
+            dataset_id=dataset_id,
+            record_id=record_id,
         )
 
         # Add all simple fields where one datapoint maps to
@@ -59,7 +62,7 @@ def publish_register_to_session(
             )
 
         published_record.location = WKTElement(
-            f"POINT({record.latitude},{record.longitude})"
+            f"POINT({record.longitude} {record.latitude})"
         )
 
         published_record.researchers.extend(researchers)
