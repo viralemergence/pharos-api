@@ -123,8 +123,16 @@ class AliasDeadOrAlive(TypeDecorator):
 attribution_table = Table(
     "attributions",
     Base.metadata,
-    Column("pharos_id", ForeignKey("published_records.pharos_id"), primary_key=True),
-    Column("researcher_id", ForeignKey("researchers.researcher_id"), primary_key=True),
+    Column(
+        "pharos_id",
+        ForeignKey("published_records.pharos_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "researcher_id",
+        ForeignKey("researchers.researcher_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -134,7 +142,9 @@ class Researcher(Base):
     name: Mapped[str]
 
     published_records: Mapped[list["PublishedRecord"]] = relationship(
-        secondary=attribution_table, back_populates="researchers"
+        secondary=attribution_table,
+        back_populates="researchers",
+        passive_deletes=True,
     )
 
 
@@ -142,6 +152,9 @@ class PublishedRecord(Base):
     __tablename__ = "published_records"
 
     pharos_id: Mapped[str] = mapped_column(primary_key=True)
+    dataset_id: Mapped[str]
+    project_id: Mapped[str]
+    record_id: Mapped[str]
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     organism_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
@@ -171,5 +184,7 @@ class PublishedRecord(Base):
     length: Mapped[Optional[float]] = mapped_column(CoerceFloat)
 
     researchers: Mapped[list["Researcher"]] = relationship(
-        secondary=attribution_table, back_populates="published_records"
+        secondary=attribution_table,
+        back_populates="published_records",
+        cascade="all, delete",
     )
