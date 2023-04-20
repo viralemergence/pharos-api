@@ -84,7 +84,17 @@ def lambda_handler(event, context):
     try:
         print("Check if secret exists")
         SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
-        # if secret exists, short-circuit setup
+
+        # if the secret exists, then the database has already been created
+        # but we should still make sure the tables are created and correct
+        # in the future this is where migrations should be applied.
+
+        engine = sqlalchemy.create_engine(master_url)
+        connection = engine.connect()
+        print("Create Tables")
+
+        Base.metadata.create_all(engine)
+
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
 
@@ -154,6 +164,7 @@ def lambda_handler(event, context):
                 },
             )
 
+            print("Create tables")
             Base.metadata.create_all(engine)
 
             connection.close()
