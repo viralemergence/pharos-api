@@ -375,7 +375,7 @@ class Record(BaseModel):
     """
 
     sample_id: Optional[DefaultPassDatapoint] = None
-    organism_id: Optional[DefaultPassDatapoint] = None
+    animal_id: Optional[DefaultPassDatapoint] = None
     host_species: Optional[DefaultPassDatapoint] = None
     host_species_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
     latitude: Optional[DefaultPassDatapoint] = None

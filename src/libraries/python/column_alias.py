@@ -7,7 +7,7 @@ be unchanged.
 
 API_NAME_TO_UI_NAME_MAP = {
     "sample_id": "Sample ID",
-    "organism_id": "Organism ID",
+    "animal_id": "Organism ID",
     "host_species": "Host species",
     "host_species_ncbi_tax_id": "Host species NCBI tax ID",
     "latitude": "Latitude",

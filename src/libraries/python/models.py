@@ -165,7 +165,7 @@ class PublishedRecord(Base):
     project_id: Mapped[str]
     record_id: Mapped[str]
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    organism_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     location: Mapped[WKTElement] = mapped_column(Geometry("POINT"))
