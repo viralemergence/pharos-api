@@ -1,7 +1,7 @@
 from datetime import date
 from geoalchemy2 import WKTElement
 from sqlalchemy.orm import Session
-from models2 import PublishedRecord, Researcher
+from models import PublishedRecord, Researcher
 from register import Datapoint, Register
 
 

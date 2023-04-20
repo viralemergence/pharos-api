@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from auth import check_auth
 from engine import get_engine
 from format import format_response
-from models2 import PublishedRecord
+from models import PublishedRecord
 
 
 DYNAMODB = boto3.resource("dynamodb")

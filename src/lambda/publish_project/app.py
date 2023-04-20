@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from auth import check_auth
 from engine import get_engine
 from format import format_response
-from models2 import Researcher
+from models import Researcher
 from publish_register import publish_register_to_session
 from register import Dataset, DatasetReleaseStatus, Project, Register, User
 

@@ -7,7 +7,7 @@ import sqlalchemy
 from sqlalchemy.engine import URL, Connection
 import cfnresponse
 
-from models2 import Base
+from models import Base
 
 RDS = boto3.client("rds")
 CF = boto3.client("cloudformation")

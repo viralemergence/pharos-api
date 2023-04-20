@@ -16,7 +16,7 @@
 #     User,
 # )
 
-# from models2 import PublishedRecord, Researcher, Base
+# from models import PublishedRecord, Researcher, Base
 
 
 # JOHN_SMITH = User.parse_table_item(
