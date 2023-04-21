@@ -13,7 +13,7 @@ from engine import get_engine
 from format import format_response
 from models import Researcher
 from publish_register import publish_register_to_session
-from register import Dataset, DatasetReleaseStatus, Project, Register, User
+from register import Dataset, DatasetReleaseStatus, Project, User
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
