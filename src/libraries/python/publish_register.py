@@ -1,12 +1,14 @@
 from datetime import date
+import json
 from geoalchemy2 import WKTElement
 from sqlalchemy.orm import Session
+from column_alias import get_api_name
 from models import PublishedRecord, Researcher
-from register import Datapoint, Register
+from register import Datapoint, Record
 
 
 def publish_register_to_session(
-    register: Register,
+    register_json: str,
     project_id: str,
     dataset_id: str,
     researchers: list[Researcher],
@@ -14,7 +16,9 @@ def publish_register_to_session(
 ):
     """Publish a register to the database session"""
 
-    for record_id, record in register.register_data.items():
+    register_dict = json.loads(register_json)
+
+    for record_id, record_dict in register_dict["register"].items():
 
         published_record = PublishedRecord(
             pharos_id=project_id + "-" + dataset_id + "-" + record_id,
@@ -25,7 +29,7 @@ def publish_register_to_session(
 
         # Add all simple fields where one datapoint maps to
         # one database column and translation is unnecessary
-        skip = {
+        complex_fields = {
             # date component fields
             "collection_day",
             "collection_month",
@@ -34,10 +38,18 @@ def publish_register_to_session(
             "latitude",
             "longitude",
         }
-        record_dict: dict[str, Datapoint] = record.__dict__
-        for field, datapoint in record_dict.items():
-            if datapoint is not None and field not in skip:
-                setattr(published_record, field, datapoint)
+
+        record = Record.construct()
+
+        for field, datapoint_dict in record_dict.items():
+            api_field = get_api_name(field)
+            datapoint = Datapoint.construct(**datapoint_dict)
+
+            if api_field in complex_fields:
+                setattr(record, api_field, datapoint)
+
+            else:
+                setattr(published_record, api_field, datapoint)
 
         # create and add the collection_date object
         if (
