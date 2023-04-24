@@ -36,7 +36,7 @@ def lambda_handler(event: dict, _):
 
     start = time.time()
     engine = get_engine()
-    # Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     print("Get engine", time.time() - start)
 
     try:
