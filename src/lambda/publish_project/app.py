@@ -1,6 +1,5 @@
 from datetime import datetime
 import os
-import time
 from typing import Union
 
 import boto3
@@ -46,9 +45,8 @@ class PublishRegistersData(BaseModel):
         extra = Extra.forbid
 
 
-def lambda_handler(event, _):
+def lambda_handler(event, _):  # pylint: disable=too-many-branches
 
-    start = time.time()
     try:
         validated = PublishProjectData.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
@@ -59,9 +57,6 @@ def lambda_handler(event, _):
     if not user or not user.project_ids or not validated.project_id in user.project_ids:
         return format_response(403, "Not Authorized")
 
-    print("Load User, check permissions", time.time() - start)
-
-    start = time.time()
     try:
         # Retrieve project metadata and datasets
         metadata_response = METADATA_TABLE.query(
@@ -72,9 +67,6 @@ def lambda_handler(event, _):
         print(e)
         return format_response(403, "Error retrieving project metadata")
 
-    print("Load Metadata", time.time() - start)
-
-    start = time.time()
     if not metadata_response["Items"]:
         return format_response(403, "Metadata not found")
 
@@ -98,7 +90,6 @@ def lambda_handler(event, _):
     if not project.authors:
         return format_response(403, "No authors found")
 
-    start = time.time()
     try:
         with METADATA_TABLE.batch_writer() as batch:
             # Update project metadata
@@ -116,12 +107,6 @@ def lambda_handler(event, _):
         print(e)
         return format_response(403, "Error saving project and dataset metadata")
 
-    print(
-        "Parse metadata and update project and datasets to 'publishing status'",
-        time.time() - start,
-    )
-
-    start = time.time()
     try:
         # Retrieve project authors
         users_metadata = DYNAMODB.batch_get_item(
@@ -138,15 +123,11 @@ def lambda_handler(event, _):
         print(e)
         return format_response(403, "Error retrieving researchers")
 
-    print("Load Researchers", time.time() - start)
-
-    start = time.time()
     project_users: list[User] = [
         User.parse_table_item(item)
         for item in users_metadata["Responses"][METADATA_TABLE.name]
     ]
 
-    print("Parse Researchers", time.time() - start)
     if len(project_users) == 0:
         return format_response(403, "No authors found")
 

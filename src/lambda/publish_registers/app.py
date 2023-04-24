@@ -6,8 +6,6 @@ import boto3
 from pydantic import BaseModel, Extra
 from sqlalchemy.orm import Session
 
-from devtools import debug
-
 from engine import get_engine
 from models import Researcher
 from publish_register import publish_register_to_session
