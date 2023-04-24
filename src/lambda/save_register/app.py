@@ -4,7 +4,7 @@ import os
 from typing import Dict
 
 import boto3
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError
 
 from auth import check_auth
 from format import format_response
@@ -22,6 +22,9 @@ class SaveRegisterData(BaseModel):
     researcher_id: str = Field(..., alias="researcherID")
     dataset_id: str = Field(..., alias="datasetID")
     register_data: Dict[str, Record] = Field(..., alias="register")
+
+    class Config:
+        extra = Extra.forbid
 
 
 def lambda_handler(event, _):

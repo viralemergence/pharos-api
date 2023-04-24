@@ -1,12 +1,14 @@
 from datetime import date
+import json
 from geoalchemy2 import WKTElement
 from sqlalchemy.orm import Session
-from models2 import PublishedRecord, Researcher
-from register import Datapoint, Register
+from column_alias import get_api_name
+from models import PublishedRecord, Researcher
+from register import Datapoint, Record
 
 
 def publish_register_to_session(
-    register: Register,
+    register_json: str,
     project_id: str,
     dataset_id: str,
     researchers: list[Researcher],
@@ -14,15 +16,22 @@ def publish_register_to_session(
 ):
     """Publish a register to the database session"""
 
-    for record_id, record in register.register_data.items():
+    register_dict = json.loads(register_json)
 
+    for record_id, record_dict in register_dict["register"].items():
+
+        # create a PublishedRecord database model with just ID columns
         published_record = PublishedRecord(
             pharos_id=project_id + "-" + dataset_id + "-" + record_id,
+            project_id=project_id,
+            dataset_id=dataset_id,
+            record_id=record_id,
         )
 
-        # Add all simple fields where one datapoint maps to
-        # one database column and translation is unnecessary
-        skip = {
+        # complex fields are any fields where two or more
+        # datapoints are combined to create a single field
+        # in the PublishedRecord database model.
+        complex_fields = {
             # date component fields
             "collection_day",
             "collection_month",
@@ -31,12 +40,31 @@ def publish_register_to_session(
             "latitude",
             "longitude",
         }
-        record_dict: dict[str, Datapoint] = record.__dict__
-        for field, datapoint in record_dict.items():
-            if datapoint is not None and field not in skip:
-                setattr(published_record, field, datapoint)
 
-        # create and add the collection_date object
+        # construct a blank record with no fields or validation
+        record = Record.construct()
+
+        for field, datapoint_dict in record_dict.items():
+            # translate the column name to the record field name
+            # because the construct() method skips aliasing
+            api_field = get_api_name(field)
+
+            # construct the top-level, current version of the
+            # datapoint object with no validation or history
+            datapoint = Datapoint.construct(**datapoint_dict)
+
+            # add complex fields to the Record
+            # for additional procesing
+            if api_field in complex_fields:
+                setattr(record, api_field, datapoint)
+
+            # add simple fields directly to the
+            # PublishedRecord database model.
+            else:
+                setattr(published_record, api_field, datapoint)
+
+        # extra guard for missing fields; shouldn't
+        # be able to get here without them fields
         if (
             not record.collection_day
             or not record.collection_month
@@ -46,22 +74,28 @@ def publish_register_to_session(
                 "Record is missing collection date, should not have passed validator"
             )
 
+        # create and add the collection_date
+        # object to the database model
         published_record.collection_date = date(
             int(record.collection_year),
             int(record.collection_month),
             int(record.collection_day),
         )
 
-        # create and add the location geometry object
+        # extra guard for missing fields; shouldn't
+        # be able to get here without them fields
         if not record.latitude or not record.longitude:
             raise ValueError(
                 "Record is missing location, should not have passed validator"
             )
 
+        # create and add the location WKT
+        # geometry string to the database model
         published_record.location = WKTElement(
-            f"POINT({record.latitude},{record.longitude})"
+            f"POINT({record.longitude} {record.latitude})"
         )
 
+        # add the researchers to the published record
         published_record.researchers.extend(researchers)
 
         session.add(published_record)

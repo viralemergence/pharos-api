@@ -7,6 +7,8 @@ import sqlalchemy
 from sqlalchemy.engine import URL, Connection
 import cfnresponse
 
+from models import Base
+
 RDS = boto3.client("rds")
 CF = boto3.client("cloudformation")
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
@@ -82,7 +84,7 @@ def lambda_handler(event, context):
     try:
         print("Check if secret exists")
         SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
-        # if secret exists, short-circuit setup
+
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
 
@@ -151,6 +153,9 @@ def lambda_handler(event, context):
                     "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
                 },
             )
+
+            print("Create tables")
+            Base.metadata.create_all(engine)
 
             connection.close()
 
