@@ -7,7 +7,7 @@ from pydantic import BaseModel, Extra
 from sqlalchemy.orm import Session
 
 from engine import get_engine
-from models import Researcher
+from models import Base, Researcher
 from publish_register import publish_register_to_session
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
