@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import time
 from typing import Union
@@ -6,14 +7,10 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, Extra, Field, ValidationError
-from sqlalchemy.orm import Session
 
 from auth import check_auth
-from engine import get_engine
 from format import format_response
-from models import Researcher
-from publish_register import publish_register_to_session
-from register import Dataset, DatasetReleaseStatus, Project, User
+from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
@@ -23,12 +20,27 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
+LAMBDACLIENT = boto3.client("lambda")
+
+PUBLISH_REGISTERS_LAMBDA = os.environ["PUBLISH_REGISTERS_LAMBDA"]
+
 
 class PublishProjectData(BaseModel):
     """Event data payload to publish a project."""
 
     project_id: str = Field(..., alias="projectID")
     researcher_id: str = Field(..., alias="researcherID")
+
+    class Config:
+        extra = Extra.forbid
+
+
+class PublishRegistersData(BaseModel):
+    """Event data payload to publish the registers of the project."""
+
+    project: Project
+    released_datasets: list[Dataset]
+    project_users: list[User]
 
     class Config:
         extra = Extra.forbid
@@ -86,7 +98,28 @@ def lambda_handler(event, _):
     if not project.authors:
         return format_response(403, "No authors found")
 
-    print("Parse Metadata", time.time() - start)
+    start = time.time()
+    try:
+        with METADATA_TABLE.batch_writer() as batch:
+            # Update project metadata
+            project.last_updated = datetime.utcnow().isoformat() + "Z"
+            project.publish_status = ProjectPublishStatus.PUBLISHING
+            batch.put_item(Item=project.table_item())
+
+            # Update dataset metadata
+            for dataset in released_datasets:
+                dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+                dataset.release_status = DatasetReleaseStatus.PUBLISHING
+                batch.put_item(Item=dataset.table_item())
+
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error saving project and dataset metadata")
+
+    print(
+        "Parse metadata and update project and datasets to 'publishing status'",
+        time.time() - start,
+    )
 
     start = time.time()
     try:
@@ -117,64 +150,29 @@ def lambda_handler(event, _):
     if len(project_users) == 0:
         return format_response(403, "No authors found")
 
-    start = time.time()
-    engine = get_engine()
-    # Base.metadata.create_all(engine)
-    print("Get engine", time.time() - start)
+    ##
+    ## Should return success here to the frontend, because
+    ## it means the requirements to start publishing have
+    ## been met; this is when the frontend should transition
+    ## from "user clicked publish" status to "publish is
+    ## actually happening on the server" status and start
+    ## polling the dataset and project status.
+    ##
 
-    with Session(engine) as session:
-        researcher_ids = [user.researcher_id for user in project_users]
+    ##
+    ## Need to move this section into separate, long-running lambda
+    ## Frontend will update projects and datasets and status of each
+    ## one will be managed in dynamodb
+    ##
 
-        start = time.time()
-        # Get existing researchers
-        existing_researchers = (
-            session.query(Researcher)
-            .filter(Researcher.researcher_id.in_(researcher_ids))
-            .all()
-        )
-        print("Query existing researchers", time.time() - start)
+    LAMBDACLIENT.invoke(
+        FunctionName=PUBLISH_REGISTERS_LAMBDA,
+        InvocationType="Event",
+        Payload=PublishRegistersData(
+            project=project,
+            released_datasets=released_datasets,
+            project_users=project_users,
+        ).json(by_alias=True),
+    )
 
-        start = time.time()
-        existing_researcher_ids = [r.researcher_id for r in existing_researchers]
-
-        new_researchers: list[Researcher] = []
-
-        # Add new researchers
-        for user in project_users:
-            if user.researcher_id in existing_researcher_ids:
-                continue
-
-            new_researchers.append(
-                Researcher(researcher_id=user.researcher_id, name=user.name)
-            )
-
-        session.add_all(new_researchers)
-
-        print("Add new researchers", time.time() - start)
-
-        for dataset in released_datasets:
-            start = time.time()
-
-            key = f"{dataset.dataset_id}/data.json"
-            register_json = (
-                S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
-                .read()
-                .decode("utf-8")
-            )
-            print("Load register", time.time() - start)
-
-            start = time.time()
-            publish_register_to_session(
-                session=session,
-                register_json=register_json,
-                project_id=project.project_id,
-                dataset_id=dataset.dataset_id,
-                researchers=existing_researchers + new_researchers,
-            )
-            print("Publish register to session", time.time() - start)
-
-        start = time.time()
-        session.commit()
-        print("Commit session", time.time() - start)
-
-    return format_response(200, "Success")
+    return format_response(200, "Publishing Started")
