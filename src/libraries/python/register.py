@@ -88,6 +88,7 @@ class ProjectPublishStatus(str, Enum):
     """The state the project in the publishing process"""
 
     UNPUBLISHED = "Unpublished"
+    PUBLISHING = "Publishing"
     PUBLISHED = "Published"
 
 
@@ -147,6 +148,7 @@ class DatasetReleaseStatus(str, Enum):
     UNRELEASED = "Unreleased"
     RELEASED = "Released"
     PUBLISHED = "Published"
+    PUBLISHING = "Publishing"
 
 
 class Version(BaseModel):
@@ -176,8 +178,7 @@ class Dataset(BaseModel):
 
     last_updated: Optional[str] = Field(None, alias="lastUpdated")
     """lastUpdated is the timestamp of the last time any datapoint
-    in the dataset was updated. This is a string at the moment
-    because the api doesn't need to manipulate it."""
+    in the dataset was updated."""
 
     earliest_date: Optional[str] = Field(None, alias="earliestDate")
     """The earliest date in the dataset, as a string. This is
