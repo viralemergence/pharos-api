@@ -1,15 +1,13 @@
 import boto3
-from geoalchemy2 import func
 from pydantic import BaseModel, Extra, Field, ValidationError
 
-from devtools import debug
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
 from models import PublishedRecord
+from register import COMPLEX_FIELDS
 
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
@@ -38,33 +36,34 @@ def lambda_handler(event, _):
     except ValidationError as e:
         return format_response(400, e.json(), preformatted=True)
 
-    debug(validated)
-
     engine = get_engine()
 
     page = validated.query_string_parameters.page
     page_size = validated.query_string_parameters.page_size
 
     with Session(engine) as session:
-        records = session.scalars(
-            select(
+        rows = (
+            session.query(
                 PublishedRecord,
-                func.ST_X(PublishedRecord.location).label("longitude"),
-                func.ST_Y(PublishedRecord.location).label("latitude"),
+                PublishedRecord.location.ST_X(),
+                PublishedRecord.location.ST_Y(),
             )
             .limit(page_size)
             .offset(page_size * (page - 1))
-        ).all()
-
-    debug(records)
+            .all()
+        )
 
     response_rows = []
-    for record in records:
-        response_dict: dict[str, str] = {}
-        for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
-            response_dict[ui_name] = str(getattr(record, api_name, None))
+    for published_record, longitude, latitude in rows:
 
-        response_dict["Collection date"] = record.collection_date.isoformat() + "Z"
+        response_dict = {}
+        for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
+            if api_name not in COMPLEX_FIELDS:
+                response_dict[ui_name] = getattr(published_record, api_name, None)
+
+        response_dict["Latitude"] = latitude
+        response_dict["Longitude"] = longitude
+        response_dict["Collection date"] = published_record.collection_date.isoformat()
 
         response_rows.append(response_dict)
 
