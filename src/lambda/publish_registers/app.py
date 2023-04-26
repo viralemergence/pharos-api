@@ -31,6 +31,80 @@ class PublishRegistersData(BaseModel):
         extra = Extra.forbid
 
 
+def upsert_project_users(
+    session: Session, published_project: PublishedProject, users: list[User]
+) -> None:
+
+    start = time.time()
+
+    researcher_ids = [user.researcher_id for user in users]
+
+    # Get existing researchers from database
+    existing_researchers = (
+        session.query(Researcher)
+        .filter(Researcher.researcher_id.in_(researcher_ids))
+        .all()
+    )
+    print("Query existing researchers", time.time() - start)
+
+    start = time.time()
+    existing_researcher_ids = [r.researcher_id for r in existing_researchers]
+
+    new_researchers: list[Researcher] = []
+
+    # Create new researchers
+    for user in users:
+        if user.researcher_id in existing_researcher_ids:
+            continue
+
+        new_researchers.append(
+            Researcher(
+                researcher_id=user.researcher_id,
+                name=user.name,
+                organization=user.organization,
+                email=user.email,
+            )
+        )
+
+    published_project.researchers = existing_researchers + new_researchers
+
+    print("Add new researchers", time.time() - start)
+
+
+def add_datasets_to_project(
+    published_project: PublishedProject, dataset_metadata: Dataset
+) -> None:
+    start = time.time()
+
+    published_dataset = PublishedDataset()
+    published_dataset.dataset_id = dataset_metadata.dataset_id
+    published_dataset.project_id = dataset_metadata.project_id
+    published_dataset.name = dataset_metadata.name
+
+    key = f"{dataset_metadata.dataset_id}/data.json"
+    register_json = (
+        S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
+        .read()
+        .decode("utf-8")
+    )
+    print("Load register", time.time() - start)
+
+    start = time.time()
+    published_dataset.records = create_published_records(
+        register_json=register_json,
+        project_id=published_project.project_id,
+        dataset_id=dataset_metadata.dataset_id,
+    )
+
+    dataset_metadata.release_status = DatasetReleaseStatus.PUBLISHED
+    dataset_metadata.last_updated = datetime.utcnow().isoformat() + "Z"
+    METADATA_TABLE.put_item(Item=dataset_metadata.table_item())
+
+    published_project.datasets.append(published_dataset)
+
+    print("Add dataset to project", time.time() - start)
+
+
 def lambda_handler(event: dict, _):
     metadata = PublishRegistersData.parse_obj(event)
 
@@ -41,84 +115,31 @@ def lambda_handler(event: dict, _):
 
     try:
         with Session(engine) as session:
-            researcher_ids = [user.researcher_id for user in metadata.project_users]
-
-            start = time.time()
-            # Get existing researchers
-            existing_researchers = (
-                session.query(Researcher)
-                .filter(Researcher.researcher_id.in_(researcher_ids))
-                .all()
-            )
-            print("Query existing researchers", time.time() - start)
-
-            start = time.time()
-            existing_researcher_ids = [r.researcher_id for r in existing_researchers]
-
-            new_researchers: list[Researcher] = []
-
-            # Add new researchers
-            for user in metadata.project_users:
-                if user.researcher_id in existing_researcher_ids:
-                    continue
-
-                new_researchers.append(
-                    Researcher(
-                        researcher_id=user.researcher_id,
-                        name=user.name,
-                        organization=user.organization,
-                        email=user.email,
-                    )
-                )
-
-            # session.add_all(new_researchers)
-
-            print("Add new researchers", time.time() - start)
-
-            start = time.time()
 
             published_project = PublishedProject()
             published_project.project_id = metadata.project.project_id
             published_project.name = metadata.project.name
             published_project.description = metadata.project.description
             published_project.published_date = datetime.utcnow().date()
-            published_project.researchers = existing_researchers + new_researchers
+
+            upsert_project_users(
+                session=session,
+                published_project=published_project,
+                users=metadata.project_users,
+            )
 
             # This loop could be moved to multiple parallel lambdas
             for dataset_metadata in metadata.released_datasets:
-                start = time.time()
-
-                published_dataset = PublishedDataset()
-                published_dataset.dataset_id = dataset_metadata.dataset_id
-                published_dataset.project_id = dataset_metadata.project_id
-                published_dataset.name = dataset_metadata.name
-
-                key = f"{dataset_metadata.dataset_id}/data.json"
-                register_json = (
-                    S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
-                    .read()
-                    .decode("utf-8")
+                add_datasets_to_project(
+                    published_project=published_project,
+                    dataset_metadata=dataset_metadata,
                 )
-                print("Load register", time.time() - start)
-
-                start = time.time()
-                published_dataset.records = create_published_records(
-                    register_json=register_json,
-                    project_id=metadata.project.project_id,
-                    dataset_id=dataset_metadata.dataset_id,
-                )
-
-                dataset_metadata.release_status = DatasetReleaseStatus.PUBLISHED
-                dataset_metadata.last_updated = datetime.utcnow().isoformat() + "Z"
-                METADATA_TABLE.put_item(Item=dataset_metadata.table_item())
-
-                print("Publish register to session", time.time() - start)
-
-                published_project.datasets.append(published_dataset)
 
             start = time.time()
+
             session.add(published_project)
             session.commit()
+
             print("Commit session", time.time() - start)
 
             metadata.project.last_updated = datetime.utcnow().isoformat() + "Z"
