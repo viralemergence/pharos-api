@@ -19,8 +19,8 @@ class Filter(BaseModel):
 
 
 class QueryStringParameters(BaseModel):
-    page: int = 1
-    page_size: int = Field(10, ge=0, le=100, alias="pageSize")
+    page: int = Field(1, ge=1, alias="page")
+    page_size: int = Field(10, ge=1, le=100, alias="pageSize")
 
     # researcher: Optional[str]
     # host_species: Optional[str] = Field(None, alias="hostSpecies")
