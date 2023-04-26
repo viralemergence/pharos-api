@@ -1,3 +1,4 @@
+from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
@@ -13,9 +14,20 @@ from register import COMPLEX_FIELDS
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
+class Filter(BaseModel):
+    field: str
+    values: list[str]
+
+
 class QueryStringParameters(BaseModel):
     page: int = 1
     page_size: int = Field(10, ge=0, le=100, alias="pageSize")
+
+    # researcher: Optional[str]
+    # host_species: Optional[str] = Field(None, alias="hostSpecies")
+    # pathogen: Optional[str]
+    # detection_target: Optional[str] = Field(None, alias="detectionTarget")
+    # detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
 
     class Config:
         extra = Extra.forbid
@@ -38,8 +50,8 @@ def lambda_handler(event, _):
 
     engine = get_engine()
 
-    page = validated.query_string_parameters.page
-    page_size = validated.query_string_parameters.page_size
+    limit = validated.query_string_parameters.page_size
+    offset = validated.query_string_parameters.page * (limit - 1)
 
     with Session(engine) as session:
         rows = (
@@ -48,8 +60,8 @@ def lambda_handler(event, _):
                 PublishedRecord.location.ST_X(),
                 PublishedRecord.location.ST_Y(),
             )
-            .limit(page_size)
-            .offset(page_size * (page - 1))
+            .limit(limit)
+            .offset(offset)
             .all()
         )
 
