@@ -1,4 +1,3 @@
-from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
