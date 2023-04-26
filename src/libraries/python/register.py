@@ -130,16 +130,28 @@ class Project(BaseModel):
         return Project.parse_obj(table_item)
 
 
-# Fields requried to release a dataset
-REQUIRED_FIELDS = {
-    "host_species",
-    "latitude",
-    "longitude",
+# complex fields are any fields where two or more
+# datapoints are combined to create a single field
+# in the PublishedRecord database model.
+COMPLEX_FIELDS = {
+    # date component fields
     "collection_day",
     "collection_month",
     "collection_year",
-    "detection_outcome",
+    # location component fields
+    "latitude",
+    "longitude",
 }
+
+# Fields requried to release a dataset
+# component fields of complex fields
+# are always required
+REQUIRED_FIELDS = COMPLEX_FIELDS.union(
+    {
+        "host_species",
+        "detection_outcome",
+    }
+)
 
 
 class DatasetReleaseStatus(str, Enum):

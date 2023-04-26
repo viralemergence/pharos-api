@@ -3,7 +3,7 @@ import json
 from geoalchemy2 import WKTElement
 from column_alias import get_api_name
 from models import PublishedRecord
-from register import Datapoint, Record
+from register import COMPLEX_FIELDS, Datapoint, Record
 
 
 def create_published_records(
@@ -22,19 +22,6 @@ def create_published_records(
         published_record.pharos_id = project_id + "-" + dataset_id + "-" + record_id
         published_record.dataset_id = dataset_id
 
-        # complex fields are any fields where two or more
-        # datapoints are combined to create a single field
-        # in the PublishedRecord database model.
-        complex_fields = {
-            # date component fields
-            "collection_day",
-            "collection_month",
-            "collection_year",
-            # location component fields
-            "latitude",
-            "longitude",
-        }
-
         # construct a blank record with no fields or validation
         record = Record.construct()
 
@@ -49,7 +36,7 @@ def create_published_records(
 
             # add complex fields to the Record
             # for additional procesing
-            if api_field in complex_fields:
+            if api_field in COMPLEX_FIELDS:
                 setattr(record, api_field, datapoint)
 
             # add simple fields directly to the
