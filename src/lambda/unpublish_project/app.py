@@ -89,9 +89,6 @@ def lambda_handler(event, _):
     if not project:
         return format_response(403, "Project not found")
 
-    # if len(published_datasets) == 0:
-    #     return format_response(403, "No published datasets found")
-
     try:
         with METADATA_TABLE.batch_writer() as batch:
             # Update project metadata
