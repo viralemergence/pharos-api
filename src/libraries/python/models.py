@@ -127,14 +127,28 @@ class AliasDeadOrAlive(TypeDecorator):
         return DEAD_OR_ALIVE_VALUES_MAP[str(value).lower()]
 
 
-# The many-to-many relationship between researchers and published
-# records is managed by the sqlalchemy orm using a secondary table.
-attribution_table = Table(
-    "attributions",
+# # The many-to-many relationship between researchers and published records
+# records_researchers = Table(
+#     "records_researchers",
+#     Base.metadata,
+#     Column(
+#         "pharos_id",
+#         ForeignKey("published_records.pharos_id", ondelete="CASCADE"),
+#         primary_key=True,
+#     ),
+#     Column(
+#         "researcher_id",
+#         ForeignKey("researchers.researcher_id", ondelete="CASCADE"),
+#         primary_key=True,
+#     ),
+# )
+
+projects_researchers = Table(
+    "projects_researchers",
     Base.metadata,
     Column(
-        "pharos_id",
-        ForeignKey("published_records.pharos_id", ondelete="CASCADE"),
+        "project_id",
+        ForeignKey("projects.project_id", ondelete="CASCADE"),
         primary_key=True,
     ),
     Column(
@@ -147,12 +161,74 @@ attribution_table = Table(
 
 class Researcher(Base):
     __tablename__ = "researchers"
+
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
+    organization: Mapped[str]
+    email: Mapped[str]
 
-    published_records: Mapped[list["PublishedRecord"]] = relationship(
-        secondary=attribution_table,
+    # records: Mapped[list["PublishedRecord"]] = relationship(
+    #     secondary=records_researchers,
+    #     back_populates="researchers",
+    #     passive_deletes=True,
+    # )
+
+    projects: Mapped[list["PublishedProject"]] = relationship(
+        secondary=projects_researchers,
         back_populates="researchers",
+        passive_deletes=True,
+    )
+
+
+class PublishedProject(Base):
+    __tablename__ = "projects"
+
+    project_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    published_date: Mapped[date]
+    description: Mapped[Optional[str]]
+    project_type: Mapped[Optional[str]]
+    surveillance_status: Mapped[Optional[str]]
+    citation: Mapped[Optional[str]]
+    related_materials: Mapped[Optional[str]]
+    project_publications: Mapped[Optional[str]]
+    others_citing: Mapped[Optional[str]]
+
+    researchers: Mapped[list["Researcher"]] = relationship(
+        secondary=projects_researchers,
+        back_populates="projects",
+        cascade="all, delete",
+    )
+
+    datasets: Mapped[list["PublishedDataset"]] = relationship(
+        "PublishedDataset",
+        back_populates="project",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
+
+
+class PublishedDataset(Base):
+    __tablename__ = "datasets"
+
+    dataset_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    earliest_date: Mapped[Optional[date]]
+    latest_date: Mapped[Optional[date]]
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.project_id", ondelete="CASCADE")
+    )
+
+    project: Mapped["PublishedProject"] = relationship(
+        "PublishedProject",
+        back_populates="datasets",
+    )
+
+    records: Mapped[list["PublishedRecord"]] = relationship(
+        "PublishedRecord",
+        back_populates="dataset",
+        cascade="all, delete",
         passive_deletes=True,
     )
 
@@ -161,9 +237,9 @@ class PublishedRecord(Base):
     __tablename__ = "published_records"
 
     pharos_id: Mapped[str] = mapped_column(primary_key=True)
-    dataset_id: Mapped[str]
-    project_id: Mapped[str]
-    record_id: Mapped[str]
+    dataset_id: Mapped[str] = mapped_column(
+        ForeignKey("datasets.dataset_id", ondelete="CASCADE")
+    )
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
@@ -192,8 +268,14 @@ class PublishedRecord(Base):
     mass: Mapped[Optional[float]] = mapped_column(CoerceFloat)
     length: Mapped[Optional[float]] = mapped_column(CoerceFloat)
 
-    researchers: Mapped[list["Researcher"]] = relationship(
-        secondary=attribution_table,
-        back_populates="published_records",
-        cascade="all, delete",
+    dataset: Mapped["PublishedDataset"] = relationship(
+        "PublishedDataset",
+        back_populates="records",
     )
+
+
+#     researchers: Mapped[list["Researcher"]] = relationship(
+#         secondary=records_researchers,
+#         back_populates="records",
+#         cascade="all, delete",
+#     )

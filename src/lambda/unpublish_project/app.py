@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from auth import check_auth
 from engine import get_engine
 from format import format_response
-from models import PublishedRecord
+from models import PublishedProject
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus
 
 
@@ -40,16 +40,23 @@ def lambda_handler(event, _):
     if not user or not user.project_ids or not validated.project_id in user.project_ids:
         return format_response(403, "Not Authorized")
 
-    # Delete records from the database
-    engine = get_engine()
+    try:
+        # Delete records from the database
+        engine = get_engine()
 
-    with Session(engine) as session:
+        with Session(engine) as session:
 
-        session.query(PublishedRecord).where(
-            PublishedRecord.project_id == validated.project_id
-        ).delete()
+            session.query(PublishedProject).where(
+                PublishedProject.project_id == validated.project_id
+            ).delete()
 
-        session.commit()
+            session.commit()
+
+    ## passing over this exception to go on to "reset"
+    ## the metadata objects as well even if something is
+    ## wrong with the database records
+    except Exception as e:  # pylint: disable=broad-except
+        print(e)
 
     try:
         # Retrieve project metadata and datasets

@@ -1,32 +1,26 @@
 from datetime import date
 import json
 from geoalchemy2 import WKTElement
-from sqlalchemy.orm import Session
 from column_alias import get_api_name
-from models import PublishedRecord, Researcher
+from models import PublishedRecord
 from register import Datapoint, Record
 
 
-def publish_register_to_session(
-    register_json: str,
-    project_id: str,
-    dataset_id: str,
-    researchers: list[Researcher],
-    session: Session,
-):
-    """Publish a register to the database session"""
+def create_published_records(
+    register_json: str, project_id: str, dataset_id: str
+) -> list[PublishedRecord]:
+
+    """Transform a register json string into a list of PublishedRecord objects."""
 
     register_dict = json.loads(register_json)
+    published_records = []
 
     for record_id, record_dict in register_dict["register"].items():
 
         # create a PublishedRecord database model with just ID columns
-        published_record = PublishedRecord(
-            pharos_id=project_id + "-" + dataset_id + "-" + record_id,
-            project_id=project_id,
-            dataset_id=dataset_id,
-            record_id=record_id,
-        )
+        published_record = PublishedRecord()
+        published_record.pharos_id = project_id + "-" + dataset_id + "-" + record_id
+        published_record.dataset_id = dataset_id
 
         # complex fields are any fields where two or more
         # datapoints are combined to create a single field
@@ -96,6 +90,8 @@ def publish_register_to_session(
         )
 
         # add the researchers to the published record
-        published_record.researchers.extend(researchers)
+        # published_record.researchers.extend(researchers)
 
-        session.add(published_record)
+        published_records.append(published_record)
+
+    return published_records

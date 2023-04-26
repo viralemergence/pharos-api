@@ -7,8 +7,8 @@ from pydantic import BaseModel, Extra
 from sqlalchemy.orm import Session
 
 from engine import get_engine
-from models import Base, Researcher
-from publish_register import publish_register_to_session
+from models import Base, PublishedDataset, PublishedProject, Researcher
+from publish_register import create_published_records
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
@@ -63,18 +63,37 @@ def lambda_handler(event: dict, _):
                     continue
 
                 new_researchers.append(
-                    Researcher(researcher_id=user.researcher_id, name=user.name)
+                    Researcher(
+                        researcher_id=user.researcher_id,
+                        name=user.name,
+                        organization=user.organization,
+                        email=user.email,
+                    )
                 )
 
-            session.add_all(new_researchers)
+            # session.add_all(new_researchers)
 
             print("Add new researchers", time.time() - start)
 
-            # This loop needs to be moved to multiple parallel lambdas
-            for dataset in metadata.released_datasets:
+            start = time.time()
+
+            published_project = PublishedProject()
+            published_project.project_id = metadata.project.project_id
+            published_project.name = metadata.project.name
+            published_project.description = metadata.project.description
+            published_project.published_date = datetime.utcnow().date()
+            published_project.researchers = existing_researchers + new_researchers
+
+            # This loop could be moved to multiple parallel lambdas
+            for dataset_metadata in metadata.released_datasets:
                 start = time.time()
 
-                key = f"{dataset.dataset_id}/data.json"
+                published_dataset = PublishedDataset()
+                published_dataset.dataset_id = dataset_metadata.dataset_id
+                published_dataset.project_id = dataset_metadata.project_id
+                published_dataset.name = dataset_metadata.name
+
+                key = f"{dataset_metadata.dataset_id}/data.json"
                 register_json = (
                     S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
                     .read()
@@ -83,20 +102,22 @@ def lambda_handler(event: dict, _):
                 print("Load register", time.time() - start)
 
                 start = time.time()
-                publish_register_to_session(
-                    session=session,
+                published_dataset.records = create_published_records(
                     register_json=register_json,
                     project_id=metadata.project.project_id,
-                    dataset_id=dataset.dataset_id,
-                    researchers=existing_researchers + new_researchers,
+                    dataset_id=dataset_metadata.dataset_id,
                 )
-                dataset.release_status = DatasetReleaseStatus.PUBLISHED
-                dataset.last_updated = datetime.utcnow().isoformat() + "Z"
-                METADATA_TABLE.put_item(Item=dataset.table_item())
+
+                dataset_metadata.release_status = DatasetReleaseStatus.PUBLISHED
+                dataset_metadata.last_updated = datetime.utcnow().isoformat() + "Z"
+                METADATA_TABLE.put_item(Item=dataset_metadata.table_item())
 
                 print("Publish register to session", time.time() - start)
 
+                published_project.datasets.append(published_dataset)
+
             start = time.time()
+            session.add(published_project)
             session.commit()
             print("Commit session", time.time() - start)
 
