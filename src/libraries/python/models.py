@@ -56,6 +56,7 @@ class CoerceFloat(TypeDecorator):
     """Convert a given value to float, or return None"""
 
     impl = Numeric
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
@@ -70,6 +71,7 @@ class CoerceStr(TypeDecorator):
     """Convert a given value to string, or return None"""
 
     impl = String
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
@@ -84,6 +86,7 @@ class CoerceInt(TypeDecorator):
     """Convert a given value to integer, or return None"""
 
     impl = BigInteger
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
@@ -98,6 +101,7 @@ class AliasOrganismSex(TypeDecorator):
     """Convert allowed organism_sex datapoint to standardized database value"""
 
     impl = String
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
@@ -109,6 +113,7 @@ class AliasDetectionOutcome(TypeDecorator):
     """Convert allowed detection_outcome datapoint to standardized database value"""
 
     impl = String
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
@@ -120,6 +125,7 @@ class AliasDeadOrAlive(TypeDecorator):
     """Convert allowed dead_or_alive datapoint to standardized database value"""
 
     impl = String
+    cache_ok = True
 
     def process_bind_param(self, value, _):
         if value is None:
