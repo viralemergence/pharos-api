@@ -1,7 +1,7 @@
 import os
 import boto3
 from botocore.utils import ClientError
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError
 from auth import check_auth
 from format import format_response
 
@@ -12,7 +12,7 @@ METADATA_TABLE = os.environ["METADATA_TABLE_NAME"]
 class ListProjectsBody(BaseModel):
     """Event data payload to list projects."""
 
-    researcherID: str
+    researcher_id: str = Field(..., alias="researcherID")
 
     class Config:
         extra = Extra.forbid
@@ -25,11 +25,11 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcherID)
+    user = check_auth(validated.researcher_id)
     if not user:
         return format_response(403, "Not Authorized")
 
-    if not user.projectIDs:
+    if not user.project_ids:
         return format_response(200, [])
 
     try:
@@ -38,7 +38,7 @@ def lambda_handler(event, _):
                 METADATA_TABLE: {
                     "Keys": [
                         {"pk": projectID, "sk": "_meta"}
-                        for projectID in user.projectIDs
+                        for projectID in user.project_ids
                     ]
                 }
             }

@@ -38,7 +38,7 @@ from value_alias import (
 class User(BaseModel):
     """The user class which holds metadata in dynamodb."""
 
-    researcherID: str
+    researcher_id: str = Field(..., alias="researcherID")
     """Unique identifier, and used as the partition key in dynamodb."""
 
     organization: str
@@ -50,7 +50,7 @@ class User(BaseModel):
     name: str
     """The display-name of the user, shown in the UI."""
 
-    projectIDs: Optional[set[str]]
+    project_ids: Optional[set[str]] = Field(None, alias="projectIDs")
     """The projectIDs of the projects this user can access and edit."""
 
     class Config:
@@ -60,7 +60,7 @@ class User(BaseModel):
         """Return the user as a dict, with the researcherID
         as the partition key and the sort key as _meta.
         """
-        user_dict = self.dict()
+        user_dict = self.dict(by_alias=True)
         user_dict["pk"] = user_dict.pop("researcherID")
         user_dict["sk"] = "_meta"
         return user_dict
@@ -73,8 +73,14 @@ class User(BaseModel):
         return User.parse_obj(table_item)
 
 
+class ProjectAuthorRole(str, Enum):
+    """The role of the author in the project."""
+
+    ADMIN = "Admin"
+
+
 class Author(BaseModel):
-    researcherID: str
+    researcher_id: str = Field(..., alias="researcherID")
     role: str
 
 
@@ -82,25 +88,26 @@ class ProjectPublishStatus(str, Enum):
     """The state the project in the publishing process"""
 
     UNPUBLISHED = "Unpublished"
+    PUBLISHING = "Publishing"
     PUBLISHED = "Published"
 
 
 class Project(BaseModel):
     """The metadata object which describes a project."""
 
-    projectID: str
+    project_id: str = Field(..., alias="projectID")
     name: str
-    datasetIDs: list[str]
-    lastUpdated: Optional[str]
+    dataset_ids: list[str] = Field(..., alias="datasetIDs")
+    last_updated: Optional[str] = Field(None, alias="lastUpdated")
     description: Optional[str]
-    projectType: Optional[str]
-    surveillanceStatus: Optional[str]
+    project_type: Optional[str] = Field(None, alias="projectType")
+    surveillance_status: Optional[str] = Field(None, alias="surveillanceStatus")
     citation: Optional[str]
-    relatedMaterials: Optional[list[str]]
-    projectPublications: Optional[list[str]]
-    othersCiting: Optional[list[str]]
+    related_materials: Optional[list[str]] = Field(None, alias="relatedMaterials")
+    project_publications: Optional[list[str]] = Field(None, alias="projectPublications")
+    others_citing: Optional[list[str]] = Field(None, alias="othersCiting")
     authors: Optional[list[Author]]
-    publishStatus: ProjectPublishStatus
+    publish_status: ProjectPublishStatus = Field(None, alias="publishStatus")
 
     class Config:
         extra = Extra.forbid
@@ -110,7 +117,7 @@ class Project(BaseModel):
         """Return the project as a dict, with the projectID
         as the partition key and the sort key as _meta.
         """
-        project_dict = self.dict()
+        project_dict = self.dict(by_alias=True)
         project_dict["pk"] = project_dict.pop("projectID")
         project_dict["sk"] = "_meta"
         return project_dict
@@ -123,17 +130,28 @@ class Project(BaseModel):
         return Project.parse_obj(table_item)
 
 
-# Fields requried to release a dataset
-REQUIRED_FIELDS = {
-    "host_species",
-    "latitude",
-    "longitude",
+# complex fields are any fields where two or more
+# datapoints are combined to create a single field
+# in the PublishedRecord database model.
+COMPLEX_FIELDS = {
+    # date component fields
     "collection_day",
     "collection_month",
     "collection_year",
-    "detection_outcome",
-    "pathogen",
+    # location component fields
+    "latitude",
+    "longitude",
 }
+
+# Fields requried to release a dataset
+# component fields of complex fields
+# are always required
+REQUIRED_FIELDS = COMPLEX_FIELDS.union(
+    {
+        "host_species",
+        "detection_outcome",
+    }
+)
 
 
 class DatasetReleaseStatus(str, Enum):
@@ -142,6 +160,7 @@ class DatasetReleaseStatus(str, Enum):
     UNRELEASED = "Unreleased"
     RELEASED = "Released"
     PUBLISHED = "Published"
+    PUBLISHING = "Publishing"
 
 
 class Version(BaseModel):
@@ -159,30 +178,29 @@ class Dataset(BaseModel):
     metadata about the dataset.
     """
 
-    projectID: str
+    project_id: str = Field(..., alias="projectID")
     """The projectID of the project to which this dataset
     belongs; used as the partition key in dynamodb."""
 
-    datasetID: str
+    dataset_id: str = Field(..., alias="datasetID")
     """Unique identifier for the dataset; used as the sort key."""
 
     name: str
     """The display-name of the dataset, shown in the UI."""
 
-    lastUpdated: Optional[str]
+    last_updated: Optional[str] = Field(None, alias="lastUpdated")
     """lastUpdated is the timestamp of the last time any datapoint
-    in the dataset was updated. This is a string at the moment
-    because the api doesn't need to manipulate it."""
+    in the dataset was updated."""
 
-    earliestDate: Optional[str]
+    earliest_date: Optional[str] = Field(None, alias="earliestDate")
     """The earliest date in the dataset, as a string. This is
     used to display and sort the datasets in the UI."""
 
-    latestDate: Optional[str]
+    latest_date: Optional[str] = Field(None, alias="latestDate")
     """The latest date in the dataset, as a string. This is
     used to display and sort the datasets in the UI."""
 
-    releaseStatus: Optional[DatasetReleaseStatus]
+    release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
 
     class Config:
@@ -190,10 +208,11 @@ class Dataset(BaseModel):
         use_enum_values = True
 
     def table_item(self):
-        """Return the dataset as a dict, with the projectID
-        as the partition key and the datasetID as the sort key.
+        """Return the dataset as a dict structured as a
+        metadata table item, with the projectID as the
+        partition key and the datasetID as the sort key.
         """
-        dataset_dict = self.dict()
+        dataset_dict = self.dict(by_alias=True)
 
         # remove projectID and datasetID from the dict and
         # use the values for the pk and sk attributes
@@ -243,14 +262,14 @@ class Datapoint(BaseModel):
     history of the datapoint.
     """
 
-    dataValue: str
+    data_value: str = Field(..., alias="dataValue")
     """The value of the datapoint, as a string.
     In most cases this is the raw value the user entered,
     but in some cases it is a transformed from the user's
     selected unit into SI units.
     """
 
-    modifiedBy: str
+    modified_by: str = Field(..., alias="modifiedBy")
     """The researcherID of the user who modified this
     version of this datapoint.
     """
@@ -267,34 +286,34 @@ class Datapoint(BaseModel):
     """The previous version of this datapoint, if it exists."""
 
     def __float__(self):
-        """Return the datapoint's dataValue as an float, or if
-        dataValue cannot be converted to an float, raise a
+        """Return the datapoint's data_value as an float, or if
+        data_value cannot be converted to an float, raise a
         ValueError exception.
         """
         try:
-            return float(self.dataValue)
+            return float(self.data_value)
         except ValueError as e:
             raise ValueError("Value must be a number") from e
 
     def __str__(self):
-        return str(self.dataValue)
+        return str(self.data_value)
 
     def __int__(self):
-        """Return the datapoint's dataValue as an int, or if
-        dataValue cannot be converted to an int raise a
+        """Return the datapoint's data_value as an int, or if
+        data_value cannot be converted to an int raise a
         ValueError exception.
         """
         try:
-            return int(self.dataValue)
+            return int(self.data_value)
         except ValueError as e:
             raise ValueError("Value must be an integer") from e
 
     def __len__(self):
-        return len(self.dataValue)
+        return len(self.data_value)
 
     def nonzero_int(self):
-        """Return the datapoint's non-zero dataValue as an
-        int, and if dataValue cannot be converted to an int
+        """Return the datapoint's non-zero data_value as an
+        int, and if data_value cannot be converted to an int
         int or is equal to zero, raise a ValueError exception.
         """
         if int(self) == 0:
@@ -303,8 +322,8 @@ class Datapoint(BaseModel):
         return int(self)
 
     def isnumeric(self):
-        """Check if dataValue is numeric."""
-        return self.dataValue.isnumeric()
+        """Check if data_value is numeric."""
+        return self.data_value.isnumeric()
 
     class Config:
         extra = Extra.forbid
@@ -319,7 +338,7 @@ class DefaultPassDatapoint(Datapoint):
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
-        if not self.report and self.dataValue != "":
+        if not self.report and self.data_value != "":
             self.report = Report(
                 status=ReportScore.SUCCESS, message="Ready to release."
             )
@@ -349,7 +368,7 @@ def validator_skip_fail_warn(func):
 def validator_skip_empty_string(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if args[1].dataValue == "":
+        if args[1].data_value == "":
             args[1].report = None
             return args[1]
         return func(*args, **kwargs)
@@ -369,7 +388,7 @@ class Record(BaseModel):
     """
 
     sample_id: Optional[DefaultPassDatapoint] = None
-    organism_id: Optional[DefaultPassDatapoint] = None
+    animal_id: Optional[DefaultPassDatapoint] = None
     host_species: Optional[DefaultPassDatapoint] = None
     host_species_ncbi_tax_id: Optional[DefaultPassDatapoint] = None
     latitude: Optional[DefaultPassDatapoint] = None
@@ -603,14 +622,16 @@ class Record(BaseModel):
 
 
 class ReleaseReport(BaseModel):
-    releaseStatus: DatasetReleaseStatus = DatasetReleaseStatus.UNRELEASED
-    successCount: int = 0
-    warningCount: int = 0
-    failCount: int = 0
-    missingCount: int = 0
-    warningFields: dict[str, list] = {}
-    failFields: dict[str, list] = {}
-    missingFields: dict[str, list] = {}
+    release_status: DatasetReleaseStatus = Field(
+        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
+    )
+    success_count: int = Field(default=0, alias="successCount")
+    warning_count: int = Field(default=0, alias="warningCount")
+    fail_count: int = Field(default=0, alias="failCount")
+    missing_count: int = Field(default=0, alias="missingCount")
+    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
+    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
+    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
 
 
 class Register(BaseModel):
@@ -630,24 +651,24 @@ class Register(BaseModel):
         """
         report = ReleaseReport()
 
-        for recordID, record in self.register_data.items():
+        for record_id, record in self.register_data.items():
             for field in REQUIRED_FIELDS:
                 if (
                     record.__dict__[field] is None
-                    ## dataValue can be an empty string if the datapoint
+                    ## data_value can be an empty string if the datapoint
                     ## was edited and then "cleared" in the UI
-                    or record.__dict__[field].dataValue == ""
+                    or record.__dict__[field].data_value == ""
                 ):
-                    report.missingCount += 1
-                    if recordID not in report.missingFields:
-                        report.missingFields[recordID] = []
-                    report.missingFields[recordID].append(get_ui_name(field))
+                    report.missing_count += 1
+                    if record_id not in report.missing_fields:
+                        report.missing_fields[record_id] = []
+                    report.missing_fields[record_id].append(get_ui_name(field))
 
             for field, datapoint in record:
                 if (
                     datapoint is None
                     or datapoint.report is None
-                    or datapoint.dataValue == ""
+                    or datapoint.data_value == ""
                 ):
                     # We can skip fields with no reports at this point
                     # because the only case where a field should not
@@ -667,27 +688,27 @@ class Register(BaseModel):
                     continue
 
                 if datapoint.report.status == ReportScore.SUCCESS:
-                    report.successCount += 1
+                    report.success_count += 1
                     continue
 
                 if datapoint.report.status == ReportScore.WARNING:
-                    report.warningCount += 1
-                    if recordID not in report.warningFields:
-                        report.warningFields[recordID] = []
-                    report.warningFields[recordID].append(get_ui_name(field))
+                    report.warning_count += 1
+                    if record_id not in report.warning_fields:
+                        report.warning_fields[record_id] = []
+                    report.warning_fields[record_id].append(get_ui_name(field))
                     continue
 
                 if datapoint.report.status == ReportScore.FAIL:
-                    report.failCount += 1
-                    if recordID not in report.failFields:
-                        report.failFields[recordID] = []
-                    report.failFields[recordID].append(get_ui_name(field))
+                    report.fail_count += 1
+                    if record_id not in report.fail_fields:
+                        report.fail_fields[record_id] = []
+                    report.fail_fields[record_id].append(get_ui_name(field))
 
         if (
-            report.missingCount == 0
-            and report.failCount == 0
-            and report.warningCount == 0
+            report.missing_count == 0
+            and report.fail_count == 0
+            and report.warning_count == 0
         ):
-            report.releaseStatus = DatasetReleaseStatus.RELEASED
+            report.release_status = DatasetReleaseStatus.RELEASED
 
         return report

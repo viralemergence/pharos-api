@@ -1,7 +1,7 @@
 import os
 import boto3
 from botocore.utils import ClientError
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError
 
 from auth import check_auth
 from format import format_response
@@ -16,9 +16,9 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class LoadRegisterBody(BaseModel):
     """Event data payload to load a dataset register."""
 
-    researcherID: str
-    projectID: str
-    datasetID: str
+    researcher_id: str = Field(..., alias="researcherID")
+    project_id: str = Field(..., alias="projectID")
+    dataset_id: str = Field(..., alias="datasetID")
 
     class Config:
         extra = Extra.forbid
@@ -32,17 +32,17 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcherID)
+    user = check_auth(validated.researcher_id)
     if not user:
         return format_response(403, "Not Authorized")
-    if not user.projectIDs:
+    if not user.project_ids:
         return format_response(403, "Researcher has no projects")
-    if validated.projectID not in user.projectIDs:
+    if validated.project_id not in user.project_ids:
         return format_response(403, "Researcher does not have access to this project")
 
     try:
 
-        key = f"{validated.datasetID}/data.json"
+        key = f"{validated.dataset_id}/data.json"
         register_json = (
             S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
             .read()

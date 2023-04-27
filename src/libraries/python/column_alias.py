@@ -7,7 +7,7 @@ be unchanged.
 
 API_NAME_TO_UI_NAME_MAP = {
     "sample_id": "Sample ID",
-    "organism_id": "Organism ID",
+    "animal_id": "Animal ID",
     "host_species": "Host species",
     "host_species_ncbi_tax_id": "Host species NCBI tax ID",
     "latitude": "Latitude",
@@ -38,9 +38,17 @@ API_NAME_TO_UI_NAME_MAP = {
     "length": "Length",
 }
 
+UI_NAME_TO_API_NAME_MAP = {v: k for k, v in API_NAME_TO_UI_NAME_MAP.items()}
+
 
 def get_ui_name(api_name: str) -> str:
     """Convert from a snake_case pythonic column name
     to the capitalized, space-separated name to display
     in the user interface."""
     return API_NAME_TO_UI_NAME_MAP.get(api_name, api_name)
+
+
+def get_api_name(ui_name: str) -> str:
+    """Convert from a capitalized, space-separated name
+    to the snake_case pythonic column name."""
+    return UI_NAME_TO_API_NAME_MAP.get(ui_name, ui_name)
