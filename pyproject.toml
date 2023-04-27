@@ -8,6 +8,10 @@ good-names = [
     "i",
     "e",
     "logger",
+    # Allowed for maptiles
+    "z",
+    "x",
+    "y",
 ]
 
 [tool.pylint.MAIN]
