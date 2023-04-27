@@ -2,7 +2,8 @@ import os
 import json
 
 import boto3
-from botocore.exceptions import ClientError
+
+# from botocore.exceptions import ClientError
 import sqlalchemy
 from sqlalchemy.engine import URL, Connection
 import cfnresponse
@@ -81,85 +82,94 @@ def lambda_handler(event, context):
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
         return
 
+        # try:
+        #     print("Check if secret exists")
+        #     SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
+
+        #     cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+        #     return
+
+        # except ClientError:
+        #     print("Create random password")
+        #     response = SECRETS_MANAGER.get_random_password(
+        #         ExcludePunctuation=True, IncludeSpace=False
+        #     )
+        #     new_password = response["RandomPassword"]
+
+        #     print("Store new secret")
+        #     response = SECRETS_MANAGER.create_secret(
+        #         Name=DATABASE,
+        #         Description=f'Username and Password for database "{DATABASE}" used for Pharos',
+        #         SecretString=(
+        #             json.dumps(
+        #                 {
+        #                     "username": USERNAME,
+        #                     "password": new_password,
+        #                     "host": HOST,
+        #                     "port": PORT,
+        #                 }
+        #             )
+        #         ),
+        #         Tags=[
+        #             {"Key": "Project", "Value": "Pharos"},
+        #             {"Key": "Project:Detail", "Value": "Pharos"},
+        #         ],
+        #     )
+
+        # print("Create database, user, and grant permissions")
+        # handle_statements(
+        #     connection,
+        #     response_data,
+        #     {
+    #         "database": f'CREATE DATABASE "{DATABASE}";',
+    #         "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
+    #         "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
+    #     },
+    # )
+
+    print("Create database")
+    handle_statements(
+        connection,
+        response_data,
+        {
+            "database": f'CREATE DATABASE "{DATABASE}";',
+        },
+    )
+
+    connection.close()
+
+    print("Connect to new database as superuser")
+    database_url = URL.create(
+        drivername="postgresql+psycopg2",
+        host=HOST,
+        database=DATABASE,
+        username=CREDENTIALS["username"],
+        port=PORT,
+        password=CREDENTIALS["password"],
+        query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
+    )
+
     try:
-        print("Check if secret exists")
-        SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
+        engine = sqlalchemy.create_engine(database_url)
+        connection = engine.connect()
+        connection.execute(sqlalchemy.sql.text("COMMIT"))
 
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
-        return
-
-    except ClientError:
-        print("Create random password")
-        response = SECRETS_MANAGER.get_random_password(
-            ExcludePunctuation=True, IncludeSpace=False
-        )
-        new_password = response["RandomPassword"]
-
-        print("Store new secret")
-        response = SECRETS_MANAGER.create_secret(
-            Name=DATABASE,
-            Description=f'Username and Password for database "{DATABASE}" used for Pharos',
-            SecretString=(
-                json.dumps(
-                    {
-                        "username": USERNAME,
-                        "password": new_password,
-                        "host": HOST,
-                        "port": PORT,
-                    }
-                )
-            ),
-            Tags=[
-                {"Key": "Project", "Value": "Pharos"},
-                {"Key": "Project:Detail", "Value": "Pharos"},
-            ],
-        )
-
-        print("Create database, user, and grant permissions")
+        print("Install postgis and aws_s3 extensions")
         handle_statements(
             connection,
             response_data,
             {
-                "database": f'CREATE DATABASE "{DATABASE}";',
-                "user": f"""CREATE USER "{USERNAME}" WITH PASSWORD '{new_password}';""",
-                "priviliges": f"""GRANT ALL PRIVILEGES ON DATABASE "{DATABASE}" TO "{USERNAME}";""",
+                "postgis": "CREATE EXTENSION postgis;",
+                "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
             },
         )
 
+        print("Create tables")
+        Base.metadata.create_all(engine)
+
         connection.close()
 
-        print("Connect to new database as superuser")
-        database_url = URL.create(
-            drivername="postgresql+psycopg2",
-            host=HOST,
-            database=DATABASE,
-            username=CREDENTIALS["username"],
-            port=PORT,
-            password=CREDENTIALS["password"],
-            query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
-        )
+    except Exception as e:  # pylint: disable=broad-except
+        response_data["dbconnection"] = str(e)
 
-        try:
-            engine = sqlalchemy.create_engine(database_url)
-            connection = engine.connect()
-            connection.execute(sqlalchemy.sql.text("COMMIT"))
-
-            print("Install postgis and aws_s3 extensions")
-            handle_statements(
-                connection,
-                response_data,
-                {
-                    "postgis": "CREATE EXTENSION postgis;",
-                    "cascade": "CREATE EXTENSION aws_s3 CASCADE;",
-                },
-            )
-
-            print("Create tables")
-            Base.metadata.create_all(engine)
-
-            connection.close()
-
-        except Exception as e:  # pylint: disable=broad-except
-            response_data["dbconnection"] = str(e)
-
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+    cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)

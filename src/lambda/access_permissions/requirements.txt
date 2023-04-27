@@ -1,6 +1,7 @@
-SQLAlchemy
-GeoAlchemy2
+SQLAlchemy==2.0.5.post1
+GeoAlchemy2==0.13.1
 psycopg2-binary
-cfnresponse
-pydantic
-devtools
+cfnresponse==1.1.2
+pydantic==1.10.6
+devtools==0.10.0
+urllib3==1.26.9
