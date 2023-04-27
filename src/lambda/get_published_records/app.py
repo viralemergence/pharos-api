@@ -41,6 +41,33 @@ class GetPublishedRecordsEvent(BaseModel):
         extra = Extra.ignore
 
 
+def format_response_rows(rows, offset):
+    """Format the rows returned from the database to change API
+    names into display names, add query-relative row numbers,
+    and add latitude, longitude, and collection date columns.
+    """
+
+    response_rows = []
+    for row_number, row in enumerate(rows, start=1):
+        published_record, longitude, latitude = row
+
+        response_dict = {}
+        response_dict["pharosID"] = published_record.pharos_id
+        response_dict["rowNumber"] = row_number + offset
+
+        for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
+            if api_name not in COMPLEX_FIELDS:
+                response_dict[ui_name] = getattr(published_record, api_name, None)
+
+        response_dict["Latitude"] = latitude
+        response_dict["Longitude"] = longitude
+        response_dict["Collection date"] = published_record.collection_date.isoformat()
+
+        response_rows.append(response_dict)
+
+    return response_rows
+
+
 def lambda_handler(event, _):
     try:
         validated = GetPublishedRecordsEvent.parse_obj(event)
@@ -50,7 +77,7 @@ def lambda_handler(event, _):
     engine = get_engine()
 
     limit = validated.query_string_parameters.page_size
-    offset = validated.query_string_parameters.page * (limit - 1)
+    offset = (validated.query_string_parameters.page - 1) * limit
 
     with Session(engine) as session:
         rows = (
@@ -64,18 +91,6 @@ def lambda_handler(event, _):
             .all()
         )
 
-    response_rows = []
-    for published_record, longitude, latitude in rows:
+    response_rows = format_response_rows(rows, offset)
 
-        response_dict = {}
-        for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
-            if api_name not in COMPLEX_FIELDS:
-                response_dict[ui_name] = getattr(published_record, api_name, None)
-
-        response_dict["Latitude"] = latitude
-        response_dict["Longitude"] = longitude
-        response_dict["Collection date"] = published_record.collection_date.isoformat()
-
-        response_rows.append(response_dict)
-
-    return format_response(200, response_rows)
+    return format_response(200, {"publishedRecords": response_rows})
