@@ -10,9 +10,6 @@ API_NAME_TO_UI_NAME_MAP = {
     "animal_id": "Animal ID",
     "host_species": "Host species",
     "host_species_ncbi_tax_id": "Host species NCBI tax ID",
-    "latitude": "Latitude",
-    "longitude": "Longitude",
-    "spatial_uncertainty": "Spatial uncertainty",
     "collection_day": "Collection day",
     "collection_month": "Collection month",
     "collection_year": "Collection year",
@@ -36,6 +33,9 @@ API_NAME_TO_UI_NAME_MAP = {
     "age": "Age",
     "mass": "Mass",
     "length": "Length",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "spatial_uncertainty": "Spatial uncertainty",
 }
 
 UI_NAME_TO_API_NAME_MAP = {v: k for k, v in API_NAME_TO_UI_NAME_MAP.items()}
