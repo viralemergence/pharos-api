@@ -52,17 +52,24 @@ def format_response_rows(rows, offset):
         published_record, longitude, latitude = row
 
         response_dict = {}
+
+        researchers = published_record.dataset.project.researchers
+
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
         response_dict["Project name"] = published_record.dataset.project.name
 
+        response_dict["Authors"] = ", ".join(
+            [researcher.name for researcher in researchers]
+        )
+
+        response_dict["Collection date"] = published_record.collection_date.isoformat()
+        response_dict["Latitude"] = latitude
+        response_dict["Longitude"] = longitude
+
         for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
             if api_name not in COMPLEX_FIELDS:
                 response_dict[ui_name] = getattr(published_record, api_name, None)
-
-        response_dict["Latitude"] = latitude
-        response_dict["Longitude"] = longitude
-        response_dict["Collection date"] = published_record.collection_date.isoformat()
 
         response_rows.append(response_dict)
 
