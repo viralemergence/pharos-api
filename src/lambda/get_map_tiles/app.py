@@ -4,8 +4,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from engine import get_engine
 
-from devtools import debug
-
 from format import format_response
 from models import PublishedRecord
 
