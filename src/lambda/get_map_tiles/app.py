@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
+from engine import get_engine
+
+from devtools import debug
+
 from format import format_response
+from models import PublishedRecord
 
 
 @dataclass
@@ -45,6 +52,25 @@ def lambda_handler(event, _):
     except ValueError as exc:
         return format_response(400, {"error": str(exc)})
 
-    return format_response(
-        200, {"zoom": tile_path.z, "x": tile_path.x, "y": tile_path.y}
-    )
+    print(tile_path)
+
+    engine = get_engine()
+
+    # func.ST_AsMVT("published_records", "location")
+
+    with Session(engine) as session:
+        query = session.query(func.ST_asGeoJSON(PublishedRecord))
+
+        print("query")
+        print(query)
+
+        tile = session.execute(query).all()
+
+        points = '{"type": "FeatureCollection", "features": ['
+        for point in tile:
+            points += point[0] + ","
+
+        points = points[:-1]
+        points += "]}"
+
+    return format_response(200, points, preformatted=True)

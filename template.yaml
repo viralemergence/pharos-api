@@ -573,7 +573,8 @@ Resources:
   GetMapTilesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      MemorySize: 128
+      Timeout: 30
+      MemorySize: 512
       CodeUri: src/lambda/get_map_tiles/
       VpcConfig:
         SecurityGroupIds:
