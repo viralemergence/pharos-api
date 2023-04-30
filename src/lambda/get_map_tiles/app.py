@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from sqlalchemy import text
 
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
@@ -57,18 +58,49 @@ def lambda_handler(event, _):
     # func.ST_AsMVT("published_records", "location")
 
     with Session(engine) as session:
-        query = session.query(func.ST_asGeoJSON(PublishedRecord))
+        # query = session.query(func.ST_asGeoJSON(PublishedRecord))
 
-        print("query")
-        print(query)
+        statement = text(
+            """
+            WITH
+                hexagons AS (
+                    SELECT COUNT(*), ST_Transform(hexes.geom, 4326) AS hex
+                        FROM
+                        ST_HexagonGrid(
+                            100,
+                            ST_Transform(
+                                ST_SetSRID(ST_EstimatedExtent('published_records', 'location'), 4326
+                            ), 3857)
+                        ) AS hexes
+                        INNER JOIN
+                        published_records AS pts
+                        ON ST_Intersects(ST_Transform(ST_SetSRID(pts.LOCATION, 4326), 3857), hexes.geom)
+                        GROUP BY hexes.geom
+                    )
+                SELECT
+                    json_build_object(
+                        'type', 'FeatureCollection',
+                        'features', json_agg(ST_AsGeoJSON(hexagons.*)::json)
+                      )
+                FROM hexagons
+                """
+        )
 
-        tile = session.execute(query).all()
+        # print("query")
+        # print(query)
 
-        points = '{"type": "FeatureCollection", "features": ['
-        for point in tile:
-            points += point[0] + ","
+        json = session.execute(statement).one()
 
-        points = points[:-1]
-        points += "]}"
+        # print(json[0])
 
-    return format_response(200, points, preformatted=True)
+        # tile = session.execute(query).all()
+
+        # points = '{"type": "FeatureCollection", "features": ['
+        # for point in tile:
+        #     points += point[0] + ","
+
+        # points = points[:-1]
+        # points += "]}"
+
+    # return format_response(200, points, preformatted=True)
+    return format_response(200, json[0])
