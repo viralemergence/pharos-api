@@ -44,6 +44,7 @@ packaging==23.0
 pathspec==0.9.0
 platformdirs==2.5.2
 pluggy==1.0.0
+psycopg2-binary==2.9.6
 pydantic==1.10.6
 pydata-sphinx-theme==0.13.1
 Pygments==2.14.0
@@ -54,7 +55,9 @@ pytest==7.2.2
 pytest-cov==4.0.0
 pytest-pylint==0.19.0
 python-dateutil==2.8.2
+pytoolconfig==1.2.5
 requests==2.28.2
+rope==1.7.0
 s3transfer==0.6.0
 six==1.16.0
 snowballstemmer==2.2.0
@@ -69,6 +72,7 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
 SQLAlchemy==2.0.5.post1
+sqlalchemy-repr==0.1.0
 toml==0.10.2
 tomli==2.0.1
 tomlkit==0.11.1
