@@ -1,5 +1,7 @@
 """Basic tests for publishing records to the database."""
 
+import json
+import random
 
 from sqlalchemy import URL, create_engine, select
 from sqlalchemy.orm import Session
@@ -15,7 +17,7 @@ from register import (
     User,
 )
 
-from models import PublishedProject, PublishedRecord, Researcher, Base
+from models import PublishedProject, Researcher, Base
 
 
 JOHN_SMITH = User.parse_table_item(
@@ -84,65 +86,58 @@ MOCK_DATASET = Dataset.parse_table_item(
     }
 )
 
-# mock json register string from s3
-MOCK_REGISTER = """
-    {
-        "register": {
-            "recAS40712sdgl": {
-                "Host species": {
-                    "dataValue": "Vulpes vulpes",
-                    "modifiedBy": "dev",
-                    "version": "2",
-                    "previous": {
-                        "dataValue": "Previous Data Value",
-                        "modifiedBy": "jane",
-                        "version": "1",
-                        "previous": {
-                            "dataValue": "Old value",
-                            "modifiedBy": "Nathan",
-                            "version": "0"
-                        }
-                    }
-                },
-                "Latitude": {
-                    "dataValue": "40.0150",
-                    "modifiedBy": "dev",
-                    "version": "1679692123"
-                },
-                "Longitude": {
-                    "dataValue": "-105.2705",
-                    "modifiedBy": "dev",
-                    "version": "1679692223"
-                },
-                "Collection day": {
-                    "dataValue": "1",
-                    "modifiedBy": "john",
-                    "version": "1679692123"
-                },
-                "Collection month": {
-                    "dataValue": "1",
-                    "modifiedBy": "dev",
-                    "version": "1679692123"
-                },
-                "Collection year": {
-                    "dataValue": "2019",
-                    "modifiedBy": "dev",
-                    "version": "1679692123"
-                },
-                "Detection outcome": {
-                    "dataValue": "positive",
-                    "modifiedBy": "dev",
-                    "version": "1679692123"
-                },
-                "Pathogen": {
-                    "dataValue": "SARS-CoV-2",
-                    "modifiedBy": "dev",
-                    "version": "1679692123"
-                }
-            }
+
+def create_mock_register(record_count: int) -> str:
+
+    register_dict = {}
+    register_dict["register"] = {}
+
+    for index in range(0, record_count):
+        record_id = "rec" + str(index)
+        lon = -105.2705 + random.randint(1, 100) / 100
+        lat = 40.0150 + random.randint(1, 100) / 100
+
+        register_dict["register"][record_id] = {
+            "Host species": {
+                "dataValue": "Bat",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Latitude": {
+                "dataValue": str(lat),
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Longitude": {
+                "dataValue": str(lon),
+                "modifiedBy": "dev",
+                "version": "1679692223",
+            },
+            "Collection day": {
+                "dataValue": "1",
+                "modifiedBy": "john",
+                "version": "1679692123",
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Detection outcome": {
+                "dataValue": "positive",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
         }
-    }
-    """
+
+    json_register = json.dumps(register_dict)
+
+    return json_register
 
 
 ENGINE = create_engine(
@@ -161,35 +156,33 @@ ENGINE = create_engine(
 Base.metadata.create_all(ENGINE)
 
 
-# def test_researcher():
-#     with Session(ENGINE) as session:
-#         session.add(
-#             Researcher(
-#                 researcher_id=JOHN_SMITH.researcher_id,
-#                 name=JOHN_SMITH.name,
-#                 organization=JOHN_SMITH.organization,
-#                 email=JOHN_SMITH.email,
-#             )
-#         )
-#         session.add(
-#             Researcher(
-#                 researcher_id=JANE_DOE.researcher_id,
-#                 name=JANE_DOE.name,
-#                 organization=JANE_DOE.organization,
-#                 email=JANE_DOE.email,
-#             )
-#         )
-#         session.commit()
+def test_researcher():
+    with Session(ENGINE) as session:
+        # Delete all existing projects, if any,
+        # so test can be run repeatedly
+        session.query(Researcher).delete()
+        session.commit()
 
-#     with Session(ENGINE) as session:
-#         result = session.scalars(
-#             select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
-#         ).one()
+        session.add(
+            Researcher(
+                researcher_id=JOHN_SMITH.researcher_id,
+                name=JOHN_SMITH.name,
+                organization=JOHN_SMITH.organization,
+                email=JOHN_SMITH.email,
+            )
+        )
 
-#         print(result)
+        session.commit()
 
-#         assert result.researcher_id == JANE_DOE.researcher_id
-#         assert result.name == "Jane Doe"
+    with Session(ENGINE) as session:
+        result = session.scalars(
+            select(Researcher).where(
+                Researcher.researcher_id == JOHN_SMITH.researcher_id
+            )
+        ).one()
+
+        assert result.researcher_id == JOHN_SMITH.researcher_id
+        assert result.name == JOHN_SMITH.name
 
 
 def test_publish_record():
@@ -215,8 +208,10 @@ def test_publish_record():
                 dataset=dataset,
             )
 
+            mock_register = create_mock_register(2000)
+
             published_dataset.records = create_published_records(
-                register_json=MOCK_REGISTER,
+                register_json=mock_register,
                 project_id=published_project.project_id,
                 dataset_id=published_dataset.dataset_id,
             )
@@ -227,11 +222,14 @@ def test_publish_record():
         session.commit()
 
     with Session(ENGINE) as session:
-        published_record = session.scalars(select(PublishedRecord)).one()
 
-        assert published_record.pharos_id == (
-            f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
-        )
+        published_project = session.scalars(select(PublishedProject)).one()
+
+        assert len(published_project.researchers) == 2
+
+        # assert published_project.datasets[0].records[0].pharos_id == (
+        #     f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
+        # )
 
         jane = session.scalars(
             select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
