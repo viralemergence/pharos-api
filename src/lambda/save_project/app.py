@@ -2,7 +2,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError
 
 from auth import check_auth
 from format import format_response
@@ -16,7 +16,7 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 class SaveProjectBody(BaseModel):
     """Event data payload to save a project."""
 
-    researcherID: str
+    researcher_id: str = Field(..., alias="researcherID")
     project: Project
 
     class Config:
@@ -30,7 +30,7 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcherID)
+    user = check_auth(validated.researcher_id)
 
     # This should also check if the user has permission to
     # edit this project, but to add that we need to create

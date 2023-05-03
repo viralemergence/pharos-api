@@ -4,7 +4,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
 
 from auth import check_auth
@@ -21,9 +21,9 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class ReleaseDatasetBody(BaseModel):
     """Event data payload to release a dataset."""
 
-    researcherID: str
-    projectID: str
-    datasetID: str
+    researcher_id: str = Field(..., alias="researcherID")
+    project_id: str = Field(..., alias="projectID")
+    dataset_id: str = Field(..., alias="datasetID")
 
 
 def lambda_handler(event, _):
@@ -33,15 +33,15 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcherID)
+    user = check_auth(validated.researcher_id)
     if not user:
         return format_response(403, "Not Authorized")
-    if not user.projectIDs or not validated.projectID in user.projectIDs:
+    if not user.project_ids or not validated.project_id in user.project_ids:
         return format_response(403, "Researcher is not authorized for this project")
 
     try:
         key_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.datasetID}/"
+            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.dataset_id}/"
         )["Contents"]
 
         key_list.sort(key=lambda item: item["LastModified"], reverse=True)
@@ -58,14 +58,16 @@ def lambda_handler(event, _):
         release_report = register.get_release_report()
 
         # need to actually set released value in the dataset metadata object in dynamodb
-        if release_report.releaseStatus == DatasetReleaseStatus.RELEASED:
+        if release_report.release_status == DatasetReleaseStatus.RELEASED:
             METADATA_TABLE.update_item(
-                Key={"pk": validated.projectID, "sk": validated.datasetID},
+                Key={"pk": validated.project_id, "sk": validated.dataset_id},
                 UpdateExpression="set releaseStatus = :r",
                 ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASED.value},
             )
 
-        return format_response(200, release_report.json(), preformatted=True)
+        return format_response(
+            200, release_report.json(by_alias=True), preformatted=True
+        )
 
     except ValidationError as e:
         return {

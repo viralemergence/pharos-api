@@ -1,212 +1,238 @@
-"""Basic tests for transforming records into database tests"""
+"""Basic tests for publishing records to the database."""
+
+import json
+import random
+
+from sqlalchemy import URL, create_engine, select
+from sqlalchemy.orm import Session
+from publish_register import (
+    create_published_dataset,
+    create_published_project,
+    create_published_records,
+    upsert_project_users,
+)
+from register import (
+    Dataset,
+    Project,
+    User,
+)
+
+from models import PublishedProject, Researcher, Base
 
 
-# from datetime import date
-# from typing import Union
-# from devtools import debug
-# from geoalchemy2 import load_spatialite
-# from sqlalchemy import create_engine, select
-# from sqlalchemy.event import listen
-# from sqlalchemy.orm import Session
-# from register import Datapoint, Record, ReportScore
+JOHN_SMITH = User.parse_table_item(
+    # mock user item from dynamodb
+    {
+        "pk": "resl90OaJvWZR",
+        "sk": "_meta",
+        "name": "John Smith",
+        "email": "john.smith@institute.org",
+        "organization": "Institute of Research",
+        "projectIDs": {"prjl90OaJvWZR"},
+    }
+)
 
-# from models2 import Attribution, PublishedRecord, Researcher, Base
+JANE_DOE = User.parse_table_item(
+    # mock user item from dynamodb
+    {
+        "pk": "resl90l123kxd",
+        "sk": "_meta",
+        "name": "Jane Doe",
+        "email": "jane.doe@institute.org",
+        "organization": "Institute of Research",
+        "projectIDs": {"prjl90OaJvWZR"},
+    }
+)
 
-# VALID_RECORD = """
-# {
-#     "Host species": {
-#         "dataValue": "Vulpes vulpes",
-#         "modifiedBy": "dev",
-#         "version": "2",
-#         "previous": {
-#             "dataValue": "Previous Data Value",
-#             "modifiedBy": "jane",
-#             "version": "1",
-#             "previous": {
-#                 "dataValue": "Old value",
-#                 "modifiedBy": "Nathan",
-#                 "version": "0"
-#             }
-#         }
-#     },
-#     "Latitude": {
-#         "dataValue": "40.0150",
-#         "modifiedBy": "dev",
-#         "version": "1679692123"
-#     },
-#     "Longitude": {
-#         "dataValue": "105.2705",
-#         "modifiedBy": "dev",
-#         "version": "1679692223"
-#     },
-#     "Collection day": {
-#         "dataValue": "1",
-#         "modifiedBy": "john",
-#         "version": "1679692123"
-#     },
-#     "Collection month": {
-#         "dataValue": "1",
-#         "modifiedBy": "dev",
-#         "version": "1679692123"
-#     },
-#     "Collection year": {
-#         "dataValue": "2019",
-#         "modifiedBy": "dev",
-#         "version": "1679692123"
-#     },
-#     "Detection outcome": {
-#         "dataValue": "positive",
-#         "modifiedBy": "dev",
-#         "version": "1679692123"
-#     },
-#     "Pathogen": {
-#         "dataValue": "SARS-CoV-2",
-#         "modifiedBy": "dev",
-#         "version": "1679692123"
-#     }
-# }
-# """
+MOCK_PROJECT = Project.parse_table_item(
+    # mock project item from dynamodb
+    {
+        "pk": "prjl90OaJvWZR",
+        "sk": "_meta",
+        "name": "Mock Project",
+        "description": "Test project description",
+        "authors": [
+            {
+                "researcherID": "resl90OaJvWZR",
+                "role": "Admin",
+            },
+            {
+                "researcherID": "resl90l123kxd",
+                "role": "Admin",
+            },
+        ],
+        "citation": "Test citation",
+        "datasetIDs": ["setxlj1qoFxLC"],
+        "lastUpdated": "2021-01-01",
+        "othersCiting": [""],
+        "projectPublications": [""],
+        "projectType": "",
+        "publishStatus": "Unpublished",
+        "relatedMaterials": [""],
+        "surveillanceStatus": "Ongoing",
+    }
+)
 
-# ENGINE = create_engine("sqlite+pysqlite:///:memory:", echo=True)
-# listen(ENGINE, "connect", load_spatialite)
-# Base.metadata.create_all(ENGINE)
-
-# JANE_ID = "A098SKHLSD234"
+MOCK_DATASET = Dataset.parse_table_item(
+    # mock dataset item from dynamodb
+    {
+        "pk": "prjl90OaJvWZR",
+        "sk": "setxlj1qoFxLC",
+        "releaseStatus": "Released",
+        "name": "Mock Dataset",
+        "lastUpdated": "2021-01-01",
+        "earliestDate": "2019-01-01",
+        "latestDate": "2020-01-01",
+    }
+)
 
 
-# def test_researcher():
-#     with Session(ENGINE) as session:
-#         researcher = Researcher(
-#             researcher_id=JANE_ID,
-#             first_name="Jane",
-#             last_name="Doe",
-#         )
-#         session.add(researcher)
-#         session.commit()
+def create_mock_register(record_count: int) -> str:
 
-#     with Session(ENGINE) as session:
-#         result = session.scalars(select(Researcher)).one()
+    register_dict = {}
+    register_dict["register"] = {}
 
-#         print(result)
+    for index in range(0, record_count):
+        record_id = "rec" + str(index)
+        lon = -105.2705 + random.randint(1, 100) / 100
+        lat = 40.0150 + random.randint(1, 100) / 100
 
-#         assert result.researcher_id == JANE_ID
-#         assert result.first_name == "Jane"
-#         assert result.last_name == "Doe"
+        register_dict["register"][record_id] = {
+            "Host species": {
+                "dataValue": "Bat",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Latitude": {
+                "dataValue": str(lat),
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Longitude": {
+                "dataValue": str(lon),
+                "modifiedBy": "dev",
+                "version": "1679692223",
+            },
+            "Collection day": {
+                "dataValue": "1",
+                "modifiedBy": "john",
+                "version": "1679692123",
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+            "Detection outcome": {
+                "dataValue": "positive",
+                "modifiedBy": "dev",
+                "version": "1679692123",
+            },
+        }
+
+    json_register = json.dumps(register_dict)
+
+    return json_register
 
 
-# PHAROS_ID = "prjl90OaJvWZR-setxlj1qoFxLC-recJSdfsklklo"
+ENGINE = create_engine(
+    URL.create(
+        drivername="postgresql+psycopg2",
+        host="localhost",
+        database="pharos-pytest",
+        username="postgres",
+        port=5432,
+        password="1234",
+    )
+)
 
-# JOHN_ID = "ASDF9098234SD"
+
+Base.metadata.create_all(ENGINE)
 
 
-# def researchers_from_datapoint(datapoint: Datapoint, researchers: set[str]) -> set[str]:
-#     if datapoint.previous is not None:
-#         researchers = researchers_from_datapoint(datapoint.previous, researchers)
+def test_researcher():
+    with Session(ENGINE) as session:
+        # Delete all existing researchers, if any,
+        # so test can be run repeatedly
+        session.query(Researcher).delete()
+        session.commit()
 
-#     researchers.add(datapoint.modifiedBy)
-#     return researchers
+        session.add(
+            Researcher(
+                researcher_id=JOHN_SMITH.researcher_id,
+                name=JOHN_SMITH.name,
+                organization=JOHN_SMITH.organization,
+                email=JOHN_SMITH.email,
+            )
+        )
+
+        session.commit()
+
+    with Session(ENGINE) as session:
+        result = session.scalars(
+            select(Researcher).where(
+                Researcher.researcher_id == JOHN_SMITH.researcher_id
+            )
+        ).one()
+
+        assert result.researcher_id == JOHN_SMITH.researcher_id
+        assert result.name == JOHN_SMITH.name
 
 
-# def test_transform_record():
-#     # with Session(ENGINE) as session:
-#     #     john = Researcher(
-#     #         researcher_id=JOHN_ID,
-#     #         first_name="John",
-#     #         last_name="Smith",
-#     #     )
-#     #     session.add(john)
-#     #     session.commit()
+def test_publish_record():
+    with Session(ENGINE) as session:
 
-#     with Session(ENGINE) as session:
-#         record = Record.parse_raw(VALID_RECORD)
+        # Delete all existing projects, if any,
+        # so test can be run repeatedly
+        session.query(PublishedProject).delete()
+        session.commit()
 
-#         # attribution = Attribution(version="023")
+        published_project = create_published_project(
+            project=MOCK_PROJECT,
+        )
 
-#         # john = session.scalar(
-#         #     select(Researcher).where(Researcher.researcher_id == JOHN_ID)
-#         # )
+        upsert_project_users(
+            session=session,
+            published_project=published_project,
+            users=[JOHN_SMITH, JANE_DOE],
+        )
 
-#         # if john is None:
-#         #     john = Researcher(
-#         #         researcher_id=JOHN_ID,
-#         #         first_name="John",
-#         #         last_name="Smith",
-#         #     )
+        for dataset in [MOCK_DATASET]:
+            published_dataset = create_published_dataset(
+                dataset=dataset,
+            )
 
-#         # john.attributions.append(attribution)
-#         record_dict: dict[str, Datapoint] = record.__dict__
+            mock_register = create_mock_register(2000)
 
-#         exclude = {
-#             "collection_day",
-#             "collection_month",
-#             "collection_year",
-#             "latitude",
-#             "longitude",
-#         }
+            published_dataset.records = create_published_records(
+                register_json=mock_register,
+                project_id=published_project.project_id,
+                dataset_id=published_dataset.dataset_id,
+            )
 
-#         prepublish: dict[str, Union[Datapoint, date]] = {}
-#         researchers: set[str] = set()
-#         attributions: list[Attribution] = []
+            published_project.datasets.append(published_dataset)
 
-#         for field, datapoint in record_dict.items():
-#             if datapoint is not None:
-#                 researchers = researchers_from_datapoint(datapoint, researchers)
+        session.add(published_project)
+        session.commit()
 
-#                 if field not in exclude:
-#                     prepublish[field] = datapoint
+    with Session(ENGINE) as session:
 
-#         debug(prepublish)
-#         debug(researchers)
+        published_project = session.scalars(select(PublishedProject)).one()
 
-#         if (
-#             not record.collection_day
-#             or not record.collection_month
-#             or not record.collection_year
-#         ):
-#             raise ValueError(
-#                 "Record is missing collection date, should not have passed validator"
-#             )
+        assert len(published_project.researchers) == 2
 
-#         collection_date = date(
-#             int(record.collection_year),
-#             int(record.collection_month),
-#             int(record.collection_day),
-#         )
+        # assert published_project.datasets[0].records[0].pharos_id == (
+        #     f"{MOCK_PROJECT.project_id}-{MOCK_DATASET.dataset_id}-recAS40712sdgl"
+        # )
 
-#         if not record.latitude or not record.longitude:
-#             raise ValueError(
-#                 "Record is missing location, should not have passed validator"
-#             )
+        jane = session.scalars(
+            select(Researcher).where(Researcher.researcher_id == JANE_DOE.researcher_id)
+        ).one()
 
-#         location = f"POINT({record.latitude},{record.longitude})"
-
-#         published = PublishedRecord(
-#             pharos_id=PHAROS_ID,
-#             attributions=attributions,
-#             collection_date=collection_date,
-#             location=location,
-#             **prepublish,
-#         )
-
-#         session.add(published)
-#         session.commit()
-
-#     with Session(ENGINE) as session:
-#         published = session.scalars(select(PublishedRecord)).one()
-#         debug(published)
-#         debug(published.attributions)
-
-#         # john = session.scalar(
-#         #     select(Researcher).where(Researcher.researcher_id == JOHN_ID)
-#         # )
-
-#         # if john:
-#         #     debug(john)
-#         #     debug(john.attributions)
-
-#         researchers_result = session.scalars(select(Researcher)).all()
-
-#         for researcher in researchers_result:
-#             debug(researcher)
-#             # if researcher.attributions:
-#             #     debug(researcher.attributions)
+        assert len(jane.projects) == 1
+        assert jane.projects[0].project_id == MOCK_PROJECT.project_id

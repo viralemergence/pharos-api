@@ -1,103 +1,258 @@
-# from sqlalchemy.orm import declarative_base
-# from sqlalchemy import Column
-# from sqlalchemy.types import Numeric, String, Date, Boolean, BigInteger, TypeDecorator
-# from geoalchemy2 import Geometry
+from datetime import date
+from typing import Optional
+from geoalchemy2 import WKTElement
+from geoalchemy2.types import Geometry
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    ForeignKey,
+    Numeric,
+    Table,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import String, TypeDecorator
 
 
-# class StringToNumeric(TypeDecorator):
-#     """Typecast string to numeric."""
-
-#     impl = Numeric
-
-#     def __init__(self, *arg, **kw):
-#         TypeDecorator.__init__(self, *arg, **kw)
-
-#     def process_bind_param(self, value, dialect):
-#         if value is None:
-#             return value
-#         return float(value)
+from value_alias import (
+    DeadOrAlive,
+    DetectionOutcome,
+    OrganismSex,
+    DEAD_OR_ALIVE_VALUES_MAP,
+    DETECTION_OUTCOME_VALUES_MAP,
+    ORGANISM_SEX_VALUES_MAP,
+)
 
 
-# class StringToInteger(TypeDecorator):
-#     """Typecast string to integer."""
-
-#     impl = BigInteger
-
-#     def process_bind_param(self, value, dialect):
-#         if value is None:
-#             return value
-#         return int(value)
-
-
-# def declarative_constructor(self, **kwargs):
-#     """Don't raise a TypeError for unknown attribute names."""
-#     attribute_type = type(self)
-#     for k in kwargs:
-#         if not hasattr(attribute_type, k):
-#             continue
-#         setattr(self, k, kwargs[k])
+def todict(obj):
+    """Return the object's dict excluding private attributes,
+    sqlalchemy state and relationship attributes.
+    """
+    excl = ("_sa_adapter", "_sa_instance_state")
+    return {
+        k: v
+        for k, v in vars(obj).items()
+        if not k.startswith("_") and not any(hasattr(v, a) for a in excl)
+    }
 
 
-# Base = declarative_base(constructor=declarative_constructor)
+def wrap_type(value):
+    if isinstance(value, str):
+        return f'"{value}" {type(value)}'
+
+    return f"{value} {type(value)}"
 
 
-# class Researchers(Base):
-#     __tablename__ = "researchers"
-#     researcher_id = Column(String(20), primary_key=True)
-#     first_name = Column(String(40))
-#     last_name = Column(String(40))
+class Base(DeclarativeBase):
+    # Borrowing this automatic __repr__ from
+    # https://stackoverflow.com/a/54034230
+    def __repr__(self):
+        params = ",\n".join(
+            f"    {k} = {wrap_type(v)}" for k, v in todict(self).items()
+        )
+        return f"\n{self.__class__.__name__}(\n{params}\n)"
 
 
-# class ResearchersTests(Base):
-#     __tablename__ = "researcherstests"
-#     id_pk = Column(BigInteger(), primary_key=True, autoincrement=True)
-#     researcher_id = Column(String(20))
-#     record_id = Column(String(41))
+class CoerceFloat(TypeDecorator):
+    """Convert a given value to float, or return None"""
+
+    impl = Numeric
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except ValueError:
+            return None
 
 
-# class Tests(Base):
-#     __tablename__ = "tests"
-#     pharos_id = Column(String(41), primary_key=True)  # compund key proj-set-rec
-#     project_id = Column(String(20))
-#     dataset_id = Column(String(20))
-#     record_id = Column(String(20))
-#     # row_id = Column(String(25))
-#     sample_id = Column(String(25), default=None)
-#     animal_id = Column(String(32), default=None)
-#     host_species = Column(String(50))
-#     host_ncbi_tax_id = Column(String(8), default=None)
-#     location = Column(Geometry("Point"))  # latitude, longitude
-#     spatial_uncertainty = Column(
-#         StringToNumeric(1, 0), default=None
-#     )  # 1 meter scale / spatial uncertainity and spatial uncertainity units
-#     collection_date = Column(
-#         Date()
-#     )  # collection day, collection month, collection year
-#     collection_method_or_tissue = Column(String(50), default=None)
-#     detection_method = Column(String(50), default=None)
-#     # primer_sequence
-#     # primer_citation
-#     detection_target = Column(String(50), default=None)
-#     detection_target_ncbi_tax_id = Column(String(8), default=None)
-#     detection_outcome = Column(String(12), default=None)
-#     # detection_measurement
-#     # detection_measurement_units
-#     pathogen = Column(String(50))
-#     pathogen_ncbi_tax_id = Column(String(8), default=None)
-#     # genbank_accession
-#     # detection_comments
-#     organism_sex = Column(String(1), default=None)  # M, F, U
-#     dead_or_alive = Column(String(7), default=None)  # Y, N, U
-#     # health_notes
-#     life_stage = Column(String(15), default=None)
-#     age = Column(
-#         StringToInteger(), default=None
-#     )  # age units seconds 100 years ==> integer of 10 digits / age, age units
-#     mass = Column(
-#         StringToNumeric(12, 6), default=None
-#     )  # mass units to kg xxxxxx.xxxxxx / mass, mass units / tons - mg
-#     length = Column(
-#         StringToNumeric(8, 6), default=None
-#     )  # length units to meters xx.xxxxxx / length, length units / m - mm
-#     pool = Column(Boolean)
-#     host_uncertanity = Column(String(15))
+class CoerceStr(TypeDecorator):
+    """Convert a given value to string, or return None"""
+
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        try:
+            return str(value)
+        except ValueError:
+            return None
+
+
+class CoerceInt(TypeDecorator):
+    """Convert a given value to integer, or return None"""
+
+    impl = BigInteger
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            return None
+
+
+class AliasOrganismSex(TypeDecorator):
+    """Convert allowed organism_sex datapoint to standardized database value"""
+
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return ORGANISM_SEX_VALUES_MAP[str(value).lower()]
+
+
+class AliasDetectionOutcome(TypeDecorator):
+    """Convert allowed detection_outcome datapoint to standardized database value"""
+
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return DETECTION_OUTCOME_VALUES_MAP[str(value).lower()]
+
+
+class AliasDeadOrAlive(TypeDecorator):
+    """Convert allowed dead_or_alive datapoint to standardized database value"""
+
+    impl = String
+    cache_ok = True
+
+    def process_bind_param(self, value, _):
+        if value is None:
+            return None
+        return DEAD_OR_ALIVE_VALUES_MAP[str(value).lower()]
+
+
+projects_researchers = Table(
+    "projects_researchers",
+    Base.metadata,
+    Column(
+        "project_id",
+        ForeignKey("projects.project_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "researcher_id",
+        ForeignKey("researchers.researcher_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+
+class Researcher(Base):
+    __tablename__ = "researchers"
+
+    researcher_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    organization: Mapped[str]
+    email: Mapped[str]
+
+    projects: Mapped[list["PublishedProject"]] = relationship(
+        secondary=projects_researchers,
+        back_populates="researchers",
+        passive_deletes=True,
+    )
+
+
+class PublishedProject(Base):
+    __tablename__ = "projects"
+
+    project_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    published_date: Mapped[date]
+    description: Mapped[Optional[str]]
+    project_type: Mapped[Optional[str]]
+    surveillance_status: Mapped[Optional[str]]
+    citation: Mapped[Optional[str]]
+    related_materials: Mapped[Optional[str]]
+    project_publications: Mapped[Optional[str]]
+    others_citing: Mapped[Optional[str]]
+
+    researchers: Mapped[list["Researcher"]] = relationship(
+        secondary=projects_researchers,
+        back_populates="projects",
+        cascade="all, delete",
+    )
+
+    datasets: Mapped[list["PublishedDataset"]] = relationship(
+        "PublishedDataset",
+        back_populates="project",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
+
+
+class PublishedDataset(Base):
+    __tablename__ = "datasets"
+
+    dataset_id: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    earliest_date: Mapped[Optional[date]]
+    latest_date: Mapped[Optional[date]]
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.project_id", ondelete="CASCADE")
+    )
+
+    project: Mapped["PublishedProject"] = relationship(
+        "PublishedProject",
+        back_populates="datasets",
+    )
+
+    records: Mapped[list["PublishedRecord"]] = relationship(
+        "PublishedRecord",
+        back_populates="dataset",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
+
+
+class PublishedRecord(Base):
+    __tablename__ = "published_records"
+
+    pharos_id: Mapped[str] = mapped_column(primary_key=True)
+    dataset_id: Mapped[str] = mapped_column(
+        ForeignKey("datasets.dataset_id", ondelete="CASCADE")
+    )
+    sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    host_species: Mapped[str] = mapped_column(CoerceStr)
+    host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    collection_date: Mapped[date]
+    collection_method_or_tissue: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_method: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_sequence: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_target_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    detection_outcome: Mapped[DetectionOutcome] = mapped_column(AliasDetectionOutcome)
+    detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    pathogen: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    pathogen_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
+    genbank_accession: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_comments: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    organism_sex: Mapped[Optional[OrganismSex]] = mapped_column(AliasOrganismSex)
+    dead_or_alive: Mapped[Optional[DeadOrAlive]] = mapped_column(AliasDeadOrAlive)
+    health_notes: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    life_stage: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    age: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    mass: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    length: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    geom: Mapped[WKTElement] = mapped_column(Geometry("POINT", srid=4326))
+
+    dataset: Mapped["PublishedDataset"] = relationship(
+        "PublishedDataset",
+        back_populates="records",
+    )
