@@ -91,8 +91,8 @@ def lambda_handler(event, _):
         rows = (
             session.query(
                 PublishedRecord,
-                PublishedRecord.location.ST_X(),
-                PublishedRecord.location.ST_Y(),
+                PublishedRecord.geom.ST_X(),
+                PublishedRecord.geom.ST_Y(),
             )
             .limit(limit)
             .offset(offset)

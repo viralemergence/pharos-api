@@ -139,7 +139,7 @@ def create_published_records(
 
         # create and add the location WKT
         # geometry string to the database model
-        published_record.location = WKTElement(
+        published_record.geom = WKTElement(
             f"POINT({record.longitude} {record.latitude})"
         )
 

@@ -250,7 +250,6 @@ class PublishedRecord(Base):
     animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    location: Mapped[WKTElement] = mapped_column(Geometry("POINT"))
     spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
     collection_date: Mapped[date]
     collection_method_or_tissue: Mapped[Optional[str]] = mapped_column(CoerceStr)
@@ -273,6 +272,7 @@ class PublishedRecord(Base):
     age: Mapped[Optional[float]] = mapped_column(CoerceFloat)
     mass: Mapped[Optional[float]] = mapped_column(CoerceFloat)
     length: Mapped[Optional[float]] = mapped_column(CoerceFloat)
+    geom: Mapped[WKTElement] = mapped_column(Geometry("POINT", srid=4326))
 
     dataset: Mapped["PublishedDataset"] = relationship(
         "PublishedDataset",
