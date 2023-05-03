@@ -70,6 +70,8 @@ jobs:
           password: $DOCKERHUB_PASSWORD
 
     steps:
+      - checkout
+
       - run:
           name: Install Python@3.9
           command: |
