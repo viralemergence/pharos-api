@@ -94,6 +94,22 @@ jobs:
             pylint src/
 
       - run:
+          name: Install postgis
+          command: sudo apt install postgis
+
+      - run:
+          name: Check postgres extensions
+          command: |
+            export PGPASSWORD=1234
+            psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT * FROM pg_extension"
+
+      - run:
+          name: Add PostGIS to database
+          command: |
+            export PGPASSWORD=1234
+            psql -h localhost -p 5432 -U postgres -d postgres -c "CREATE EXTENSION postgis"
+
+      - run:
           name: Run Tests
           command: |
             mkdir test-results
