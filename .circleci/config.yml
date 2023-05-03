@@ -16,6 +16,8 @@ workflows:
 
       # dev
       - deploy:
+          requires:
+            - test
           config-env: dev
           context: *credentials
           filters:
@@ -25,6 +27,8 @@ workflows:
 
       # review
       - deploy:
+          requires:
+            - test
           config-env: review
           context: *credentials
           filters:
@@ -34,6 +38,8 @@ workflows:
 
       # staging
       - deploy:
+          requires:
+            - test
           config-env: staging
           context: *credentials
           filters:
@@ -43,6 +49,8 @@ workflows:
 
       # prod
       - deploy:
+          requires:
+            - test
           config-env: prod
           context: *credentials
           filters:
