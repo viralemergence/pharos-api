@@ -57,6 +57,12 @@ jobs:
       config-env:
         type: string
 
+    docker:
+      - image: cimg/14.7-postgis
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+
     steps:
       - checkout
 
@@ -93,11 +99,6 @@ jobs:
           command: |
             source env/bin/activate
             pylint src/
-
-      - run:
-          name: Run database
-          command: |
-            docker run --detach --rm -P -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD="1234" --name postgis-test postgis/postgis
 
       - run:
           name: Run Tests
