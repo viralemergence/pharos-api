@@ -157,7 +157,7 @@ Base.metadata.create_all(ENGINE)
 
 def test_researcher():
     with Session(ENGINE) as session:
-        # Delete all existing projects, if any,
+        # Delete all existing researchers, if any,
         # so test can be run repeatedly
         session.query(Researcher).delete()
         session.commit()
