@@ -97,7 +97,7 @@ jobs:
       - run:
           name: Run database
           command: |
-            docker run --rm -P -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD="1234" --name postgis-test postgis/postgis
+            docker run --rm -P -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD="1234" --name postgis-test postgis/postgis --detach
 
       - run:
           name: Run Tests
