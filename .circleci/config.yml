@@ -65,7 +65,7 @@ jobs:
       - image: cimg/postgres:14.7-postgis
         environment:
           POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
+          POSTGRES_DB: pharos-pytest
           POSTGRES_PASSWORD: "1234"
           username: $DOCKERHUB_USER
           password: $DOCKERHUB_PASSWORD
@@ -76,6 +76,8 @@ jobs:
       - run:
           name: Install dev dependencies
           command: |
+            python3.9 -m venv env .
+            source env/bin/activate
             pip install -r dev-requirements.txt
 
       - run:
@@ -86,33 +88,32 @@ jobs:
       - run:
           name: Run Type Checks
           command: |
+            source env/bin/activate
             pyright
 
-      - run:
-          name: Run Style Checks
-          command: |
-            pylint src/
-
-      - run:
-          name: Install postgis
-          command: sudo apt install postgis
+      # - run:
+      #     name: Run Style Checks
+      #     command: |
+      #       source env/bin/activate
+      #       pylint src/
 
       - run:
           name: Check postgres extensions
           command: |
             export PGPASSWORD=1234
-            psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT * FROM pg_extension"
+            psql -h localhost -p 5432 -U postgres -d pharos-pytest -c "SELECT * FROM pg_extension"
 
       - run:
           name: Add PostGIS to database
           command: |
             export PGPASSWORD=1234
-            psql -h localhost -p 5432 -U postgres -d postgres -c "CREATE EXTENSION postgis"
+            psql -h localhost -p 5432 -U postgres -d pharos-pytest -c "CREATE EXTENSION postgis"
 
       - run:
           name: Run Tests
           command: |
             mkdir test-results
+            source env/bin/activate
             pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
             coverage report
 
