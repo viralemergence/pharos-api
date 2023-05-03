@@ -6,6 +6,7 @@ credentials: &credentials
 
 orbs:
   sam: circleci/aws-sam-serverless@4.0
+  aws-cli: circleci/aws-cli@3.1
 
 workflows:
   version: 2
@@ -94,11 +95,11 @@ jobs:
             source env/bin/activate
             pyright
 
-      # - run:
-      #     name: Run Style Checks
-      #     command: |
-      #       source env/bin/activate
-      #       pylint src/
+      - run:
+          name: Run Style Checks
+          command: |
+            source env/bin/activate
+            pylint src/
 
       - run:
           name: Add PostGIS to database
@@ -126,9 +127,6 @@ jobs:
           key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
 
   deploy:
-    docker:
-      - image: cimg/python:3.9
-
     executor: sam/default
 
     parameters:
@@ -137,6 +135,15 @@ jobs:
 
     steps:
       - checkout
+
+      - run:
+          name: Install Python@3.9
+          command: |
+            sudo apt install software-properties-common;
+            sudo add-apt-repository ppa:deadsnakes/ppa;
+            sudo apt update;
+            sudo apt install python3.9
+
       - sam/install
       - run: sam build
       - run: |
