@@ -126,6 +126,9 @@ jobs:
           key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
 
   deploy:
+    docker:
+      - image: cimg/python:3.9-node
+
     executor: sam/default
 
     parameters:
