@@ -61,6 +61,7 @@ workflows:
 jobs:
   test:
     docker:
+      - image: cimg/python:3.9
       - image: cimg/postgres:14.7-postgis
         environment:
           POSTGRES_USER: postgres
@@ -73,30 +74,13 @@ jobs:
       - checkout
 
       - run:
-          name: Install Node LTS
-          command: sudo apt install nodejs
-
-      - run:
-          name: Install Python@3.9
+          name: Install dev dependencies
           command: |
-            sudo apt install software-properties-common;
-            sudo add-apt-repository -y ppa:deadsnakes/ppa;
-            sudo apt -y update;
-            sudo apt -y install python3.9;
-            sudo apt -y install python3.9-distutils;
-            sudo apt -y install python3.9-venv;
-
-      - run:
-          name: Create virtualenv & install dev dependencies
-          command: |
-            python3.9 -m venv env .
-            source env/bin/activate
             pip install -r dev-requirements.txt
 
       - run:
           name: Install NodeJS & Pyright
           command: |
-            sudo apt install nodejs;
             npm install --global pyright;
 
       - run:
@@ -107,13 +91,11 @@ jobs:
       - run:
           name: Run Style Checks
           command: |
-            source env/bin/activate
             pylint src/
 
       - run:
           name: Run Tests
           command: |
-            source env/bin/activate
             mkdir test-results
             pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
             coverage report
