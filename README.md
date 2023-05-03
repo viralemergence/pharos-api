@@ -29,3 +29,42 @@ This will output the API url, which can be passed to the pharos-frontend develop
 
 All infrastructure is managed in `template.yaml`, and all changes to that template
 should be deployed by committing to a CCI tracking branch.
+
+## Run Tests Locally
+
+### 1. Start local testing database using Docker:
+
+This command will start a docker container called `pharos-pytest-database` which
+is intended to be a completely throwaway database (will not persist data on shutdown)
+only for running local tests using pytest.
+
+```sh
+docker run --rm -P -p 127.0.0.1:5432:5432 \
+    -e POSTGRES_PASSWORD="1234" \
+    -e POSTGRES_DB="pharos-pytest" \
+    --name pharos-pytest-database \
+    postgis/postgis
+```
+
+### 2. Install and source dev dependencies
+
+```sh
+python3.9 -m venv env .
+source env/bin/activate
+pip install -r dev-requirements.txt
+```
+
+### 3. Run project tests
+
+```
+source env/bin/activate
+pytest -v --cov=src/libraries/python/ --cov=src/lambda/
+```
+
+This command also creates and displays a coverage report, the
+full interactive coverage report can be viewed in a browser
+on port 8080 (chosing 8080 just because the frontend runs on 8000) with the command:
+
+```sh
+cd htmlcov; python -m http.server 8080
+```

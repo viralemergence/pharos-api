@@ -94,17 +94,11 @@ jobs:
             source env/bin/activate
             pyright
 
-      # - run:
-      #     name: Run Style Checks
-      #     command: |
-      #       source env/bin/activate
-      #       pylint src/
-
       - run:
-          name: Check postgres extensions
+          name: Run Style Checks
           command: |
-            export PGPASSWORD=1234
-            psql -h localhost -p 5432 -U postgres -d pharos-pytest -c "SELECT * FROM pg_extension"
+            source env/bin/activate
+            pylint src/
 
       - run:
           name: Add PostGIS to database

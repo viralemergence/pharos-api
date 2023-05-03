@@ -143,7 +143,6 @@ def create_mock_register(record_count: int) -> str:
 ENGINE = create_engine(
     URL.create(
         drivername="postgresql+psycopg2",
-        # host=CREDENTIALS["host"],
         host="localhost",
         database="pharos-pytest",
         username="postgres",
