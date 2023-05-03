@@ -133,22 +133,6 @@ class AliasDeadOrAlive(TypeDecorator):
         return DEAD_OR_ALIVE_VALUES_MAP[str(value).lower()]
 
 
-# # The many-to-many relationship between researchers and published records
-# records_researchers = Table(
-#     "records_researchers",
-#     Base.metadata,
-#     Column(
-#         "pharos_id",
-#         ForeignKey("published_records.pharos_id", ondelete="CASCADE"),
-#         primary_key=True,
-#     ),
-#     Column(
-#         "researcher_id",
-#         ForeignKey("researchers.researcher_id", ondelete="CASCADE"),
-#         primary_key=True,
-#     ),
-# )
-
 projects_researchers = Table(
     "projects_researchers",
     Base.metadata,
@@ -172,12 +156,6 @@ class Researcher(Base):
     name: Mapped[str]
     organization: Mapped[str]
     email: Mapped[str]
-
-    # records: Mapped[list["PublishedRecord"]] = relationship(
-    #     secondary=records_researchers,
-    #     back_populates="researchers",
-    #     passive_deletes=True,
-    # )
 
     projects: Mapped[list["PublishedProject"]] = relationship(
         secondary=projects_researchers,
@@ -278,10 +256,3 @@ class PublishedRecord(Base):
         "PublishedDataset",
         back_populates="records",
     )
-
-
-#     researchers: Mapped[list["Researcher"]] = relationship(
-#         secondary=records_researchers,
-#         back_populates="records",
-#         cascade="all, delete",
-#     )
