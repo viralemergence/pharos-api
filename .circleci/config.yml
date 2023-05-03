@@ -3,15 +3,15 @@ version: 2.1
 credentials: &credentials
   - AWS Credentials
 
-# orbs:
-#   sam: circleci/aws-sam-serverless@3.2.0
 orbs:
   sam: circleci/aws-sam-serverless@4.0
 
 workflows:
   version: 2
-  build:
+  build_and_test:
     jobs:
+      - test
+
       # dev
       - deploy:
           config-env: dev
@@ -20,7 +20,6 @@ workflows:
             branches:
               only:
                 - dev
-                - feature/new-models
 
       # review
       - deploy:
@@ -50,22 +49,15 @@ workflows:
                 - prod
 
 jobs:
-  deploy:
-    executor: sam/default
-
-    parameters:
-      config-env:
-        type: string
-
+  test:
     docker:
       - image: cimg/14.7-postgis
         environment:
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: "1234"
 
     steps:
-      - checkout
-
       - run:
           name: Install Python@3.9
           command: |
@@ -114,6 +106,15 @@ jobs:
       - store_test_results:
           path: test-results
 
+  deploy:
+    executor: sam/default
+
+    parameters:
+      config-env:
+        type: string
+
+    steps:
+      - checkout
       - sam/install
       - run: sam build
       - run: |

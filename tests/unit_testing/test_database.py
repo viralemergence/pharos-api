@@ -148,7 +148,7 @@ ENGINE = create_engine(
         database="postgres",
         username="postgres",
         port=5432,
-        password="",
+        password="1234",
     )
 )
 
