@@ -73,6 +73,9 @@ jobs:
     steps:
       - checkout
 
+      - restore_cache:
+          key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
+
       - run:
           name: Install dev dependencies
           command: |
@@ -122,6 +125,11 @@ jobs:
 
       - store_test_results:
           path: test-results
+
+      - save_cache:
+          paths:
+            - env
+          key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
 
   deploy:
     executor: sam/default
