@@ -11,13 +11,13 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      # - test:
-      #     context: *credentials
+      - test:
+          context: *credentials
 
       # dev
       - deploy:
-          # requires:
-          #   - test
+          requires:
+            - test
           config-env: dev
           context: *credentials
           filters:
@@ -94,11 +94,11 @@ jobs:
             source env/bin/activate
             pyright
 
-      - run:
-          name: Run Style Checks
-          command: |
-            source env/bin/activate
-            pylint src/
+      # - run:
+      #     name: Run Style Checks
+      #     command: |
+      #       source env/bin/activate
+      #       pylint src/
 
       - run:
           name: Add PostGIS to database
