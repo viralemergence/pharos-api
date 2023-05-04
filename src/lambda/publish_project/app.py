@@ -1,125 +1,159 @@
-# pylint: skip-file
-# import os
-# import json
-# import boto3
-# import sqlalchemy
-# from sqlalchemy.engine import URL
-# from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+import os
+from typing import Union
 
-# # from auth import check_auth
-# from format import format_response
-# from models import Tests, ResearchersTests
-# from create_record import create_records, verify_record
+import boto3
+from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
+from pydantic import BaseModel, Extra, Field, ValidationError
 
-# SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
+from auth import check_auth
+from format import format_response
+from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
-# DYNAMODB = boto3.resource("dynamodb")
-# PROJECTS_TABLE = DYNAMODB.Table(os.environ["PROJECTS_TABLE_NAME"])
-# DATASETS_TABLE = DYNAMODB.Table(os.environ["DATASETS_TABLE_NAME"])
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
-# S3CLIENT = boto3.client("s3")
-# DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+DYNAMODB = boto3.resource("dynamodb")
+METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
-# RDS = boto3.client("rds")
-# DATABASE = os.environ["DATABASE"]
+S3CLIENT = boto3.client("s3")
+DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
-# response = SECRETS_MANAGER.get_secret_value(SecretId=DATABASE)
-# CREDENTIALS = json.loads(response["SecretString"])
+LAMBDACLIENT = boto3.client("lambda")
+
+PUBLISH_REGISTERS_LAMBDA = os.environ["PUBLISH_REGISTERS_LAMBDA"]
 
 
-# def lambda_handler(event, _):
+class PublishProjectData(BaseModel):
+    """Event data payload to publish a project."""
 
-#     post_data = json.loads(event.get("body", "{}"))
+    project_id: str = Field(..., alias="projectID")
+    researcher_id: str = Field(..., alias="researcherID")
 
-#     # Retrieve datasets from project table
-#     print("Retrieve datasets from project table")
-#     try:
+    class Config:
+        extra = Extra.forbid
 
-#         project = PROJECTS_TABLE.get_item(Key={"projectID": post_data["projectID"]})
-#         datasets_ids = project["Item"]["datasetIDs"]
 
-#     except Exception as e:
-#         return format_response(403, e)
+class PublishRegistersData(BaseModel):
+    """Event data payload to publish the registers of the project."""
 
-#     # Retrieve meta from datasets and filter released
-#     print("Retrieve meta from datasets and filter released")
-#     try:
-#         for dataset_id in datasets_ids:
-#             dataset_meta = DATASETS_TABLE.get_item(
-#                 Key={"datasetID": dataset_id, "recordID": "_meta"}
-#             )
-#             if dataset_meta["Item"]["releaseStatus"] != "Released":
-#                 datasets_ids.remove(dataset_id)
+    project: Project
+    released_datasets: list[Dataset]
+    project_users: list[User]
 
-#     except Exception as e:
-#         return format_response(403, e)
+    class Config:
+        extra = Extra.forbid
 
-#     try:
 
-#         print("Connect to database")
-#         database_url = URL.create(
-#             drivername="postgresql+psycopg2",
-#             host=CREDENTIALS["host"],
-#             database=DATABASE,
-#             username=CREDENTIALS["username"],
-#             port=CREDENTIALS["port"],
-#             password=CREDENTIALS["password"],
-#             query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
-#         )
+def lambda_handler(event, _):  # pylint: disable=too-many-branches
 
-#         engine = sqlalchemy.create_engine(database_url)
+    try:
+        validated = PublishProjectData.parse_raw(event.get("body", "{}"))
+    except ValidationError as e:
+        print(e.json(indent=2))
+        return {"statusCode": 400, "body": e.json()}
 
-#         Session = sessionmaker(bind=engine)
+    user = check_auth(validated.researcher_id)
+    if not user or not user.project_ids or not validated.project_id in user.project_ids:
+        return format_response(403, "Not Authorized")
 
-#         Tests.__table__.create(engine, checkfirst=True)
-#         ResearchersTests.__table__.create(engine, checkfirst=True)
+    try:
+        # Retrieve project metadata and datasets
+        metadata_response = METADATA_TABLE.query(
+            KeyConditionExpression=Key("pk").eq(validated.project_id)
+        )
 
-#         with Session() as session:
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error retrieving project metadata")
 
-#             print("Session established")
-#             records = []
+    if not metadata_response["Items"]:
+        return format_response(403, "Metadata not found")
 
-#             for dataset_id in datasets_ids:
-#                 print(f"Ingesting dataset: {dataset_id}")
-#                 # Retrieve last version of the register
-#                 key_list = S3CLIENT.list_objects_v2(
-#                     Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset_id}/"
-#                 )["Contents"]
+    project: Union[Project, None] = None
+    released_datasets: list[Dataset] = []
+    for item in metadata_response["Items"]:
+        if item["sk"] == "_meta":
+            project = Project.parse_table_item(item)
+            continue
 
-#                 key_list.sort(key=lambda item: item["LastModified"], reverse=True)
-#                 key = key_list[0]["Key"]
+        dataset = Dataset.parse_table_item(item)
+        if dataset.release_status == DatasetReleaseStatus.RELEASED:
+            released_datasets.append(dataset)
 
-#                 register_response = S3CLIENT.get_object(
-#                     Bucket=DATASETS_S3_BUCKET, Key=key
-#                 )
-#                 register = register_response["Body"].read().decode("UTF-8")
+    if not project:
+        return format_response(403, "Project not found")
 
-#                 register = json.loads(register)
+    if len(released_datasets) == 0:
+        return format_response(403, "No released datasets found")
 
-#                 # Create records
-#                 for record_id, record in register.items():
+    if not project.authors:
+        return format_response(403, "No authors found")
 
-#                     is_valid_record = verify_record(record)
+    try:
+        with METADATA_TABLE.batch_writer() as batch:
+            # Update project metadata
+            project.last_updated = datetime.utcnow().isoformat() + "Z"
+            project.publish_status = ProjectPublishStatus.PUBLISHING
+            batch.put_item(Item=project.table_item())
 
-#                     if not is_valid_record:
-#                         return format_response(400, "Invalid record found.")
+            # Update dataset metadata
+            for dataset in released_datasets:
+                dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+                dataset.release_status = DatasetReleaseStatus.PUBLISHING
+                batch.put_item(Item=dataset.table_item())
 
-#                     test_record, researcher_test_record = create_records(
-#                         post_data["projectID"],
-#                         dataset_id,
-#                         record_id,
-#                         post_data["researcherID"],
-#                         record,
-#                     )
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error saving project and dataset metadata")
 
-#                     records.extend([test_record, researcher_test_record])
+    try:
+        # Retrieve project authors
+        users_metadata = DYNAMODB.batch_get_item(
+            RequestItems={
+                METADATA_TABLE.name: {
+                    "Keys": [
+                        {"pk": author.researcher_id, "sk": "_meta"}
+                        for author in project.authors
+                    ]
+                }
+            }
+        )
+    except ClientError as e:
+        print(e)
+        return format_response(403, "Error retrieving researchers")
 
-#             # Upload records
-#             print("Commit records to db")
-#             session.add_all(records)
-#             session.commit()
+    project_users: list[User] = [
+        User.parse_table_item(item)
+        for item in users_metadata["Responses"][METADATA_TABLE.name]
+    ]
 
-#         return format_response(200, "Works")
+    if len(project_users) == 0:
+        return format_response(403, "No authors found")
 
-#     except Exception as e:
-#         return format_response(403, e)
+    ##
+    ## Should return success here to the frontend, because
+    ## it means the requirements to start publishing have
+    ## been met; this is when the frontend should transition
+    ## from "user clicked publish" status to "publish is
+    ## actually happening on the server" status and start
+    ## polling the dataset and project status.
+    ##
+
+    ##
+    ## Need to move this section into separate, long-running lambda
+    ## Frontend will update projects and datasets and status of each
+    ## one will be managed in dynamodb
+    ##
+
+    LAMBDACLIENT.invoke(
+        FunctionName=PUBLISH_REGISTERS_LAMBDA,
+        InvocationType="Event",
+        Payload=PublishRegistersData(
+            project=project,
+            released_datasets=released_datasets,
+            project_users=project_users,
+        ).json(by_alias=True),
+    )
+
+    return format_response(200, "Publishing Started")
