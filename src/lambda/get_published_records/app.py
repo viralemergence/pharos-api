@@ -1,4 +1,5 @@
 import boto3
+from typing import Optional
 from pydantic import BaseModel, Extra, Field, ValidationError
 
 from sqlalchemy.orm import Session
@@ -21,11 +22,11 @@ class Filter(BaseModel):
 class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
+    host_species: Optional[str] = Field(None, alias="hostSpecies")
+    pathogen: Optional[str]
+    detection_target: Optional[str] = Field(None, alias="detectionTarget")
 
     # researcher: Optional[str]
-    # host_species: Optional[str] = Field(None, alias="hostSpecies")
-    # pathogen: Optional[str]
-    # detection_target: Optional[str] = Field(None, alias="detectionTarget")
     # detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
 
     class Config:
@@ -87,18 +88,40 @@ def lambda_handler(event, _):
     limit = validated.query_string_parameters.page_size
     offset = (validated.query_string_parameters.page - 1) * limit
 
+    # Handle filters
+    host_species = validated.query_string_parameters.host_species
+    pathogen = validated.query_string_parameters.pathogen
+    detection_target = validated.query_string_parameters.detection_target
+
     with Session(engine) as session:
-        rows = (
-            session.query(
-                PublishedRecord,
-                PublishedRecord.geom.ST_X(),
-                PublishedRecord.geom.ST_Y(),
-            )
-            .limit(limit)
-            .offset(offset)
-            .all()
+        query = session.query(
+            PublishedRecord,
+            PublishedRecord.geom.ST_X(),
+            PublishedRecord.geom.ST_Y(),
         )
+        if host_species:
+            # TODO: Discuss with team: Should we filter on each word
+            # separately, so that if the user entered 'Vicugna pacos' or 'pacos
+            # Vicugna' it would return the same results?
+            query = query.filter(
+                PublishedRecord.host_species.ilike(f"%{host_species.strip()}%")
+            )
+        if pathogen:
+            query = query.filter(
+                PublishedRecord.pathogen.ilike(f"%{pathogen.strip()}%")
+            )
+        if detection_target:
+            query = query.filter(
+                PublishedRecord.detection_target.ilike(f"%{detection_target.strip()}%")
+            )
+        # TODO: Discuss with Ryan, should we maybe try to grab one more row
+        # than we need, so we can see if we need to enable loading another page
+        # on scroll, in the ui. This method would save us one database query.
+        total_row_count = query.count()
+        rows = query.limit(limit).offset(offset).all()
 
         response_rows = format_response_rows(rows, offset)
 
-    return format_response(200, {"publishedRecords": response_rows})
+    return format_response(
+        200, {"publishedRecords": response_rows, "totalRowCount": total_row_count}
+    )
