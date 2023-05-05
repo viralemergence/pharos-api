@@ -114,14 +114,16 @@ def lambda_handler(event, _):
             query = query.filter(
                 PublishedRecord.detection_target.ilike(f"%{detection_target.strip()}%")
             )
-        # TODO: Discuss with Ryan, should we maybe try to grab one more row
-        # than we need, so we can see if we need to enable loading another page
-        # on scroll, in the ui. This method would save us one database query.
-        total_row_count = query.count()
-        rows = query.limit(limit).offset(offset).all()
+        rows = query.limit(limit + 1).offset(offset).all()
+        additional_page_exists = len(rows) > limit
+        rows = rows[:limit]
 
         response_rows = format_response_rows(rows, offset)
 
     return format_response(
-        200, {"publishedRecords": response_rows, "totalRowCount": total_row_count}
+        200,
+        {
+            "publishedRecords": response_rows,
+            "additionalPageExists": additional_page_exists,
+        },
     )
