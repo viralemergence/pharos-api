@@ -1,7 +1,9 @@
 import boto3
+import re
 from typing import Optional
 from pydantic import BaseModel, Extra, Field, ValidationError
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
@@ -88,34 +90,26 @@ def lambda_handler(event, _):
     limit = validated.query_string_parameters.page_size
     offset = (validated.query_string_parameters.page - 1) * limit
 
-    # Handle filters
-    host_species = validated.query_string_parameters.host_species
-    pathogen = validated.query_string_parameters.pathogen
-    detection_target = validated.query_string_parameters.detection_target
-
     with Session(engine) as session:
         query = session.query(
             PublishedRecord,
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
         )
-        if host_species:
-            # TODO: Discuss with team: Should we filter on each word
-            # separately, so that if the user entered 'Vicugna pacos' or 'pacos
-            # Vicugna' it would return the same results?
-            query = query.filter(
-                PublishedRecord.host_species.ilike(f"%{host_species.strip()}%")
-            )
-        if pathogen:
-            query = query.filter(
-                PublishedRecord.pathogen.ilike(f"%{pathogen.strip()}%")
-            )
-        if detection_target:
-            query = query.filter(
-                PublishedRecord.detection_target.ilike(f"%{detection_target.strip()}%")
-            )
+        filters = []
+        for fieldname in ["host_species", "pathogen", "detection_target"]:
+            filter_value = getattr(validated.query_string_parameters, fieldname)
+            if filter_value:
+                words = re.split(r"\s+", filter_value)
+                for word in words:
+                    filters.append(
+                        getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
+                    )
+        query = query.filter(and_(*filters))
+
+        # Try to retrieve an extra row, to see if there are more pages
         rows = query.limit(limit + 1).offset(offset).all()
-        additional_page_exists = len(rows) > limit
+        is_last_page = len(rows) <= limit
         rows = rows[:limit]
 
         response_rows = format_response_rows(rows, offset)
@@ -124,6 +118,6 @@ def lambda_handler(event, _):
         200,
         {
             "publishedRecords": response_rows,
-            "additionalPageExists": additional_page_exists,
+            "isLastPage": is_last_page,
         },
     )
