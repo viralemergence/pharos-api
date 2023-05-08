@@ -1,5 +1,5 @@
-import boto3
 from typing import Optional
+import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
 from sqlalchemy.orm import Session
@@ -35,7 +35,7 @@ class QueryStringParameters(BaseModel):
 
 class GetPublishedRecordsEvent(BaseModel):
     query_string_parameters: QueryStringParameters = Field(
-        QueryStringParameters(page=1, pageSize=10), alias="queryStringParameters"
+        QueryStringParameters, alias="queryStringParameters"
     )
 
     class Config:
