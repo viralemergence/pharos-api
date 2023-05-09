@@ -1,6 +1,9 @@
+import re
+from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
@@ -21,11 +24,11 @@ class Filter(BaseModel):
 class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
+    host_species: Optional[str] = Field(None, alias="hostSpecies")
+    pathogen: Optional[str]
+    detection_target: Optional[str] = Field(None, alias="detectionTarget")
 
     # researcher: Optional[str]
-    # host_species: Optional[str] = Field(None, alias="hostSpecies")
-    # pathogen: Optional[str]
-    # detection_target: Optional[str] = Field(None, alias="detectionTarget")
     # detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
 
     class Config:
@@ -34,7 +37,7 @@ class QueryStringParameters(BaseModel):
 
 class GetPublishedRecordsEvent(BaseModel):
     query_string_parameters: QueryStringParameters = Field(
-        QueryStringParameters(page=1, pageSize=10), alias="queryStringParameters"
+        QueryStringParameters, alias="queryStringParameters"
     )
 
     class Config:
@@ -88,17 +91,33 @@ def lambda_handler(event, _):
     offset = (validated.query_string_parameters.page - 1) * limit
 
     with Session(engine) as session:
-        rows = (
-            session.query(
-                PublishedRecord,
-                PublishedRecord.geom.ST_X(),
-                PublishedRecord.geom.ST_Y(),
-            )
-            .limit(limit)
-            .offset(offset)
-            .all()
+        query = session.query(
+            PublishedRecord,
+            PublishedRecord.geom.ST_X(),
+            PublishedRecord.geom.ST_Y(),
         )
+        filters = []
+        for fieldname in ["host_species", "pathogen", "detection_target"]:
+            filter_value = getattr(validated.query_string_parameters, fieldname)
+            if filter_value:
+                words = re.split(r"\s+", filter_value)
+                for word in words:
+                    filters.append(
+                        getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
+                    )
+        query = query.filter(and_(*filters))
+
+        # Try to retrieve an extra row, to see if there are more pages
+        rows = query.limit(limit + 1).offset(offset).all()
+        is_last_page = len(rows) <= limit
+        rows = rows[:limit]
 
         response_rows = format_response_rows(rows, offset)
 
-    return format_response(200, {"publishedRecords": response_rows})
+    return format_response(
+        200,
+        {
+            "publishedRecords": response_rows,
+            "isLastPage": is_last_page,
+        },
+    )
