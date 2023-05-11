@@ -102,6 +102,8 @@ def lambda_handler(event, _):
             if filter_value:
                 words = re.split(r"\s+", filter_value)
                 for word in words:
+                    # NOTE: If word contains a user-inputted '%', this will be
+                    # used as a wildcard
                     filters.append(
                         getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
                     )
