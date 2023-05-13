@@ -9,7 +9,7 @@ from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord
+from models import PublishedRecord, PublishedDataset
 from register import COMPLEX_FIELDS
 
 
@@ -24,6 +24,9 @@ class Filter(BaseModel):
 class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
+    pharos_id: Optional[str] = Field(None, alias="pharosId")
+    project_id: Optional[str] = Field(None, alias="projectId")
+
     host_species: Optional[str] = Field(None, alias="hostSpecies")
     pathogen: Optional[str]
     detection_target: Optional[str] = Field(None, alias="detectionTarget")
@@ -81,45 +84,67 @@ def format_response_rows(rows, offset):
 
 def lambda_handler(event, _):
     try:
-        validated = GetPublishedRecordsEvent.parse_obj(event)
-    except ValidationError as e:
-        return format_response(400, e.json(), preformatted=True)
+        try:
+            validated = GetPublishedRecordsEvent.parse_obj(event)
+        except ValidationError as e:
+            return format_response(400, e.json(), preformatted=True)
 
-    engine = get_engine()
+        engine = get_engine()
 
-    limit = validated.query_string_parameters.page_size
-    offset = (validated.query_string_parameters.page - 1) * limit
+        limit = validated.query_string_parameters.page_size
+        offset = (validated.query_string_parameters.page - 1) * limit
 
-    with Session(engine) as session:
-        query = session.query(
-            PublishedRecord,
-            PublishedRecord.geom.ST_X(),
-            PublishedRecord.geom.ST_Y(),
-        )
-        filters = []
-        for fieldname in ["host_species", "pathogen", "detection_target"]:
-            filter_value = getattr(validated.query_string_parameters, fieldname)
-            if filter_value:
-                words = re.split(r"\s+", filter_value)
-                for word in words:
-                    # NOTE: If word contains a user-inputted '%', this will be
-                    # used as a wildcard
-                    filters.append(
-                        getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
+        with Session(engine) as session:
+            query = session.query(
+                PublishedRecord,
+                PublishedRecord.geom.ST_X(),
+                PublishedRecord.geom.ST_Y(),
+            )
+            filters = []
+            for fieldname in [
+                "host_species",
+                "pathogen",
+                "detection_target",
+            ]:
+                filter_value = getattr(validated.query_string_parameters, fieldname)
+                if filter_value:
+                    words = re.split(r"\s+", filter_value)
+                    for word in words:
+                        # NOTE: If word contains a user-inputted '%', this will be
+                        # used as a wildcard
+                        filters.append(
+                            getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
+                        )
+
+            pharos_id = validated.query_string_parameters.pharos_id
+            if pharos_id:
+                filters.append(PublishedRecord.pharos_id == pharos_id)
+
+            project_id = validated.query_string_parameters.project_id
+            if project_id:
+                filters.append(
+                    PublishedRecord.dataset.has(
+                        PublishedDataset.project_id == project_id
                     )
-        query = query.filter(and_(*filters))
+                )
 
-        # Try to retrieve an extra row, to see if there are more pages
-        rows = query.limit(limit + 1).offset(offset).all()
-        is_last_page = len(rows) <= limit
-        rows = rows[:limit]
+            query = query.filter(and_(*filters))
 
-        response_rows = format_response_rows(rows, offset)
+            # Try to retrieve an extra row, to see if there are more pages
+            rows = query.limit(limit + 1).offset(offset).all()
 
-    return format_response(
-        200,
-        {
-            "publishedRecords": response_rows,
-            "isLastPage": is_last_page,
-        },
-    )
+            is_last_page = len(rows) <= limit
+            rows = rows[:limit]
+
+            response_rows = format_response_rows(rows, offset)
+
+        return format_response(
+            200,
+            {
+                "publishedRecords": response_rows,
+                "isLastPage": is_last_page,
+            },
+        )
+
+    except Exception as e:
+        return format_response(500, {"error": str(e)})
