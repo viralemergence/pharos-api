@@ -146,5 +146,5 @@ def lambda_handler(event, _):
             },
         )
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         return format_response(500, {"error": str(e)})
