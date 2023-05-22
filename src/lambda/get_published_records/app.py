@@ -11,7 +11,7 @@ from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord, PublishedDataset
+from models import PublishedRecord, PublishedDataset, PublishedProject
 from register import COMPLEX_FIELDS
 
 
@@ -28,7 +28,7 @@ class QueryStringParameters(BaseModel):
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
     pharos_id: Optional[str] = Field(None, alias="pharosId")
     project_id: Optional[str] = Field(None, alias="projectId")
-
+    project_name: Optional[str] = Field(None, alias="projectName")
     host_species: Optional[str] = Field(None, alias="hostSpecies")
     pathogen: Optional[str]
     detection_target: Optional[str] = Field(None, alias="detectionTarget")
@@ -120,7 +120,7 @@ def lambda_handler(event, _):
                     for value in values:
                         values = value.strip()
                         filters_for_field.append(
-                            getattr(PublishedRecord, fieldname) == value
+                            getattr(PublishedRecord, fieldname).ilike(value)
                         )
                     filters.append(or_(*filters_for_field))
 
@@ -157,6 +157,16 @@ def lambda_handler(event, _):
             pharos_id = validated.query_string_parameters.pharos_id
             if pharos_id:
                 filters.append(PublishedRecord.pharos_id == pharos_id)
+
+            project_name = validated.query_string_parameters.project_name
+            if project_name:
+                filters.append(
+                    PublishedRecord.dataset.has(
+                        PublishedDataset.project.has(
+                            PublishedProject.name == project_name
+                        )
+                    )
+                )
 
             project_id = validated.query_string_parameters.project_id
             if project_id:
