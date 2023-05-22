@@ -3,7 +3,7 @@ from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
@@ -30,9 +30,10 @@ class QueryStringParameters(BaseModel):
     host_species: Optional[str] = Field(None, alias="hostSpecies")
     pathogen: Optional[str]
     detection_target: Optional[str] = Field(None, alias="detectionTarget")
-
-    # researcher: Optional[str]
-    # detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
+    researcher: Optional[str]
+    detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
+    collection_start_date: Optional[str] = Field(None, alias="collectionStartDate")
+    collection_end_date: Optional[str] = Field(None, alias="collectionEndDate")
 
     class Config:
         extra = Extra.forbid
@@ -105,16 +106,31 @@ def lambda_handler(event, _):
                 "host_species",
                 "pathogen",
                 "detection_target",
+                "researcher",
+                "detection_outcome",
             ]:
-                filter_value = getattr(validated.query_string_parameters, fieldname)
-                if filter_value:
-                    words = re.split(r"\s+", filter_value)
-                    for word in words:
-                        # NOTE: If word contains a user-inputted '%', this will be
-                        # used as a wildcard
-                        filters.append(
-                            getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
+                filter_value_or_values = getattr(
+                    validated.query_string_parameters, fieldname
+                )
+                if filter_value_or_values:
+                    values = re.split(r"\s*,\s*", filter_value_or_values)
+                    filters_for_field = []
+                    for value in values:
+                        values = value.strip()
+                        filters_for_field.append(
+                            getattr(PublishedRecord, fieldname) == value
                         )
+                    filters.append(or_(*filters_for_field))
+
+            collection_start_date = (
+                validated.query_string_parameters.collection_start_date
+            )
+            if collection_start_date:
+                filters.append(PublishedRecord.collection_date >= collection_start_date)
+
+            collection_end_date = validated.query_string_parameters.collection_end_date
+            if collection_end_date:
+                filters.append(PublishedRecord.collection_date <= collection_end_date)
 
             pharos_id = validated.query_string_parameters.pharos_id
             if pharos_id:
