@@ -213,4 +213,4 @@ def lambda_handler(event, _):
         )
 
     except Exception as e:
-        return format_response(500, {"error": str(e)})
+        return format_response(500, {"Error": str(e)})

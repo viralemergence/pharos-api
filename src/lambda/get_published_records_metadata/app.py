@@ -1,18 +1,10 @@
-import re
-from datetime import datetime
-from typing import Optional
 import boto3
-from pydantic import BaseModel, Extra, Field, ValidationError
 
-
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
-from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
-from register import COMPLEX_FIELDS
+from models import PublishedRecord
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
@@ -22,9 +14,25 @@ def lambda_handler(event, _):
         engine = get_engine()
 
         with Session(engine) as session:
-            host_species_list = [
+            pathogens = [
+                record.pathogen
+                for record in session.query(PublishedRecord.pathogen).distinct().all()
+            ]
+            host_species = [
                 record.host_species
                 for record in session.query(PublishedRecord.host_species)
+                .distinct()
+                .all()
+            ]
+            detection_targets = [
+                record.detection_target
+                for record in session.query(PublishedRecord.detection_target)
+                .distinct()
+                .all()
+            ]
+            detection_outcomes = [
+                record.detection_outcome
+                for record in session.query(PublishedRecord.detection_outcome)
                 .distinct()
                 .all()
             ]
@@ -32,9 +40,12 @@ def lambda_handler(event, _):
         return format_response(
             200,
             {
-                "hostSpecies": host_species_list,
+                "hostSpecies": host_species,
+                "pathogens": pathogens,
+                "detectionTargets": detection_targets,
+                "detectionOutcomes": detection_outcomes,
             },
         )
 
     except Exception as e:
-        return format_response(500, {"error": str(e)})
+        return format_response(500, {"Error": str(e)})
