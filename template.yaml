@@ -569,7 +569,6 @@ Resources:
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
-
   GetPublishedRecordsMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
