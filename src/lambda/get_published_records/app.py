@@ -1,7 +1,9 @@
 import re
+from datetime import datetime
 from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
+
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -122,15 +124,35 @@ def lambda_handler(event, _):
                         )
                     filters.append(or_(*filters_for_field))
 
-            collection_start_date = (
+            collection_start_date_str = (
                 validated.query_string_parameters.collection_start_date
             )
-            if collection_start_date:
-                filters.append(PublishedRecord.collection_date >= collection_start_date)
+            if collection_start_date_str:
+                collection_start_date = datetime.strptime(
+                    collection_start_date_str, "%Y-%m-%d"
+                )
+                if collection_start_date:
+                    filters.append(
+                        and_(
+                            PublishedRecord.collection_date.isnot(None),
+                            PublishedRecord.collection_date >= collection_start_date,
+                        )
+                    )
 
-            collection_end_date = validated.query_string_parameters.collection_end_date
-            if collection_end_date:
-                filters.append(PublishedRecord.collection_date <= collection_end_date)
+            collection_end_date_str = (
+                validated.query_string_parameters.collection_end_date
+            )
+            if collection_end_date_str:
+                collection_end_date = datetime.strptime(
+                    collection_end_date_str, "%Y-%m-%d"
+                )
+                if collection_end_date:
+                    filters.append(
+                        and_(
+                            PublishedRecord.collection_date.isnot(None),
+                            PublishedRecord.collection_date <= collection_end_date,
+                        )
+                    )
 
             pharos_id = validated.query_string_parameters.pharos_id
             if pharos_id:
