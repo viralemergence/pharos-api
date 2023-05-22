@@ -11,7 +11,7 @@ from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord, PublishedDataset, PublishedProject
+from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
 from register import COMPLEX_FIELDS
 
 
@@ -85,6 +85,10 @@ def format_response_rows(rows, offset):
     return response_rows
 
 
+def split_on_comma(value):
+    return re.split(r"\s*,\s*", value)
+
+
 def lambda_handler(event, _):
     try:
         try:
@@ -108,14 +112,13 @@ def lambda_handler(event, _):
                 "host_species",
                 "pathogen",
                 "detection_target",
-                "researcher",
                 "detection_outcome",
             ]:
                 filter_value_or_values = getattr(
                     validated.query_string_parameters, fieldname
                 )
                 if filter_value_or_values:
-                    values = re.split(r"\s*,\s*", filter_value_or_values)
+                    values = split_on_comma(filter_value_or_values)
                     filters_for_field = []
                     for value in values:
                         values = value.strip()
@@ -167,6 +170,21 @@ def lambda_handler(event, _):
                         )
                     )
                 )
+
+            researchers = validated.query_string_parameters.researcher
+            if researchers:
+                filters_for_researchers = []
+                for researcher in split_on_comma(researchers):
+                    filters_for_researchers.append(
+                        PublishedRecord.dataset.has(
+                            PublishedDataset.project.has(
+                                PublishedProject.researchers.any(
+                                    Researcher.name == researcher
+                                )
+                            )
+                        )
+                    )
+                filters.append(or_(*filters_for_researchers))
 
             project_id = validated.query_string_parameters.project_id
             if project_id:
