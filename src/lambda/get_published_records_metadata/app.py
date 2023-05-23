@@ -37,14 +37,22 @@ def lambda_handler(event, _):
                 .all()
             ]
 
+        options_for_fields = {
+            "hostSpecies": host_species,
+            "pathogen": pathogens,
+            "detectionTarget": detection_targets,
+            "detectionOutcome": detection_outcomes,
+        }
+
+        # Remove null values
+        options_for_fields = {
+            key: [option for option in options if option is not None]
+            for key, options in options_for_fields.items()
+        }
+
         return format_response(
             200,
-            {
-                "hostSpecies": host_species,
-                "pathogens": pathogens,
-                "detectionTargets": detection_targets,
-                "detectionOutcomes": detection_outcomes,
-            },
+            {"optionsForFields": options_for_fields},
         )
 
     except Exception as e:
