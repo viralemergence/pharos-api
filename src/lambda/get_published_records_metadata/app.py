@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord
+from models import PublishedRecord, Researcher
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
@@ -14,6 +14,10 @@ def lambda_handler(event, _):
         engine = get_engine()
 
         with Session(engine) as session:
+            researcher_names = [
+                record.name
+                for record in session.query(Researcher.name).distinct().all()
+            ]
             pathogens = [
                 record.pathogen
                 for record in session.query(PublishedRecord.pathogen).distinct().all()
@@ -42,6 +46,7 @@ def lambda_handler(event, _):
             "pathogen": pathogens,
             "detectionTarget": detection_targets,
             "detectionOutcome": detection_outcomes,
+            "researcherName": researcher_names,
         }
 
         # Remove null values
@@ -56,4 +61,4 @@ def lambda_handler(event, _):
         )
 
     except Exception as e:
-        return format_response(500, {"Error": str(e)})
+        return format_response(500, {"error": str(e)})
