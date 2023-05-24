@@ -9,7 +9,7 @@ from models import PublishedProject, PublishedRecord, Researcher
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-def lambda_handler(event, _):
+def lambda_handler(_, __):
     try:
         engine = get_engine()
 
