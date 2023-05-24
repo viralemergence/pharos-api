@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord, Researcher
+from models import PublishedProject, PublishedRecord, Researcher
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
@@ -40,6 +40,10 @@ def lambda_handler(event, _):
                 .distinct()
                 .all()
             ]
+            project_names = [
+                record.name
+                for record in session.query(PublishedProject.name).distinct().all()
+            ]
 
         options_for_fields = {
             "hostSpecies": host_species,
@@ -47,6 +51,7 @@ def lambda_handler(event, _):
             "detectionTarget": detection_targets,
             "detectionOutcome": detection_outcomes,
             "researcherName": researcher_names,
+            "projectName": project_names,
         }
 
         # Remove null values

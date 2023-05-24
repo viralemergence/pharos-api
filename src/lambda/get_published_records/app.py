@@ -85,8 +85,8 @@ def format_response_rows(rows, offset):
     return response_rows
 
 
-def split_on_comma(value):
-    return re.split(r"\s*,\s*", value)
+def split_on_separator(value):
+    return re.split(r"\s*\|\|\|\s*", value)
 
 
 def lambda_handler(event, _):
@@ -118,7 +118,7 @@ def lambda_handler(event, _):
                     validated.query_string_parameters, fieldname
                 )
                 if filter_value_or_values:
-                    values = split_on_comma(filter_value_or_values)
+                    values = split_on_separator(filter_value_or_values)
                     filters_for_field = []
                     for value in values:
                         values = value.strip()
@@ -174,7 +174,7 @@ def lambda_handler(event, _):
             researchers = validated.query_string_parameters.researcher
             if researchers:
                 filters_for_researchers = []
-                for researcher in split_on_comma(researchers):
+                for researcher in split_on_separator(researchers):
                     filters_for_researchers.append(
                         PublishedRecord.dataset.has(
                             PublishedDataset.project.has(
