@@ -4,9 +4,6 @@ from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError, validator
 
-# TODO remove
-import pprint
-
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
@@ -39,7 +36,6 @@ class Parameters(BaseModel):
     collection_start_date: Optional[str] = Field(
         None,
         alias="collectionStartDate",
-        # TODO: We don't validate the date yet. Maybe add the strptime expression as a parameter to and_?
         filter=lambda value: and_(
             PublishedRecord.collection_date.isnot(None),
             PublishedRecord.collection_date >= datetime.strptime(value, "%Y-%m-%d"),
