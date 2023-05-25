@@ -4,6 +4,8 @@ from typing import Optional
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
+# TODO remove
+import pprint
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -23,27 +25,75 @@ class Filter(BaseModel):
     values: list[str]
 
 
-class QueryStringParameters(BaseModel):
+class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
-    pharos_id: Optional[str] = Field(None, alias="pharosId")
-    project_id: Optional[str] = Field(None, alias="projectId")
-    project_name: Optional[str] = Field(None, alias="projectName")
-    host_species: Optional[str] = Field(None, alias="hostSpecies")
-    pathogen: Optional[str]
-    detection_target: Optional[str] = Field(None, alias="detectionTarget")
-    researcher: Optional[str]
-    detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
-    collection_start_date: Optional[str] = Field(None, alias="collectionStartDate")
-    collection_end_date: Optional[str] = Field(None, alias="collectionEndDate")
+    pharos_id: Optional[str] = Field(
+        None, alias="pharosId", filter=lambda value: PublishedRecord.pharos_id == value
+    )
+    project_id: Optional[str] = Field(
+        None,
+        alias="projectId",
+        filter=lambda value: PublishedRecord.project_id == value,
+    )
+    collection_start_date: Optional[str] = Field(
+        None,
+        alias="collectionStartDate",
+        # TODO: We don't validate the date yet. Maybe add the strptime expression as a parameter to and_?
+        filter=lambda value: and_(
+            PublishedRecord.collection_date.isnot(None),
+            PublishedRecord.collection_date >= datetime.strptime(value, "%Y-%m-%d"),
+        ),
+    )
+    collection_end_date: Optional[str] = Field(
+        None,
+        alias="collectionEndDate",
+        filter=lambda value: and_(
+            PublishedRecord.collection_date.isnot(None),
+            PublishedRecord.collection_date <= datetime.strptime(value, "%Y-%m-%d"),
+        ),
+    )
+    project_name: Optional[list[str]] = Field(
+        None,
+        alias="projectName",
+        filter=lambda value: PublishedRecord.dataset.has(
+            PublishedDataset.project.has(PublishedProject.name == value)
+        ),
+    )
+    host_species: Optional[list[str]] = Field(
+        None,
+        alias="hostSpecies",
+        filter=lambda value: PublishedRecord.host_species.ilike(value),
+    )
+    pathogen: Optional[list[str]] = Field(
+        None, filter=lambda value: PublishedRecord.pathogen.ilike(value)
+    )
+    detection_target: Optional[list[str]] = Field(
+        None,
+        alias="detectionTarget",
+        filter=lambda value: PublishedRecord.detection_target.ilike(value),
+    )
+    researcher: Optional[list[str]] = Field(
+        None,
+        filter=lambda value: PublishedRecord.dataset.has(
+            PublishedDataset.project.has(
+                PublishedProject.researchers.any(Researcher.name == value)
+            )
+        ),
+    )
+    detection_outcome: Optional[list[str]] = Field(
+        None,
+        alias="detectionOutcome",
+        filter=lambda value: PublishedRecord.detection_outcome.ilike(value),
+    )
 
     class Config:
-        extra = Extra.forbid
+        extra = Extra.ignore
 
 
 class GetPublishedRecordsEvent(BaseModel):
-    query_string_parameters: QueryStringParameters = Field(
-        QueryStringParameters, alias="queryStringParameters"
+    query_string_parameters: Parameters = Field(
+        Parameters, alias="queryStringParameters"
     )
 
     class Config:
@@ -85,132 +135,66 @@ def format_response_rows(rows, offset):
     return response_rows
 
 
-def split_on_separator(value):
-    return re.split(r"\s*\|\|\|\s*", value)
-
-
 def lambda_handler(event, _):
+    # Consolidate multi-value and single-value query string paramaters
+    multivalue_fields = [
+        field
+        for field in Parameters.__annotations__
+        if str(Parameters.__annotations__[field]) == "typing.Optional[list[str]]"
+    ]
+    multivalue_field_aliases = [
+        Parameters.__fields__[field].alias for field in multivalue_fields
+    ]
+    multivalue_params = {
+        key: value
+        for key, value in event["multiValueQueryStringParameters"].items()
+        if key in multivalue_field_aliases
+    }
+    event["queryStringParameters"].update(multivalue_params)
+
     try:
-        try:
-            validated = GetPublishedRecordsEvent.parse_obj(event)
-        except ValidationError as e:
-            return format_response(400, e.json(), preformatted=True)
+        validated = GetPublishedRecordsEvent.parse_obj(event)
+    except ValidationError as e:
+        return format_response(400, e.json(), preformatted=True)
 
-        engine = get_engine()
+    engine = get_engine()
 
-        limit = validated.query_string_parameters.page_size
-        offset = (validated.query_string_parameters.page - 1) * limit
+    limit = validated.query_string_parameters.page_size
+    offset = (validated.query_string_parameters.page - 1) * limit
 
-        with Session(engine) as session:
-            query = session.query(
-                PublishedRecord,
-                PublishedRecord.geom.ST_X(),
-                PublishedRecord.geom.ST_Y(),
-            )
-            filters = []
-            for fieldname in [
-                "host_species",
-                "pathogen",
-                "detection_target",
-                "detection_outcome",
-            ]:
-                filter_value_or_values = getattr(
-                    validated.query_string_parameters, fieldname
-                )
-                if filter_value_or_values:
-                    values = split_on_separator(filter_value_or_values)
-                    filters_for_field = []
-                    for value in values:
-                        values = value.strip()
-                        filters_for_field.append(
-                            getattr(PublishedRecord, fieldname).ilike(value)
-                        )
-                    filters.append(or_(*filters_for_field))
-
-            collection_start_date_str = (
-                validated.query_string_parameters.collection_start_date
-            )
-            if collection_start_date_str:
-                collection_start_date = datetime.strptime(
-                    collection_start_date_str, "%Y-%m-%d"
-                )
-                if collection_start_date:
-                    filters.append(
-                        and_(
-                            PublishedRecord.collection_date.isnot(None),
-                            PublishedRecord.collection_date >= collection_start_date,
-                        )
-                    )
-
-            collection_end_date_str = (
-                validated.query_string_parameters.collection_end_date
-            )
-            if collection_end_date_str:
-                collection_end_date = datetime.strptime(
-                    collection_end_date_str, "%Y-%m-%d"
-                )
-                if collection_end_date:
-                    filters.append(
-                        and_(
-                            PublishedRecord.collection_date.isnot(None),
-                            PublishedRecord.collection_date <= collection_end_date,
-                        )
-                    )
-
-            pharos_id = validated.query_string_parameters.pharos_id
-            if pharos_id:
-                filters.append(PublishedRecord.pharos_id == pharos_id)
-
-            project_name = validated.query_string_parameters.project_name
-            if project_name:
-                filters.append(
-                    PublishedRecord.dataset.has(
-                        PublishedDataset.project.has(
-                            PublishedProject.name == project_name
-                        )
-                    )
-                )
-
-            researchers = validated.query_string_parameters.researcher
-            if researchers:
-                filters_for_researchers = []
-                for researcher in split_on_separator(researchers):
-                    filters_for_researchers.append(
-                        PublishedRecord.dataset.has(
-                            PublishedDataset.project.has(
-                                PublishedProject.researchers.any(
-                                    Researcher.name == researcher
-                                )
-                            )
-                        )
-                    )
-                filters.append(or_(*filters_for_researchers))
-
-            project_id = validated.query_string_parameters.project_id
-            if project_id:
-                filters.append(
-                    PublishedRecord.dataset.has(
-                        PublishedDataset.project_id == project_id
-                    )
-                )
-
-            query = query.filter(and_(*filters))
-
-            # Try to retrieve an extra row, to see if there are more pages
-            rows = query.limit(limit + 1).offset(offset).all()
-
-            is_last_page = len(rows) <= limit
-            rows = rows[:limit]
-
-            response_rows = format_response_rows(rows, offset)
-
-        return format_response(
-            200,
-            {
-                "publishedRecords": response_rows,
-                "isLastPage": is_last_page,
-            },
+    with Session(engine) as session:
+        query = session.query(
+            PublishedRecord,
+            PublishedRecord.geom.ST_X(),
+            PublishedRecord.geom.ST_Y(),
         )
+        filters = []
+        for fieldname, field in Parameters.__fields__.items():
+            get_filter = field.field_info.extra.get("filter")
+            if get_filter is None:
+                continue
+            value_or_values = getattr(validated.query_string_parameters, fieldname)
+            if value_or_values:
+                if isinstance(value_or_values, list):
+                    filters_for_field = [get_filter(value) for value in value_or_values]
+                    filters.append(or_(*filters_for_field))
+                else:
+                    filters.append(get_filter(value_or_values))
 
-    except Exception as e:
-        return format_response(500, {"Error": str(e)})
+        query = query.filter(and_(*filters))
+
+        # Try to retrieve an extra row, to see if there are more pages
+        rows = query.limit(limit + 1).offset(offset).all()
+
+        is_last_page = len(rows) <= limit
+        rows = rows[:limit]
+
+        response_rows = format_response_rows(rows, offset)
+
+    return format_response(
+        200,
+        {
+            "publishedRecords": response_rows,
+            "isLastPage": is_last_page,
+        },
+    )
