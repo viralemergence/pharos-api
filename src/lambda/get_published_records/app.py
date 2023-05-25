@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Optional
 import boto3
-from pydantic import BaseModel, Extra, Field, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError, validator
 
 # TODO remove
 import pprint
@@ -86,6 +86,15 @@ class Parameters(BaseModel):
         alias="detectionOutcome",
         filter=lambda value: PublishedRecord.detection_outcome.ilike(value),
     )
+
+    @validator("collection_start_date", "collection_end_date", pre=True, always=True)
+    def validate_date(cls, v):
+        if v is not None:
+            try:
+                datetime.strptime(v, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError("Invalid date format. Should be YYYY-MM-DD")
+        return v
 
     class Config:
         extra = Extra.ignore
