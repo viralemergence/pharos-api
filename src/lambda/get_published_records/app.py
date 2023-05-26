@@ -30,7 +30,7 @@ class Parameters(BaseModel):
     project_id: Optional[str] = Field(
         None,
         alias="projectId",
-        filter=lambda value: PublishedRecord.project_id == value,
+        filter=lambda value: PublishedRecord.dataset.project_id == value,
     )
     collection_start_date: Optional[str] = Field(
         None,
