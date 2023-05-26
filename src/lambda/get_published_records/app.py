@@ -29,7 +29,6 @@ class Parameters(BaseModel):
     )
     collection_start_date: Optional[str] = Field(
         None,
-        alias="collectionStartDate",
         filter=lambda value: and_(
             PublishedRecord.collection_date.isnot(None),
             PublishedRecord.collection_date >= datetime.strptime(value, "%Y-%m-%d"),
@@ -37,7 +36,6 @@ class Parameters(BaseModel):
     )
     collection_end_date: Optional[str] = Field(
         None,
-        alias="collectionEndDate",
         filter=lambda value: and_(
             PublishedRecord.collection_date.isnot(None),
             PublishedRecord.collection_date <= datetime.strptime(value, "%Y-%m-%d"),
@@ -45,19 +43,17 @@ class Parameters(BaseModel):
     )
     project_name: Optional[list[str]] = Field(
         None,
-        alias="projectName",
         filter=lambda value: PublishedRecord.dataset.has(
             PublishedDataset.project.has(PublishedProject.name == value)
         ),
     )
     host_species: Optional[list[str]] = Field(
         None,
-        alias="hostSpecies",
         filter=PublishedRecord.host_species.ilike,
     )
     pathogen: Optional[list[str]] = Field(None, filter=PublishedRecord.pathogen.ilike)
     detection_target: Optional[list[str]] = Field(
-        None, alias="detectionTarget", filter=PublishedRecord.detection_target.ilike
+        None, filter=PublishedRecord.detection_target.ilike
     )
     researcher: Optional[list[str]] = Field(
         None,
@@ -68,7 +64,7 @@ class Parameters(BaseModel):
         ),
     )
     detection_outcome: Optional[list[str]] = Field(
-        None, alias="detectionOutcome", filter=PublishedRecord.detection_outcome.ilike
+        None, filter=PublishedRecord.detection_outcome.ilike
     )
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
