@@ -16,11 +16,6 @@ from register import COMPLEX_FIELDS
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-class Filter(BaseModel):
-    field: str
-    values: list[str]
-
-
 class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
@@ -134,10 +129,11 @@ def format_response_rows(rows, offset):
 
 
 def get_multi_value_query_string_parameters(event):
+    parameters_annotations = Parameters.__annotations__  # pylint: disable=no-member
     multivalue_fields = [
         field
-        for field in Parameters.__annotations__
-        if str(Parameters.__annotations__[field]) == "typing.Optional[list[str]]"
+        for field in parameters_annotations
+        if str(parameters_annotations[field]) == "typing.Optional[list[str]]"
     ]
     multivalue_field_aliases = [
         Parameters.__fields__[field].alias for field in multivalue_fields
@@ -148,6 +144,26 @@ def get_multi_value_query_string_parameters(event):
         if key in multivalue_field_aliases
     }
     return multivalue_params
+
+
+def get_compound_filter(params):
+    """Return a compound filter, i.e. a filter of the form 'condition AND
+    condition AND...', for the specified parameters.
+    """
+    filters = []
+    for fieldname, field in Parameters.__fields__.items():
+        get_filter = field.field_info.extra.get("filter")
+        if get_filter is None:
+            continue
+        value_or_values = getattr(params, fieldname)
+        if value_or_values:
+            if isinstance(value_or_values, list):
+                filters_for_field = [get_filter(value) for value in value_or_values]
+                filters.append(or_(*filters_for_field))
+            else:
+                filters.append(get_filter(value_or_values))
+    conjunction = and_(*filters)
+    return conjunction
 
 
 def lambda_handler(event, _):
@@ -161,8 +177,9 @@ def lambda_handler(event, _):
 
     engine = get_engine()
 
-    limit = validated.query_string_parameters.page_size
-    offset = (validated.query_string_parameters.page - 1) * limit
+    params = validated.query_string_parameters
+    limit = params.page_size
+    offset = (params.page - 1) * limit
 
     with Session(engine) as session:
         query = session.query(
@@ -170,25 +187,12 @@ def lambda_handler(event, _):
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
         )
-        filters = []
-        for fieldname, field in Parameters.__fields__.items():
-            get_filter = field.field_info.extra.get("filter")
-            if get_filter is None:
-                continue
-            value_or_values = getattr(validated.query_string_parameters, fieldname)
-            if value_or_values:
-                if isinstance(value_or_values, list):
-                    filters_for_field = [get_filter(value) for value in value_or_values]
-                    filters.append(or_(*filters_for_field))
-                else:
-                    filters.append(get_filter(value_or_values))
-
-        query = query.filter(and_(*filters))
+        query = query.filter(get_compound_filter(params))
 
         # Try to retrieve an extra row, to see if there are more pages
         rows = query.limit(limit + 1).offset(offset).all()
-
         is_last_page = len(rows) <= limit
+        # Don't include the extra row in the results
         rows = rows[:limit]
 
         response_rows = format_response_rows(rows, offset)
