@@ -10,52 +10,51 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 def lambda_handler(_, __):
-    try:
-        engine = get_engine()
+    engine = get_engine()
 
-        with Session(engine) as session:
-            researcher_names = [
-                record.name
-                for record in session.query(Researcher.name)
-                .distinct()
-                .order_by(Researcher.name)
-                .all()
-            ]
-            pathogens = [
-                record.pathogen
-                for record in session.query(PublishedRecord.pathogen)
-                .distinct()
-                .order_by(PublishedRecord.pathogen)
-                .all()
-            ]
-            host_species = [
-                record.host_species
-                for record in session.query(PublishedRecord.host_species)
-                .distinct()
-                .order_by(PublishedRecord.host_species)
-                .all()
-            ]
-            detection_targets = [
-                record.detection_target
-                for record in session.query(PublishedRecord.detection_target)
-                .distinct()
-                .order_by(PublishedRecord.detection_target)
-                .all()
-            ]
-            detection_outcomes = [
-                record.detection_outcome
-                for record in session.query(PublishedRecord.detection_outcome)
-                .order_by(PublishedRecord.detection_outcome)
-                .distinct()
-                .all()
-            ]
-            project_names = [
-                record.name
-                for record in session.query(PublishedProject.name)
-                .distinct()
-                .order_by(PublishedProject.name)
-                .all()
-            ]
+    with Session(engine) as session:
+        researcher_names = [
+            record.name
+            for record in session.query(Researcher.name)
+            .distinct()
+            .order_by(Researcher.name)
+            .all()
+        ]
+        pathogens = [
+            record.pathogen
+            for record in session.query(PublishedRecord.pathogen)
+            .distinct()
+            .order_by(PublishedRecord.pathogen)
+            .all()
+        ]
+        host_species = [
+            record.host_species
+            for record in session.query(PublishedRecord.host_species)
+            .distinct()
+            .order_by(PublishedRecord.host_species)
+            .all()
+        ]
+        detection_targets = [
+            record.detection_target
+            for record in session.query(PublishedRecord.detection_target)
+            .distinct()
+            .order_by(PublishedRecord.detection_target)
+            .all()
+        ]
+        detection_outcomes = [
+            record.detection_outcome
+            for record in session.query(PublishedRecord.detection_outcome)
+            .order_by(PublishedRecord.detection_outcome)
+            .distinct()
+            .all()
+        ]
+        project_names = [
+            record.name
+            for record in session.query(PublishedProject.name)
+            .distinct()
+            .order_by(PublishedProject.name)
+            .all()
+        ]
 
         options_for_fields = {
             "hostSpecies": host_species,
@@ -76,6 +75,3 @@ def lambda_handler(_, __):
             200,
             {"optionsForFields": options_for_fields},
         )
-
-    except Exception as e:
-        return format_response(500, {"error": str(e)})
