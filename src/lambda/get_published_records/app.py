@@ -58,15 +58,11 @@ class Parameters(BaseModel):
     host_species: Optional[list[str]] = Field(
         None,
         alias="hostSpecies",
-        filter=lambda value: PublishedRecord.host_species.ilike(value),
+        filter=PublishedRecord.host_species.ilike,
     )
-    pathogen: Optional[list[str]] = Field(
-        None, filter=lambda value: PublishedRecord.pathogen.ilike(value)
-    )
+    pathogen: Optional[list[str]] = Field(None, filter=PublishedRecord.pathogen.ilike)
     detection_target: Optional[list[str]] = Field(
-        None,
-        alias="detectionTarget",
-        filter=lambda value: PublishedRecord.detection_target.ilike(value),
+        None, alias="detectionTarget", filter=PublishedRecord.detection_target.ilike
     )
     researcher: Optional[list[str]] = Field(
         None,
@@ -77,9 +73,7 @@ class Parameters(BaseModel):
         ),
     )
     detection_outcome: Optional[list[str]] = Field(
-        None,
-        alias="detectionOutcome",
-        filter=lambda value: PublishedRecord.detection_outcome.ilike(value),
+        None, alias="detectionOutcome", filter=PublishedRecord.detection_outcome.ilike
     )
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
