@@ -81,8 +81,8 @@ class Parameters(BaseModel):
         if value is not None:
             try:
                 datetime.strptime(value, "%Y-%m-%d")
-            except ValueError:
-                raise ValueError("Invalid date format. Should be YYYY-MM-DD")
+            except ValueError as exc:
+                raise ValueError("Invalid date format. Should be YYYY-MM-DD") from exc
         return value
 
     class Config:
@@ -133,8 +133,7 @@ def format_response_rows(rows, offset):
     return response_rows
 
 
-def lambda_handler(event, _):
-    # Consolidate multi-value and single-value query string paramaters
+def get_multi_value_query_string_parameters(event):
     multivalue_fields = [
         field
         for field in Parameters.__annotations__
@@ -148,6 +147,11 @@ def lambda_handler(event, _):
         for key, value in event["multiValueQueryStringParameters"].items()
         if key in multivalue_field_aliases
     }
+    return multivalue_params
+
+
+def lambda_handler(event, _):
+    multivalue_params = get_multi_value_query_string_parameters(event)
     event["queryStringParameters"].update(multivalue_params)
 
     try:
