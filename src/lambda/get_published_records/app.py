@@ -83,13 +83,13 @@ class Parameters(BaseModel):
     )
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
-    def validate_date(cls, v):
-        if v is not None:
+    def validate_date(cls, value):
+        if value is not None:
             try:
-                datetime.strptime(v, "%Y-%m-%d")
+                datetime.strptime(value, "%Y-%m-%d")
             except ValueError:
                 raise ValueError("Invalid date format. Should be YYYY-MM-DD")
-        return v
+        return value
 
     class Config:
         extra = Extra.ignore
