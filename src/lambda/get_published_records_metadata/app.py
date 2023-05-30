@@ -15,58 +15,17 @@ def lambda_handler(_, __):
     engine = get_engine()
 
     with Session(engine) as session:
-        # researcher_names = [
-        #     record.name
-        #     for record in session.query(Researcher.name)
-        #     .distinct()
-        #     .order_by(Researcher.name)
-        #     .all()
-        # ]
-        # pathogens = [
-        #     record.pathogen
-        #     for record in session.query(PublishedRecord.pathogen)
-        #     .distinct()
-        #     .order_by(PublishedRecord.pathogen)
-        #     .all()
-        # ]
-        # host_species = [
-        #     record.host_species
-        #     for record in session.query(PublishedRecord.host_species)
-        #     .distinct()
-        #     .order_by(PublishedRecord.host_species)
-        #     .all()
-        # ]
-        # detection_targets = [
-        #     record.detection_target
-        #     for record in session.query(PublishedRecord.detection_target)
-        #     .distinct()
-        #     .order_by(PublishedRecord.detection_target)
-        #     .all()
-        # ]
-        # detection_outcomes = [
-        #     record.detection_outcome
-        #     for record in session.query(PublishedRecord.detection_outcome)
-        #     .order_by(PublishedRecord.detection_outcome)
-        #     .distinct()
-        #     .all()
-        # ]
-        # project_names = [
-        #     record.name
-        #     for record in session.query(PublishedProject.name)
-        #     .distinct()
-        #     .order_by(PublishedProject.name)
-        #     .all()
-        # ]
-
         fields = {
             "project_name": {
                 "label": "Project name",
                 "model": PublishedProject,
+                "dataGridKey": "Project name",
                 "column": "name",
             },
             "researcher_name": {
                 "label": "Author",
                 "model": Researcher,
+                "dataGridKey": "Authors",
                 "column": "name",
             },
             "host_species": {
