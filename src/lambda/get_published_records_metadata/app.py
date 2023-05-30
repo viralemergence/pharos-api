@@ -60,9 +60,9 @@ def lambda_handler(_, __):
             },
         }
 
-        for field in fields:
-            model = fields[field].get("model")
-            column = fields[field].get("column")
+        for field_name, field in fields.items():
+            model = field.get("model")
+            column = field.get("column")
             if model and column:
                 options = [
                     getattr(record, column)
@@ -72,11 +72,11 @@ def lambda_handler(_, __):
                     .all()
                 ]
                 options = [option for option in options if option is not None]
-                fields[field]["options"] = options
-                del fields[field]["model"]
-                del fields[field]["column"]
-            if "dataGridKey" not in fields[field] and field in API_NAME_TO_UI_NAME_MAP:
-                fields[field]["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[field]
+                field["options"] = options
+                del field["model"]
+                del field["column"]
+            if "dataGridKey" not in field and field_name in API_NAME_TO_UI_NAME_MAP:
+                field["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[field_name]
 
         return format_response(
             200,
