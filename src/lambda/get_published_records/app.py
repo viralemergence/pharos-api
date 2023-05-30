@@ -1,43 +1,92 @@
-import re
+from datetime import datetime
 from typing import Optional
 import boto3
-from pydantic import BaseModel, Extra, Field, ValidationError
+from pydantic import BaseModel, Extra, Field, ValidationError, validator
 
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 from format import format_response
-from models import PublishedRecord
+from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
 from register import COMPLEX_FIELDS
 
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-class Filter(BaseModel):
-    field: str
-    values: list[str]
-
-
-class QueryStringParameters(BaseModel):
+class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
-    host_species: Optional[str] = Field(None, alias="hostSpecies")
-    pathogen: Optional[str]
-    detection_target: Optional[str] = Field(None, alias="detectionTarget")
+    pharos_id: Optional[str] = Field(
+        None, alias="pharosId", filter=lambda value: PublishedRecord.pharos_id == value
+    )
+    project_id: Optional[str] = Field(
+        None,
+        alias="projectId",
+        filter=lambda value: PublishedRecord.dataset.project_id == value,
+    )
+    collection_start_date: Optional[str] = Field(
+        None,
+        alias="collectionStartDate",
+        filter=lambda value: and_(
+            PublishedRecord.collection_date.isnot(None),
+            PublishedRecord.collection_date >= datetime.strptime(value, "%Y-%m-%d"),
+        ),
+    )
+    collection_end_date: Optional[str] = Field(
+        None,
+        alias="collectionEndDate",
+        filter=lambda value: and_(
+            PublishedRecord.collection_date.isnot(None),
+            PublishedRecord.collection_date <= datetime.strptime(value, "%Y-%m-%d"),
+        ),
+    )
+    project_name: Optional[list[str]] = Field(
+        None,
+        alias="projectName",
+        filter=lambda value: PublishedRecord.dataset.has(
+            PublishedDataset.project.has(PublishedProject.name == value)
+        ),
+    )
+    host_species: Optional[list[str]] = Field(
+        None,
+        alias="hostSpecies",
+        filter=PublishedRecord.host_species.ilike,
+    )
+    pathogen: Optional[list[str]] = Field(None, filter=PublishedRecord.pathogen.ilike)
+    detection_target: Optional[list[str]] = Field(
+        None, alias="detectionTarget", filter=PublishedRecord.detection_target.ilike
+    )
+    researcher: Optional[list[str]] = Field(
+        None,
+        filter=lambda value: PublishedRecord.dataset.has(
+            PublishedDataset.project.has(
+                PublishedProject.researchers.any(Researcher.name == value)
+            )
+        ),
+    )
+    detection_outcome: Optional[list[str]] = Field(
+        None, alias="detectionOutcome", filter=PublishedRecord.detection_outcome.ilike
+    )
 
-    # researcher: Optional[str]
-    # detection_outcome: Optional[str] = Field(None, alias="detectionOutcome")
+    @validator("collection_start_date", "collection_end_date", pre=True, always=True)
+    def validate_date(cls, value):
+        if value is not None:
+            try:
+                datetime.strptime(value, "%Y-%m-%d")
+            except ValueError as exc:
+                raise ValueError("Invalid date format. Should be YYYY-MM-DD") from exc
+        return value
 
     class Config:
-        extra = Extra.forbid
+        extra = Extra.ignore
 
 
 class GetPublishedRecordsEvent(BaseModel):
-    query_string_parameters: QueryStringParameters = Field(
-        QueryStringParameters, alias="queryStringParameters"
+    query_string_parameters: Parameters = Field(
+        Parameters, alias="queryStringParameters"
     )
 
     class Config:
@@ -79,7 +128,48 @@ def format_response_rows(rows, offset):
     return response_rows
 
 
+def get_multi_value_query_string_parameters(event):
+    parameters_annotations = Parameters.__annotations__  # pylint: disable=no-member
+    multivalue_fields = [
+        field
+        for field in parameters_annotations
+        if str(parameters_annotations[field]) == "typing.Optional[list[str]]"
+    ]
+    multivalue_field_aliases = [
+        Parameters.__fields__[field].alias for field in multivalue_fields
+    ]
+    multivalue_params = {
+        key: value
+        for key, value in event["multiValueQueryStringParameters"].items()
+        if key in multivalue_field_aliases
+    }
+    return multivalue_params
+
+
+def get_compound_filter(params):
+    """Return a compound filter, i.e. a filter of the form 'condition AND
+    condition AND...', for the specified parameters.
+    """
+    filters = []
+    for fieldname, field in Parameters.__fields__.items():
+        get_filter = field.field_info.extra.get("filter")
+        if get_filter is None:
+            continue
+        value_or_values = getattr(params, fieldname)
+        if value_or_values:
+            if isinstance(value_or_values, list):
+                filters_for_field = [get_filter(value) for value in value_or_values]
+                filters.append(or_(*filters_for_field))
+            else:
+                filters.append(get_filter(value_or_values))
+    conjunction = and_(*filters)
+    return conjunction
+
+
 def lambda_handler(event, _):
+    multivalue_params = get_multi_value_query_string_parameters(event)
+    event["queryStringParameters"].update(multivalue_params)
+
     try:
         validated = GetPublishedRecordsEvent.parse_obj(event)
     except ValidationError as e:
@@ -87,8 +177,9 @@ def lambda_handler(event, _):
 
     engine = get_engine()
 
-    limit = validated.query_string_parameters.page_size
-    offset = (validated.query_string_parameters.page - 1) * limit
+    params = validated.query_string_parameters
+    limit = params.page_size
+    offset = (params.page - 1) * limit
 
     with Session(engine) as session:
         query = session.query(
@@ -96,20 +187,12 @@ def lambda_handler(event, _):
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
         )
-        filters = []
-        for fieldname in ["host_species", "pathogen", "detection_target"]:
-            filter_value = getattr(validated.query_string_parameters, fieldname)
-            if filter_value:
-                words = re.split(r"\s+", filter_value)
-                for word in words:
-                    filters.append(
-                        getattr(PublishedRecord, fieldname).ilike(f"%{word}%")
-                    )
-        query = query.filter(and_(*filters))
+        query = query.filter(get_compound_filter(params))
 
         # Try to retrieve an extra row, to see if there are more pages
         rows = query.limit(limit + 1).offset(offset).all()
         is_last_page = len(rows) <= limit
+        # Don't include the extra row in the results
         rows = rows[:limit]
 
         response_rows = format_response_rows(rows, offset)
