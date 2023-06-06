@@ -49,14 +49,16 @@ def lambda_handler(_, __):
                 "column": "pathogen",
             },
             "collection_start_date": {
-                "label": "Collection start date",
+                "label": "Collected on or after date",
                 "dataGridKey": "Collection date",
                 "type": "date",
+                "filterGroup": "collection_date",
             },
             "collection_end_date": {
-                "label": "Collection end date",
+                "label": "Collected on or before date",
                 "dataGridKey": "Collection date",
                 "type": "date",
+                "filterGroup": "collection_date",
             },
         }
 
