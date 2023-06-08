@@ -29,22 +29,19 @@ def lambda_handler(_, __):
                 "column": "name",
             },
             "host_species": {
-                "label": "Host species",
+                # The label and dataGridKey for this and some other fields are set below
                 "model": PublishedRecord,
                 "column": "host_species",
             },
             "detection_target": {
-                "label": "Detection target",
                 "model": PublishedRecord,
                 "column": "detection_target",
             },
             "detection_outcome": {
-                "label": "Detection outcome",
                 "model": PublishedRecord,
                 "column": "detection_outcome",
             },
             "pathogen": {
-                "label": "Pathogen",
                 "model": PublishedRecord,
                 "column": "pathogen",
             },
@@ -77,6 +74,9 @@ def lambda_handler(_, __):
                 field["options"] = options
                 del field["model"]
                 del field["column"]
+            # Labels and data grid keys not specified above are determined by column_alias.py
+            if "label" not in field and field_name in API_NAME_TO_UI_NAME_MAP:
+                field["label"] = API_NAME_TO_UI_NAME_MAP[field_name]
             if "dataGridKey" not in field and field_name in API_NAME_TO_UI_NAME_MAP:
                 field["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[field_name]
 
