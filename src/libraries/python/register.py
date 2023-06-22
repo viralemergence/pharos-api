@@ -149,7 +149,6 @@ COMPLEX_FIELDS = {
 REQUIRED_FIELDS = COMPLEX_FIELDS.union(
     {
         "host_species",
-        "detection_outcome",
     }
 )
 
