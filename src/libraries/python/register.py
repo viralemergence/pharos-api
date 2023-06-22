@@ -425,7 +425,8 @@ class Record(BaseModel):
         disallowed_species = ["homo sapiens", "human"]
         if str(host_species).lower() in disallowed_species:
             host_species.report = Report(
-                status=ReportScore.FAIL, message="Pharos does not accept human data"
+                status=ReportScore.FAIL,
+                message="Please do not upload data on human infections to Pharos.",
             )
 
     @validator(
