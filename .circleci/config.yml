@@ -80,7 +80,7 @@ jobs:
       - run:
           name: Install dev dependencies
           command: |
-            python3.9 -m venv env .
+            python3 -m venv env .
             source env/bin/activate
             pip install -r dev-requirements.txt
 
