@@ -22,6 +22,7 @@ docutils==0.18.1
 exceptiongroup==1.1.1
 executing==1.2.0
 GeoAlchemy2==0.13.1
+greenlet==2.0.2
 idna==3.4
 imagesize==1.4.1
 importlib-metadata==6.1.0
@@ -30,6 +31,7 @@ isort==5.10.1
 Jinja2==3.1.2
 jmespath==1.0.1
 lazy-object-proxy==1.7.1
+lib==4.0.0
 MarkupSafe==2.1.2
 mccabe==0.7.0
 mypy-boto3-cloudformation==1.26.60
