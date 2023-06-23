@@ -428,6 +428,8 @@ class Record(BaseModel):
                 message="Please do not upload data on human infections to Pharos.",
             )
 
+        return host_species
+
     @validator(
         "host_species_ncbi_tax_id",
         "detection_target_ncbi_tax_id",
