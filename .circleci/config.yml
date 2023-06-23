@@ -78,11 +78,6 @@ jobs:
           key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
 
       - run:
-          name: Install deps for colorama
-          command: |
-            sudo apt-get install -y python-colorama
-
-      - run:
           name: Install dev dependencies
           command: |
             python3 -m venv env .
