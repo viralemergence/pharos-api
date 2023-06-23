@@ -421,7 +421,7 @@ class Record(BaseModel):
     @validator_skip_fail_warn
     @validator_skip_empty_string
     def check_host_species(cls, host_species: DefaultPassDatapoint):
-        disallowed_species = ["homo sapiens", "human"]
+        disallowed_species = ["homo sapiens","homo sapien", "human"]
         if str(host_species).lower() in disallowed_species:
             host_species.report = Report(
                 status=ReportScore.FAIL,
