@@ -38,7 +38,7 @@ Globals:
   Function:
     Timeout: 3
     Tracing: Active
-    Runtime: python3.9
+    Runtime: python3.10
     Architectures:
       - x86_64
     Handler: app.lambda_handler
