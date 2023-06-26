@@ -62,7 +62,7 @@ workflows:
 jobs:
   test:
     docker:
-      - image: cimg/python:3.9-node
+      - image: cimg/python:3.10-browsers
       - image: cimg/postgres:14.7-postgis
         environment:
           POSTGRES_USER: postgres
@@ -80,8 +80,8 @@ jobs:
       - run:
           name: Install dev dependencies
           command: |
-            python3.9 -m venv env .
-            source env/bin/activate
+            # python3 -m venv env .
+            # source env/bin/activate
             pip install -r dev-requirements.txt
 
       - run:
@@ -92,13 +92,13 @@ jobs:
       - run:
           name: Run Type Checks
           command: |
-            source env/bin/activate
+            # source env/bin/activate
             pyright
 
       - run:
           name: Run Style Checks
           command: |
-            source env/bin/activate
+            # source env/bin/activate
             pylint src/
 
       - run:
@@ -111,7 +111,7 @@ jobs:
           name: Run Tests
           command: |
             mkdir test-results
-            source env/bin/activate
+            # source env/bin/activate
             pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
             coverage report
 
@@ -136,15 +136,15 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: Install Python@3.9
-          command: |
-            sudo apt install software-properties-common;
-            sudo add-apt-repository -y ppa:deadsnakes/ppa;
-            sudo apt -y update;
-            sudo apt -y install python3.9;
-            sudo apt -y install python3.9-distutils;
-            sudo apt -y install python3.9-venv;
+      # - run:
+      #     name: Install Python@3.10
+      #     command: |
+      #       sudo apt install software-properties-common;
+      #       sudo add-apt-repository -y ppa:deadsnakes/ppa;
+      #       sudo apt -y update;
+      #       sudo apt -y install python3.10;
+      #       sudo apt -y install python3.10-distutils;
+      #       sudo apt -y install python3.10-venv;
 
       - sam/install
       - run: sam build
