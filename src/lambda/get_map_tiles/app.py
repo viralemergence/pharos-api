@@ -69,7 +69,19 @@ def lambda_handler(_, __):
                         "type",
                         "FeatureCollection",
                         "features",
-                        func.json_agg(cast(func.ST_AsGeoJSON(PublishedRecord), JSON)),
+                        func.json_agg(
+                            cast(
+                                func.ST_AsGeoJSON(
+                                    select(
+                                        PublishedRecord.geom,
+                                        PublishedRecord.pharos_id,
+                                        PublishedRecord.sample_id,
+                                        PublishedRecord.collection_date,
+                                    ).subquery()
+                                ),
+                                JSON,
+                            )
+                        ),
                     ),
                     STRINGTYPE,
                 )
