@@ -1,6 +1,6 @@
 # from dataclasses import dataclass
 # import time
-from sqlalchemy import Subquery, select
+from sqlalchemy import select
 
 from sqlalchemy.orm import Session
 from sqlalchemy.types import STRINGTYPE
