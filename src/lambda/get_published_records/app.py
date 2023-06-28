@@ -19,7 +19,7 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
-    pharos_id: Optional[str] = Field(
+    pharos_id: Optional[list[str]] = Field(
         None, filter=lambda value: PublishedRecord.pharos_id == value
     )
     project_id: Optional[str] = Field(
