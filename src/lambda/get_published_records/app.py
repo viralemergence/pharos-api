@@ -20,11 +20,10 @@ class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
     pharos_id: Optional[str] = Field(
-        None, alias="pharosId", filter=lambda value: PublishedRecord.pharos_id == value
+        None, filter=lambda value: PublishedRecord.pharos_id == value
     )
     project_id: Optional[str] = Field(
         None,
-        alias="projectId",
         filter=lambda value: PublishedRecord.dataset.project_id == value,
     )
     collection_start_date: Optional[str] = Field(
