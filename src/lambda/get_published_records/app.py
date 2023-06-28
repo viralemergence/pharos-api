@@ -20,50 +20,52 @@ class Parameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
     pharos_id: Optional[list[str]] = Field(
-        None, filter=lambda value: PublishedRecord.pharos_id == value
+        None, filter_function=lambda value: PublishedRecord.pharos_id == value
     )
     project_id: Optional[str] = Field(
         None,
-        filter=lambda value: PublishedRecord.dataset.project_id == value,
+        filter_function=lambda value: PublishedRecord.dataset.project_id == value,
     )
     collection_start_date: Optional[str] = Field(
         None,
-        filter=lambda value: and_(
+        filter_function=lambda value: and_(
             PublishedRecord.collection_date.isnot(None),
             PublishedRecord.collection_date >= datetime.strptime(value, "%Y-%m-%d"),
         ),
     )
     collection_end_date: Optional[str] = Field(
         None,
-        filter=lambda value: and_(
+        filter_function=lambda value: and_(
             PublishedRecord.collection_date.isnot(None),
             PublishedRecord.collection_date <= datetime.strptime(value, "%Y-%m-%d"),
         ),
     )
     project_name: Optional[list[str]] = Field(
         None,
-        filter=lambda value: PublishedRecord.dataset.has(
+        filter_function=lambda value: PublishedRecord.dataset.has(
             PublishedDataset.project.has(PublishedProject.name == value)
         ),
     )
     host_species: Optional[list[str]] = Field(
         None,
-        filter=PublishedRecord.host_species.ilike,
+        filter_function=PublishedRecord.host_species.ilike,
     )
-    pathogen: Optional[list[str]] = Field(None, filter=PublishedRecord.pathogen.ilike)
+    pathogen: Optional[list[str]] = Field(
+        None, filter_function=PublishedRecord.pathogen.ilike
+    )
     detection_target: Optional[list[str]] = Field(
-        None, filter=PublishedRecord.detection_target.ilike
+        None, filter_function=PublishedRecord.detection_target.ilike
     )
     researcher: Optional[list[str]] = Field(
         None,
-        filter=lambda value: PublishedRecord.dataset.has(
+        filter_function=lambda value: PublishedRecord.dataset.has(
             PublishedDataset.project.has(
                 PublishedProject.researchers.any(Researcher.name == value)
             )
         ),
     )
     detection_outcome: Optional[list[str]] = Field(
-        None, filter=PublishedRecord.detection_outcome.ilike
+        None, filter_function=PublishedRecord.detection_outcome.ilike
     )
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
@@ -147,16 +149,18 @@ def get_compound_filter(params):
     """
     filters = []
     for fieldname, field in Parameters.__fields__.items():
-        get_filter = field.field_info.extra.get("filter")
-        if get_filter is None:
+        filter_function = field.field_info.extra.get("filter_function")
+        if filter_function is None:
             continue
         value_or_values = getattr(params, fieldname)
         if value_or_values:
             if isinstance(value_or_values, list):
-                filters_for_field = [get_filter(value) for value in value_or_values]
+                filters_for_field = [
+                    filter_function(value) for value in value_or_values
+                ]
                 filters.append(or_(*filters_for_field))
             else:
-                filters.append(get_filter(value_or_values))
+                filters.append(filter_function(value_or_values))
     conjunction = and_(*filters)
     return conjunction
 
