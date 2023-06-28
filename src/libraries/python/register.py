@@ -149,7 +149,6 @@ COMPLEX_FIELDS = {
 REQUIRED_FIELDS = COMPLEX_FIELDS.union(
     {
         "host_species",
-        "detection_outcome",
     }
 )
 
@@ -417,6 +416,19 @@ class Record(BaseModel):
     age: Optional[DefaultPassDatapoint] = None
     mass: Optional[DefaultPassDatapoint] = None
     length: Optional[DefaultPassDatapoint] = None
+
+    @validator("host_species")
+    @validator_skip_fail_warn
+    @validator_skip_empty_string
+    def check_host_species(cls, host_species: DefaultPassDatapoint):
+        disallowed_species = ["homo sapiens","homo sapien", "human"]
+        if str(host_species).lower() in disallowed_species:
+            host_species.report = Report(
+                status=ReportScore.FAIL,
+                message="Please do not upload data on human infections to Pharos.",
+            )
+
+        return host_species
 
     @validator(
         "host_species_ncbi_tax_id",

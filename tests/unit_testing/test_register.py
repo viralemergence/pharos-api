@@ -570,7 +570,7 @@ def test_fail_release_report():
     assert report.success_count == 4
     assert report.fail_count == 1
     assert report.warning_count == 1
-    assert report.missing_count == 2
+    assert report.missing_count == 1
     assert report.warning_fields["rec12345"][0] == "Random column"
     assert report.fail_fields["rec12345"][0] == "Host species NCBI tax ID"
 
@@ -583,5 +583,4 @@ def test_fail_release_report():
 
     assert set(report.missing_fields["rec12345"]) == {
         "Collection day",
-        "Detection outcome",
     }
