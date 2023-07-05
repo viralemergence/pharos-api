@@ -16,9 +16,7 @@ from register import COMPLEX_FIELDS
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-class Parameters(BaseModel):
-    """Query string parameters"""
-
+class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
 
@@ -90,8 +88,8 @@ class Parameters(BaseModel):
 
 
 class GetPublishedRecordsEvent(BaseModel):
-    query_string_parameters: Parameters = Field(
-        Parameters, alias="queryStringParameters"
+    query_string_parameters: QueryStringParameters = Field(
+        QueryStringParameters, alias="queryStringParameters"
     )
 
     class Config:
@@ -134,18 +132,21 @@ def format_response_rows(rows, offset):
 
 
 def get_multi_value_query_string_parameters(event):
-    parameters_annotations = Parameters.__annotations__  # pylint: disable=no-member
-    # Some fields are single-value, like project_id and collection_start_date.
-    # We can tell which fields allow multiple values, by their type.
-    # Single-value fields have type `Optional[str]`, while multi-value fields
-    # have the type `Optional[list[str]]`.
+    parameters_annotations = (
+        QueryStringParameters.__annotations__
+    )  # pylint: disable=no-member
+    # Some fields, such as project_id and collection_start_date, take a single
+    # value. Others take multiple values. We can tell which fields take
+    # multiple values by their type. Single-value fields have type
+    # `Optional[str]`, while multi-value fields have the type
+    # `Optional[list[str]]`.
     multivalue_fields = [
         field
         for field in parameters_annotations
         if str(parameters_annotations[field]) == "typing.Optional[list[str]]"
     ]
     multivalue_field_aliases = [
-        Parameters.__fields__[field].alias for field in multivalue_fields
+        QueryStringParameters.__fields__[field].alias for field in multivalue_fields
     ]
     multivalue_params = {
         key: value
@@ -160,7 +161,7 @@ def get_compound_filter(params):
     condition AND condition [etc.]' --- for the specified parameters.
     """
     filters = []
-    for fieldname, field in Parameters.__fields__.items():
+    for fieldname, field in QueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
             continue
