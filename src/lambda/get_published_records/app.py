@@ -172,9 +172,10 @@ def get_compound_filter(params):
             if isinstance(list_or_string, list):
                 values = list_or_string
                 filters_for_field = [filter_function(value) for value in values]
-                # For example, suppose the query string was:
+                # Suppose the query string was:
                 # "?pathogen=Ebola&pathogen=Hepatitis". Then
-                # `filters_for_field` will be equivalent to the following Python list:
+                # `filters_for_field` would be equivalent to the following
+                # Python list:
                 #    [
                 #      PublishedRecord.pathogen.ilike('Ebola'),
                 #      PublishedRecord.pathogen.ilike('Hepatitis')]
@@ -188,9 +189,9 @@ def get_compound_filter(params):
                 filters.append(filter_function(value))
     conjunction = and_(*filters)
 
-    # For example, suppose the query string was:
+    # Suppose that the query string was:
     # "?host_species=Wolf&host_species=Bear&pathogen=Ebola&pathogen=Hepatitis".
-    # Then `conjunction` is equivalent to:
+    # Then `conjunction` would be equivalent to:
     #    and_([
     #      or_([
     #          PublishedRecord.host_species.ilike('Wolf'),
