@@ -17,8 +17,15 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 class Parameters(BaseModel):
+    """Query string parameters"""
+
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
+
+    # The following fields filter the set of published records. The "filter
+    # function" is a python function that will be used as a parameter to
+    # SQLAlchemy's Query.filter() method.
+
     pharos_id: Optional[list[str]] = Field(
         None, filter_function=lambda value: PublishedRecord.pharos_id == value
     )
@@ -70,6 +77,7 @@ class Parameters(BaseModel):
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
     def validate_date(cls, value):
+        """Ensure that collection_start_date and collection_end_date are either valid dates or None"""
         if value is not None:
             try:
                 datetime.strptime(value, "%Y-%m-%d")
@@ -127,6 +135,10 @@ def format_response_rows(rows, offset):
 
 def get_multi_value_query_string_parameters(event):
     parameters_annotations = Parameters.__annotations__  # pylint: disable=no-member
+    # Some fields are single-value, like project_id and collection_start_date.
+    # We can tell which fields allow multiple values, by their type.
+    # Single-value fields have type `Optional[str]`, while multi-value fields
+    # have the type `Optional[list[str]]`.
     multivalue_fields = [
         field
         for field in parameters_annotations
@@ -144,24 +156,53 @@ def get_multi_value_query_string_parameters(event):
 
 
 def get_compound_filter(params):
-    """Return a compound filter, i.e. a filter of the form 'condition AND
-    condition AND...', for the specified parameters.
+    """Return a compound filter --- a filter of the form 'condition AND
+    condition AND condition [etc.]' --- for the specified parameters.
     """
     filters = []
     for fieldname, field in Parameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
             continue
-        value_or_values = getattr(params, fieldname)
-        if value_or_values:
-            if isinstance(value_or_values, list):
-                filters_for_field = [
-                    filter_function(value) for value in value_or_values
-                ]
+        # This field will be associated either with a single value or, if it's
+        # a multi-value field, with a list of values
+        list_or_string = getattr(params, fieldname)
+        if list_or_string:
+            if isinstance(list_or_string, list):
+                values = list_or_string
+                filters_for_field = [filter_function(value) for value in values]
+                # For example, suppose the query string was:
+                # "?pathogen=Ebola&pathogen=Hepatitis". Then
+                # `filters_for_field` will be equivalent to the following Python list:
+                #    [
+                #      PublishedRecord.pathogen.ilike('Ebola'),
+                #      PublishedRecord.pathogen.ilike('Hepatitis')]
+                #    ]
                 filters.append(or_(*filters_for_field))
+                # `or_` is used here because we want records that match at
+                # least one of the values that the user specified for this
+                # field
             else:
-                filters.append(filter_function(value_or_values))
+                value = list_or_string
+                filters.append(filter_function(value))
     conjunction = and_(*filters)
+
+    # For example, suppose the query string was:
+    # "?host_species=Wolf&host_species=Bear&pathogen=Ebola&pathogen=Hepatitis".
+    # Then `conjunction` is equivalent to:
+    #    and_([
+    #      or_([
+    #          PublishedRecord.host_species.ilike('Wolf'),
+    #          PublishedRecord.host_species.ilike('Bear'),
+    #      ]),
+    #      or_([
+    #          PublishedRecord.pathogen.ilike('Ebola'),
+    #          PublishedRecord.pathogen.ilike('Hepatitis'),
+    #      ]),
+    #    ])
+    # In plain English, this means: "the host species is wolf or bear, and the
+    # pathogen is ebola or hepatitis".
+
     return conjunction
 
 
