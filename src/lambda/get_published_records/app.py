@@ -86,7 +86,7 @@ class Parameters(BaseModel):
         return value
 
     class Config:
-        extra = Extra.ignore
+        extra = Extra.forbid
 
 
 class GetPublishedRecordsEvent(BaseModel):
