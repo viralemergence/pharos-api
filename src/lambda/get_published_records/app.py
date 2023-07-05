@@ -75,7 +75,8 @@ class QueryStringParameters(BaseModel):
 
     @validator("collection_start_date", "collection_end_date", pre=True, always=True)
     def validate_date(cls, value):
-        """Ensure that collection_start_date and collection_end_date are either valid dates or None"""
+        """Ensure that collection_start_date and collection_end_date are either
+        valid dates or None"""
         if value is not None:
             try:
                 datetime.strptime(value, "%Y-%m-%d")
