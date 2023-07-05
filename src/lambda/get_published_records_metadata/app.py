@@ -17,19 +17,15 @@ def lambda_handler(_, __):
     with Session(engine) as session:
         fields = {
             "project_name": {
-                "label": "Project name",
                 "model": PublishedProject,
-                "dataGridKey": "Project name",
                 "column": "name",
             },
             "researcher_name": {
-                "label": "Author",
                 "model": Researcher,
-                "dataGridKey": "Authors",
                 "column": "name",
+                "dataGridKey": "Authors",
             },
             "host_species": {
-                # The label and dataGridKey for this and some other fields are set below
                 "model": PublishedRecord,
                 "column": "host_species",
             },
@@ -46,13 +42,11 @@ def lambda_handler(_, __):
                 "column": "pathogen",
             },
             "collection_start_date": {
-                "label": "Collected on or after date",
                 "dataGridKey": "Collection date",
                 "type": "date",
                 "filterGroup": "collection_date",
             },
             "collection_end_date": {
-                "label": "Collected on or before date",
                 "dataGridKey": "Collection date",
                 "type": "date",
                 "filterGroup": "collection_date",
