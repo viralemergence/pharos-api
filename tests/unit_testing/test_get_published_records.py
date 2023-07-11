@@ -1,17 +1,15 @@
-import random
 import json
 from published_records import get_query
 
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session
-from tests.unit_testing.test_database import (
-    MOCK_DATASET,
-    MOCK_PROJECT,
-    JOHN_SMITH,
-    JANE_DOE,
-)
 
 from models import PublishedProject, Researcher, Base
+from register import (
+    Dataset,
+    Project,
+    User,
+)
 from publish_register import (
     create_published_dataset,
     create_published_project,
@@ -41,58 +39,32 @@ def create_mock_register(record_count: int) -> str:
 
     for index in range(0, record_count):
         record_id = "rec" + str(index)
-        lon = -105.2705 + random.randint(1, 100) / 100
-        lat = 40.0150 + random.randint(1, 100) / 100
+        host_species = "Mus musculus" if index < 1500 else "Myotis lucifugus"
+        collection_year = "2023" if index < 500 else "2024"
+        detection_outcome = "positive" if index < 800 else "negative"
+        pathogen = "E. coli" if index < 1100 else "Streptococcus pyogenes"
+        detection_target = (
+            "Salmonella enterica" if index < 400 else "Bordetella pertussis"
+        )
 
-        # The first 1500 records will have host species "Bat", the rest "Mouse"
-        if index < 1500:
-            host_species = "Bat"
-        else:
-            host_species = "Mouse"
-
-        # The first 500 records will have collection date 1/1/2023, the rest
-        # 1/1/2024
-        if index < 500:
-            collection_year = "2023"
-        else:
-            collection_year = "2024"
-
+        data = {
+            "Host species": host_species,
+            "Latitude": "-105.2705",
+            "Longitude": "40.0150",
+            "Collection day": "1",
+            "Collection month": "1",
+            "Collection year": collection_year,
+            "Detection outcome": detection_outcome,
+            "Pathogen": pathogen,
+            "Detection target": detection_target,
+        }
         register_dict["register"][record_id] = {
-            "Host species": {
-                "dataValue": host_species,
+            field_name: {
+                "dataValue": value,
                 "modifiedBy": "dev",
-                "version": "1679692123",
-            },
-            "Latitude": {
-                "dataValue": str(lat),
-                "modifiedBy": "dev",
-                "version": "1679692123",
-            },
-            "Longitude": {
-                "dataValue": str(lon),
-                "modifiedBy": "dev",
-                "version": "1679692223",
-            },
-            "Collection day": {
-                "dataValue": "1",
-                "modifiedBy": "john",
-                "version": "1679692123",
-            },
-            "Collection month": {
-                "dataValue": "1",
-                "modifiedBy": "dev",
-                "version": "1679692123",
-            },
-            "Collection year": {
-                "dataValue": collection_year,
-                "modifiedBy": "dev",
-                "version": "1679692123",
-            },
-            "Detection outcome": {
-                "dataValue": "positive",
-                "modifiedBy": "dev",
-                "version": "1679692123",
-            },
+                "version": "0000000000",
+            }
+            for (field_name, value) in data.items()
         }
 
     json_register = json.dumps(register_dict)
@@ -108,36 +80,90 @@ def test_get_query():
         session.query(PublishedProject).delete()
         session.commit()
 
-        published_project = create_published_project(
-            project=MOCK_PROJECT,
+        project_0 = create_published_project(
+            project=Project.parse_table_item(
+                {
+                    "pk": "0",
+                    "sk": "_meta",
+                    "name": "Project Zero",
+                    "description": "",
+                    "authors": [
+                        {
+                            "researcherID": "researcher_0",
+                            "role": "Admin",
+                        },
+                        {
+                            "researcherID": "researcher_1",
+                            "role": "Admin",
+                        },
+                    ],
+                    "citation": "",
+                    "datasetIDs": ["dataset_0"],
+                    "lastUpdated": "2023-01-01",
+                    "othersCiting": [""],
+                    "projectPublications": [""],
+                    "projectType": "",
+                    "publishStatus": "Published",
+                    "relatedMaterials": [""],
+                    "surveillanceStatus": "Ongoing",
+                }
+            )
         )
 
         upsert_project_users(
             session=session,
-            published_project=published_project,
-            users=[JOHN_SMITH, JANE_DOE],
+            published_project=project_0,
+            users=[
+                User.parse_table_item(
+                    {
+                        "pk": "researcher_0",
+                        "sk": "_meta",
+                        "name": "Researcher Zero",
+                        "email": "researcher_0@example.com",
+                        "organization": "",
+                        "projectIDs": {"project_0"},
+                    }
+                ),
+                User.parse_table_item(
+                    {
+                        "pk": "researcher_1",
+                        "sk": "_meta",
+                        "name": "Researcher One",
+                        "email": "researcher_1@example.com",
+                        "organization": "",
+                        "projectIDs": {"project_0"},
+                    }
+                ),
+            ],
         )
 
-        for dataset in [MOCK_DATASET]:
-            published_dataset = create_published_dataset(
-                dataset=dataset,
-            )
+        mock_dataset = Dataset.parse_table_item(
+            {
+                "pk": "dataset_0",
+                "sk": "dataset_0",
+                "releaseStatus": "Released",
+                "name": "Dataset Zero",
+                "lastUpdated": "2021-01-01",
+                "earliestDate": "2019-01-01",
+                "latestDate": "2020-01-01",
+            }
+        )
 
-            mock_register = create_mock_register(2000)
-
-            published_dataset.records = create_published_records(
-                register_json=mock_register,
-                project_id=published_project.project_id,
-                dataset_id=published_dataset.dataset_id,
-            )
-
-            published_project.datasets.append(published_dataset)
-
-        session.add(published_project)
+        published_dataset = create_published_dataset(
+            dataset=mock_dataset,
+        )
+        mock_register = create_mock_register(2000)
+        published_dataset.records = create_published_records(
+            register_json=mock_register,
+            project_id=project_0.project_id,
+            dataset_id=published_dataset.dataset_id,
+        )
+        project_0.datasets.append(published_dataset)
+        session.add(project_0)
         session.commit()
 
-    assert len(get_query(ENGINE, {"host_species": ["Bat"]}).all()) == 1500
-    assert len(get_query(ENGINE, {"host_species": ["Mouse"]}).all()) == 500
+    assert len(get_query(ENGINE, {"host_species": ["Mus musculus"]}).all()) == 1500
+    assert len(get_query(ENGINE, {"host_species": ["Myotis lucifugus"]}).all()) == 500
     assert len(get_query(ENGINE, {"collection_end_date": "2023-1-2"}).all()) == 500
     assert len(get_query(ENGINE, {"collection_start_date": "2023-12-31"}).all()) == 1500
 
@@ -145,9 +171,25 @@ def test_get_query():
     assert (
         len(
             get_query(
-                ENGINE, {"collection_start_date": "2023-12-31", "host_species": ["Bat"]}
+                ENGINE,
+                {
+                    "collection_start_date": "2023-12-31",
+                    "host_species": ["Mus musculus"],
+                },
             ).all()
         )
         == 1000
     )
-    # TODO: test invalid dates?
+
+    assert (
+        len(
+            get_query(
+                ENGINE,
+                {
+                    "collection_end_date": "2023-1-2",
+                    "host_species": ["Myotis lucifugus"],
+                },
+            ).all()
+        )
+        == 0
+    )
