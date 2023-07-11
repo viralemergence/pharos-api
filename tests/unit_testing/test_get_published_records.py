@@ -304,8 +304,6 @@ def test_get_query():
 
     test({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
     test({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
-
-    test({"pharos_id": "rec0"}, 1)
-    # test({"pharos_id": "rec1"}, 1)
+    test({"pharos_id": "project0-dataset0-rec0"}, 1)
 
     # fmt: on
