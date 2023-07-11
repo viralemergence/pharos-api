@@ -39,35 +39,35 @@ def create_mock_register(record_count: int) -> str:
 
     for index in range(0, record_count):
         record_id = "rec" + str(index)
-        if index < 1500:
+        if index < 150:
             host_species = "host1"
-        elif index < 1800:
+        elif index < 180:
             host_species = "host2"
         else:
             host_species = "host3"
 
-        if index < 500:
+        if index < 50:
             collection_year = "2023"
         else:
             collection_year = "2024"
 
-        if index < 800:
+        if index < 80:
             detection_outcome = "positive"
-        elif index < 1900:
+        elif index < 190:
             detection_outcome = "negative"
         else:
             detection_outcome = "inconclusive"
 
-        if index < 1100:
+        if index < 110:
             pathogen = "path1"
-        elif index < 1400:
+        elif index < 140:
             pathogen = "path2"
         else:
             pathogen = "path3"
 
-        if index < 400:
+        if index < 40:
             detection_target = "Detection target A"
-        elif index < 1700:
+        elif index < 170:
             detection_target = "Detection target B"
         else:
             detection_target = "Detection target C"
@@ -105,25 +105,55 @@ def test_get_query():
         session.query(PublishedProject).delete()
         session.commit()
 
-        project_0 = create_published_project(
+        project0 = create_published_project(
             project=Project.parse_table_item(
                 {
-                    "pk": "0",
+                    "pk": "project0",
                     "sk": "_meta",
                     "name": "Project Zero",
                     "description": "",
                     "authors": [
                         {
-                            "researcherID": "researcher_0",
+                            "researcherID": "researcher0",
                             "role": "Admin",
                         },
                         {
-                            "researcherID": "researcher_1",
+                            "researcherID": "researcher1",
                             "role": "Admin",
                         },
                     ],
                     "citation": "",
-                    "datasetIDs": ["dataset_0"],
+                    "datasetIDs": ["dataset0"],
+                    "lastUpdated": "2023-01-01",
+                    "othersCiting": [""],
+                    "projectPublications": [""],
+                    "projectType": "",
+                    "publishStatus": "Published",
+                    "relatedMaterials": [""],
+                    "surveillanceStatus": "Ongoing",
+                }
+            )
+        )
+
+        project1 = create_published_project(
+            project=Project.parse_table_item(
+                {
+                    "pk": "project1",
+                    "sk": "_meta",
+                    "name": "Project One",
+                    "description": "",
+                    "authors": [
+                        {
+                            "researcherID": "researcher0",
+                            "role": "Admin",
+                        },
+                        {
+                            "researcherID": "researcher1",
+                            "role": "Admin",
+                        },
+                    ],
+                    "citation": "",
+                    "datasetIDs": ["dataset1"],
                     "lastUpdated": "2023-01-01",
                     "othersCiting": [""],
                     "projectPublications": [""],
@@ -137,35 +167,35 @@ def test_get_query():
 
         upsert_project_users(
             session=session,
-            published_project=project_0,
+            published_project=project0,
             users=[
                 User.parse_table_item(
                     {
-                        "pk": "researcher_0",
+                        "pk": "researcher0",
                         "sk": "_meta",
                         "name": "Researcher Zero",
-                        "email": "researcher_0@example.com",
+                        "email": "researcher0@example.com",
                         "organization": "",
-                        "projectIDs": {"project_0"},
+                        "projectIDs": {"project0"},
                     }
                 ),
                 User.parse_table_item(
                     {
-                        "pk": "researcher_1",
+                        "pk": "researcher1",
                         "sk": "_meta",
                         "name": "Researcher One",
-                        "email": "researcher_1@example.com",
+                        "email": "researcher1@example.com",
                         "organization": "",
-                        "projectIDs": {"project_0"},
+                        "projectIDs": {"project0"},
                     }
                 ),
             ],
         )
 
-        mock_dataset = Dataset.parse_table_item(
+        dataset0 = Dataset.parse_table_item(
             {
-                "pk": "dataset_0",
-                "sk": "dataset_0",
+                "pk": "dataset0",
+                "sk": "dataset0",
                 "releaseStatus": "Released",
                 "name": "Dataset Zero",
                 "lastUpdated": "2021-01-01",
@@ -173,46 +203,72 @@ def test_get_query():
                 "latestDate": "2020-01-01",
             }
         )
+        published_dataset0 = create_published_dataset(
+            dataset=dataset0,
+        )
+        published_dataset0.records = create_published_records(
+            register_json=create_mock_register(200),
+            project_id=project0.project_id,
+            dataset_id=published_dataset0.dataset_id,
+        )
+        project0.datasets.append(published_dataset0)
+        session.add(project0)
 
-        published_dataset = create_published_dataset(
-            dataset=mock_dataset,
+        session.commit()
+
+        dataset1 = Dataset.parse_table_item(
+            {
+                "pk": "dataset1",
+                "sk": "dataset1",
+                "releaseStatus": "Released",
+                "name": "Dataset One",
+                "lastUpdated": "2021-01-01",
+                "earliestDate": "2019-01-01",
+                "latestDate": "2020-01-01",
+            }
         )
-        mock_register = create_mock_register(2000)
-        published_dataset.records = create_published_records(
-            register_json=mock_register,
-            project_id=project_0.project_id,
-            dataset_id=published_dataset.dataset_id,
+        published_dataset1 = create_published_dataset(
+            dataset=dataset1,
         )
-        project_0.datasets.append(published_dataset)
-        session.add(project_0)
+        published_dataset1.records = create_published_records(
+            register_json=create_mock_register(200),
+            project_id=project1.project_id,
+            dataset_id=published_dataset1.dataset_id,
+        )
+        project1.datasets.append(published_dataset1)
+        session.add(project1)
+
         session.commit()
 
     def test(params, expected_record_count):
         assert len(get_query(ENGINE, params).all()) == expected_record_count
 
-    test({"host_species": "host1"}, 1500)
-    test({"host_species": "host2"}, 300)
-    test({"host_species": "host3"}, 200)
-    test({"host_species": ["host1", "host2"]}, 1800)
-    test({"host_species": ["host2", "host3"]}, 500)
-    test({"host_species": ["host1", "host3"]}, 1700)
+    # fmt: off
+    test({"host_species": "host1"}, 300)
+    test({"host_species": "host2"}, 60)
+    test({"host_species": "host3"}, 40)
+    test({"host_species": ["host1", "host2"]}, 360)
+    test({"host_species": ["host2", "host3"]}, 100)
+    test({"host_species": ["host1", "host3"]}, 340)
 
-    test({"pathogen": "path1"}, 1100)
-    test({"pathogen": "path2"}, 300)
-    test({"pathogen": "path3"}, 600)
-    test({"pathogen": ["path1", "path2"]}, 1400)
-    test({"pathogen": ["path2", "path3"]}, 900)
-    test({"pathogen": ["path1", "path3"]}, 1700)
+    test({"project_name": "Project Zero", "host_species": "host1"}, 150)
+    test({"project_name": "Project Zero", "host_species": "host2"}, 30)
+    test({"project_name": "Project Zero", "host_species": "host3"}, 20)
+    test({"project_name": "Project Zero", "host_species": ["host1", "host2"]}, 180)
+    test({"project_name": "Project Zero", "host_species": ["host2", "host3"]}, 50)
+    test({"project_name": "Project Zero", "host_species": ["host1", "host3"]}, 170)
 
-    test(
-        {
-            "host_species": ["host1", "host2"],
-            "pathogen": ["path2", "path3"],
-        },
-        700,
-    )
+    test({"pathogen": "path1"}, 220)
+    test({"pathogen": "path2"}, 60)
+    test({"pathogen": "path3"}, 120)
+    test({"pathogen": ["path1", "path2"]}, 280)
+    test({"pathogen": ["path2", "path3"]}, 180)
+    test({"pathogen": ["path1", "path3"]}, 340)
 
-    test({"collection_end_date": "2023-1-2"}, 500)
-    test({"collection_start_date": "2023-12-31"}, 1500)
-    test({"collection_start_date": "2023-12-31", "host_species": "host1"}, 1000)
+    test({"host_species": ["host1", "host2"], "pathogen": ["path2", "path3"]}, 140)
+
+    test({"collection_end_date": "2023-1-2"}, 100)
+    test({"collection_start_date": "2023-12-31"}, 300)
+    test({"collection_start_date": "2023-12-31", "host_species": "host1"}, 200)
     test({"collection_end_date": "2023-1-2", "host_species": "host2"}, 0)
+    # fmt: on
