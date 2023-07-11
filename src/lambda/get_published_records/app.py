@@ -209,6 +209,17 @@ def get_compound_filter(params):
     return conjunction
 
 
+def get_query(engine, params):
+    with Session(engine) as session:
+        query = session.query(
+            PublishedRecord,
+            PublishedRecord.geom.ST_X(),
+            PublishedRecord.geom.ST_Y(),
+        )
+        query = query.filter(get_compound_filter(params))
+        return query
+
+
 def lambda_handler(event, _):
     multivalue_params = get_multi_value_query_string_parameters(event)
     event["queryStringParameters"].update(multivalue_params)
@@ -224,21 +235,15 @@ def lambda_handler(event, _):
     limit = params.page_size
     offset = (params.page - 1) * limit
 
-    with Session(engine) as session:
-        query = session.query(
-            PublishedRecord,
-            PublishedRecord.geom.ST_X(),
-            PublishedRecord.geom.ST_Y(),
-        )
-        query = query.filter(get_compound_filter(params))
+    query = get_query(engine, params)
 
-        # Try to retrieve an extra row, to see if there are more pages
-        rows = query.limit(limit + 1).offset(offset).all()
-        is_last_page = len(rows) <= limit
-        # Don't include the extra row in the results
-        rows = rows[:limit]
+    # Try to retrieve an extra row, to see if there are more pages
+    rows = query.limit(limit + 1).offset(offset).all()
+    is_last_page = len(rows) <= limit
+    # Don't include the extra row in the results
+    rows = rows[:limit]
 
-        response_rows = format_response_rows(rows, offset)
+    response_rows = format_response_rows(rows, offset)
 
     return format_response(
         200,
