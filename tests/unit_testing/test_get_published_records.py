@@ -140,4 +140,14 @@ def test_get_query():
     assert len(get_query(ENGINE, {"host_species": ["Mouse"]}).all()) == 500
     assert len(get_query(ENGINE, {"collection_end_date": "2023-1-2"}).all()) == 500
     assert len(get_query(ENGINE, {"collection_start_date": "2023-12-31"}).all()) == 1500
+
+    # Test compound filter
+    assert (
+        len(
+            get_query(
+                ENGINE, {"collection_start_date": "2023-12-31", "host_species": ["Bat"]}
+            ).all()
+        )
+        == 1000
+    )
     # TODO: test invalid dates?
