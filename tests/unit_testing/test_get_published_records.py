@@ -39,13 +39,38 @@ def create_mock_register(record_count: int) -> str:
 
     for index in range(0, record_count):
         record_id = "rec" + str(index)
-        host_species = "Mus musculus" if index < 1500 else "Myotis lucifugus"
-        collection_year = "2023" if index < 500 else "2024"
-        detection_outcome = "positive" if index < 800 else "negative"
-        pathogen = "E. coli" if index < 1100 else "Streptococcus pyogenes"
-        detection_target = (
-            "Salmonella enterica" if index < 400 else "Bordetella pertussis"
-        )
+        if index < 1500:
+            host_species = "host1"
+        elif index < 1800:
+            host_species = "host2"
+        else:
+            host_species = "host3"
+
+        if index < 500:
+            collection_year = "2023"
+        else:
+            collection_year = "2024"
+
+        if index < 800:
+            detection_outcome = "positive"
+        elif index < 1900:
+            detection_outcome = "negative"
+        else:
+            detection_outcome = "inconclusive"
+
+        if index < 1100:
+            pathogen = "path1"
+        elif index < 1400:
+            pathogen = "path2"
+        else:
+            pathogen = "path3"
+
+        if index < 400:
+            detection_target = "Detection target A"
+        elif index < 1700:
+            detection_target = "Detection target B"
+        else:
+            detection_target = "Detection target C"
 
         data = {
             "Host species": host_species,
@@ -162,34 +187,32 @@ def test_get_query():
         session.add(project_0)
         session.commit()
 
-    assert len(get_query(ENGINE, {"host_species": ["Mus musculus"]}).all()) == 1500
-    assert len(get_query(ENGINE, {"host_species": ["Myotis lucifugus"]}).all()) == 500
-    assert len(get_query(ENGINE, {"collection_end_date": "2023-1-2"}).all()) == 500
-    assert len(get_query(ENGINE, {"collection_start_date": "2023-12-31"}).all()) == 1500
+    def test(params, expected_record_count):
+        assert len(get_query(ENGINE, params).all()) == expected_record_count
 
-    # Test compound filter
-    assert (
-        len(
-            get_query(
-                ENGINE,
-                {
-                    "collection_start_date": "2023-12-31",
-                    "host_species": ["Mus musculus"],
-                },
-            ).all()
-        )
-        == 1000
+    test({"host_species": "host1"}, 1500)
+    test({"host_species": "host2"}, 300)
+    test({"host_species": "host3"}, 200)
+    test({"host_species": ["host1", "host2"]}, 1800)
+    test({"host_species": ["host2", "host3"]}, 500)
+    test({"host_species": ["host1", "host3"]}, 1700)
+
+    test({"pathogen": "path1"}, 1100)
+    test({"pathogen": "path2"}, 300)
+    test({"pathogen": "path3"}, 600)
+    test({"pathogen": ["path1", "path2"]}, 1400)
+    test({"pathogen": ["path2", "path3"]}, 900)
+    test({"pathogen": ["path1", "path3"]}, 1700)
+
+    test(
+        {
+            "host_species": ["host1", "host2"],
+            "pathogen": ["path2", "path3"],
+        },
+        700,
     )
 
-    assert (
-        len(
-            get_query(
-                ENGINE,
-                {
-                    "collection_end_date": "2023-1-2",
-                    "host_species": ["Myotis lucifugus"],
-                },
-            ).all()
-        )
-        == 0
-    )
+    test({"collection_end_date": "2023-1-2"}, 500)
+    test({"collection_start_date": "2023-12-31"}, 1500)
+    test({"collection_start_date": "2023-12-31", "host_species": "host1"}, 1000)
+    test({"collection_end_date": "2023-1-2", "host_species": "host2"}, 0)
