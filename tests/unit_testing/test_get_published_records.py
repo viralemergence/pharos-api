@@ -39,17 +39,23 @@ def create_mock_register(record_count: int) -> str:
     register_dict = {}
     register_dict["register"] = {}
 
-    how_many_bats = 1000
-
     for index in range(0, record_count):
         record_id = "rec" + str(index)
         lon = -105.2705 + random.randint(1, 100) / 100
         lat = 40.0150 + random.randint(1, 100) / 100
 
-        if index < how_many_bats:
+        # The first 1500 records will have host species "Bat", the rest "Mouse"
+        if index < 1500:
             host_species = "Bat"
         else:
             host_species = "Mouse"
+
+        # The first 500 records will have collection date 1/1/2023, the rest
+        # 1/1/2024
+        if index < 500:
+            collection_year = "2023"
+        else:
+            collection_year = "2024"
 
         register_dict["register"][record_id] = {
             "Host species": {
@@ -78,7 +84,7 @@ def create_mock_register(record_count: int) -> str:
                 "version": "1679692123",
             },
             "Collection year": {
-                "dataValue": "2019",
+                "dataValue": collection_year,
                 "modifiedBy": "dev",
                 "version": "1679692123",
             },
@@ -130,6 +136,8 @@ def test_get_query():
         session.add(published_project)
         session.commit()
 
-    query = get_query(ENGINE, {"host_species": ["Bat"]})
-    rows = query.all()
-    assert len(rows) == 1000
+    assert len(get_query(ENGINE, {"host_species": ["Bat"]}).all()) == 1500
+    assert len(get_query(ENGINE, {"host_species": ["Mouse"]}).all()) == 500
+    assert len(get_query(ENGINE, {"collection_end_date": "2023-1-2"}).all()) == 500
+    assert len(get_query(ENGINE, {"collection_start_date": "2023-12-31"}).all()) == 1500
+    # TODO: test invalid dates?
