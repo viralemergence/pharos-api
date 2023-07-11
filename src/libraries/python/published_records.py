@@ -100,11 +100,11 @@ def get_compound_filter(params):
                 values = list_or_string
                 filters_for_field = [filter_function(value) for value in values]
                 # Suppose the query string was:
-                # "?pathogen=Ebola&pathogen=Hepatitis". Then
+                # "?pathogen=Influenza&pathogen=Hepatitis". Then
                 # `filters_for_field` would be equivalent to the following
                 # Python list:
                 #    [
-                #      PublishedRecord.pathogen.ilike('Ebola'),
+                #      PublishedRecord.pathogen.ilike('Influenza'),
                 #      PublishedRecord.pathogen.ilike('Hepatitis')]
                 #    ]
                 filters.append(or_(*filters_for_field))
@@ -117,7 +117,7 @@ def get_compound_filter(params):
     conjunction = and_(*filters)
 
     # Suppose that the query string was:
-    # "?host_species=Wolf&host_species=Bear&pathogen=Ebola&pathogen=Hepatitis".
+    # "?host_species=Wolf&host_species=Bear&pathogen=Influenza&pathogen=Hepatitis".
     # Then `conjunction` would be equivalent to:
     #    and_([
     #      or_([
@@ -125,12 +125,12 @@ def get_compound_filter(params):
     #          PublishedRecord.host_species.ilike('Bear'),
     #      ]),
     #      or_([
-    #          PublishedRecord.pathogen.ilike('Ebola'),
+    #          PublishedRecord.pathogen.ilike('Influenza'),
     #          PublishedRecord.pathogen.ilike('Hepatitis'),
     #      ]),
     #    ])
     # In plain English, this means: "the host species is wolf or bear, and the
-    # pathogen is ebola or hepatitis".
+    # pathogen is influenza or hepatitis".
 
     return conjunction
 

@@ -263,6 +263,7 @@ def test_get_query():
         assert len(get_query(ENGINE, params).all()) == expected_record_count
 
     # fmt: off
+    test({}, 400)
     test({"host_species": "host1"}, 300)
     test({"host_species": "host2"}, 60)
     test({"host_species": "host3"}, 40)
@@ -303,4 +304,8 @@ def test_get_query():
 
     test({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
     test({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
+
+    test({"pharos_id": "rec0"}, 1)
+    # test({"pharos_id": "rec1"}, 1)
+
     # fmt: on
