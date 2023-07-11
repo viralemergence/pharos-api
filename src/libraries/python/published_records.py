@@ -85,7 +85,9 @@ def get_compound_filter(params):
     """Return a compound filter --- a filter of the form 'condition AND
     condition AND condition [etc.]' --- for the specified parameters.
     """
-    filters = []
+    # There must be at least one filter, so we begin with True in case there
+    # are no filters specified.
+    filters = [True]
     for fieldname, field in QueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
