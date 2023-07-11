@@ -117,10 +117,6 @@ def test_get_query():
                             "researcherID": "researcher0",
                             "role": "Admin",
                         },
-                        {
-                            "researcherID": "researcher1",
-                            "role": "Admin",
-                        },
                     ],
                     "citation": "",
                     "datasetIDs": ["dataset0"],
@@ -143,10 +139,6 @@ def test_get_query():
                     "name": "Project One",
                     "description": "",
                     "authors": [
-                        {
-                            "researcherID": "researcher0",
-                            "role": "Admin",
-                        },
                         {
                             "researcherID": "researcher1",
                             "role": "Admin",
@@ -187,6 +179,33 @@ def test_get_query():
                         "email": "researcher1@example.com",
                         "organization": "",
                         "projectIDs": {"project0"},
+                    }
+                ),
+            ],
+        )
+
+        upsert_project_users(
+            session=session,
+            published_project=project1,
+            users=[
+                User.parse_table_item(
+                    {
+                        "pk": "researcher2",
+                        "sk": "_meta",
+                        "name": "Researcher Two",
+                        "email": "researcher2@example.com",
+                        "organization": "",
+                        "projectIDs": {"project1"},
+                    }
+                ),
+                User.parse_table_item(
+                    {
+                        "pk": "researcher3",
+                        "sk": "_meta",
+                        "name": "Researcher Three",
+                        "email": "researcher3@example.com",
+                        "organization": "",
+                        "projectIDs": {"project1"},
                     }
                 ),
             ],
