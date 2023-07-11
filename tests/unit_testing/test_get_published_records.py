@@ -277,6 +277,11 @@ def test_get_query():
     test({"project_name": "Project Zero", "host_species": ["host2", "host3"]}, 50)
     test({"project_name": "Project Zero", "host_species": ["host1", "host3"]}, 170)
 
+    # case insensitive
+    test({"project_name": "project zero"}, 200)
+    # the whole string must match
+    test({"project_name": "zero"}, 0)
+
     test({"pathogen": "path1"}, 220)
     test({"pathogen": "path2"}, 60)
     test({"pathogen": "path3"}, 120)
@@ -290,4 +295,12 @@ def test_get_query():
     test({"collection_start_date": "2023-12-31"}, 300)
     test({"collection_start_date": "2023-12-31", "host_species": "host1"}, 200)
     test({"collection_end_date": "2023-1-2", "host_species": "host2"}, 0)
+
+    test({"researcher": "Researcher Zero"}, 200)
+    test({"researcher": "Researcher One"}, 200)
+    test({"researcher": "Researcher Two"}, 200)
+    test({"researcher": "Researcher Three"}, 200)
+
+    test({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
+    test({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
     # fmt: on

@@ -41,7 +41,7 @@ class QueryStringParameters(BaseModel):
     project_name: Optional[list[str]] = Field(
         None,
         filter_function=lambda value: PublishedRecord.dataset.has(
-            PublishedDataset.project.has(PublishedProject.name == value)
+            PublishedDataset.project.has(PublishedProject.name.ilike(value))
         ),
     )
     host_species: Optional[list[str]] = Field(
