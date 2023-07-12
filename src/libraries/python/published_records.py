@@ -2,11 +2,13 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, __version__ as SQLALCHEMY_VERSION
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
 from register import COMPLEX_FIELDS
+
+print("sqlalchemy version", SQLALCHEMY_VERSION)
 
 
 class QueryStringParameters(BaseModel):
