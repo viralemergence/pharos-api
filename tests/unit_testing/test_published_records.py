@@ -1,9 +1,11 @@
+from types import SimpleNamespace
 from published_records import get_query
 from fixture import ENGINE, mock_data
 
 
 def check(params, expected_record_count):
-    assert len(get_query(ENGINE, params).all()) == expected_record_count
+    params_obj = SimpleNamespace(**params)  # Make an object from the params dict
+    assert len(get_query(ENGINE, params_obj).all()) == expected_record_count
 
 
 def test_no_filters(mock_data):

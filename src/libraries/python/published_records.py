@@ -92,7 +92,7 @@ def get_compound_filter(params):
             continue
         # This field will be associated either with a single value or, if it's
         # a multi-value field, with a list of values
-        list_or_string = params.get(fieldname, None)
+        list_or_string = getattr(params, fieldname, None)
         if list_or_string:
             if isinstance(list_or_string, list):
                 values = list_or_string
