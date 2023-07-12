@@ -13,9 +13,9 @@ class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
     page_size: int = Field(10, ge=1, le=100, alias="pageSize")
 
-    # The following fields filter the set of published records. The "filter
-    # function" is a python function that will be used as a parameter to
-    # SQLAlchemy's Query.filter() method.
+    # The following fields filter the set of published records. Each "filter
+    # function" will be used as a parameter to SQLAlchemy's Query.filter()
+    # method.
 
     pharos_id: Optional[list[str]] = Field(
         None, filter_function=lambda value: PublishedRecord.pharos_id == value
@@ -85,9 +85,7 @@ def get_compound_filter(params):
     """Return a compound filter --- a filter of the form 'condition AND
     condition AND condition [etc.]' --- for the specified parameters.
     """
-    # There must be at least one filter, so we begin with True in case there
-    # are no filters specified.
-    filters = [True]
+    filters = []
     for fieldname, field in QueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
@@ -114,7 +112,7 @@ def get_compound_filter(params):
             else:
                 value = list_or_string
                 filters.append(filter_function(value))
-    conjunction = and_(*filters)
+    conjunction = and_(True, *filters)  # Using `True` to avoid a deprecation warning
 
     # Suppose that the query string was:
     # "?host_species=Wolf&host_species=Bear&pathogen=Influenza&pathogen=Hepatitis".
