@@ -38,43 +38,27 @@ def create_mock_register(record_count: int) -> str:
     register_dict["register"] = {}
 
     for index in range(0, record_count):
-        record_id = "rec" + str(index)
-        if index < 150:
-            host_species = "host1"
-        elif index < 180:
-            host_species = "host2"
-        else:
-            host_species = "host3"
-
-        if index < 50:
-            collection_year = "2023"
-        elif index < 100:
-            collection_year = "2024"
-        elif index < 150:
-            collection_year = "2025"
-        else:
-            collection_year = "2026"
-
-        if index < 80:
+        record_id = f"rec{index}"
+        host_species = f"host{index}"
+        if index == 0:
             detection_outcome = "positive"
-        elif index < 190:
+        elif index == 1:
             detection_outcome = "negative"
         else:
             detection_outcome = "inconclusive"
-
-        if index < 110:
+        if index == 0:
             pathogen = "path1"
-        elif index < 140:
+        elif index == 1:
             pathogen = "path2"
         else:
             pathogen = "path3"
 
-        if index < 40:
-            detection_target = "Detection target A"
-        elif index < 170:
-            detection_target = "Detection target B"
+        if index == 0:
+            detection_target = "target1"
+        elif index == 1
+            detection_target = "target2"
         else:
-            detection_target = "Detection target C"
+            detection_target = "target3C"
 
         data = {
             "Host species": host_species,
@@ -82,7 +66,7 @@ def create_mock_register(record_count: int) -> str:
             "Longitude": "40.0150",
             "Collection day": "1",
             "Collection month": "1",
-            "Collection year": collection_year,
+            "Collection year": "2023",
             "Detection outcome": detection_outcome,
             "Pathogen": pathogen,
             "Detection target": detection_target,
