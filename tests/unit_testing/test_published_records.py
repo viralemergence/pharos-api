@@ -1,5 +1,5 @@
 from published_records import get_query
-from .fixture import ENGINE, mock_data
+from fixture import ENGINE, mock_data
 
 
 def check(params, expected_record_count):
