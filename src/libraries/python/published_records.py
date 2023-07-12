@@ -87,6 +87,16 @@ def get_compound_filter(params):
     """
     filters = []
     for fieldname, field in QueryStringParameters.__fields__.items():
+        import pprint
+
+        print("fieldname")
+        pprint.pprint(fieldname)
+        print("field")
+        pprint.pprint(field)
+        print("field.field_info")
+        pprint.pprint(field.field_info)
+        print("field.field_info.extra")
+        pprint.pprint(field.field_info.extra)
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
             continue
