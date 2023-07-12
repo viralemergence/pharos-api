@@ -1,10 +1,11 @@
+import pytest
 import json
 from published_records import get_query
 
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session
 
-from models import PublishedProject, Researcher, Base
+from models import PublishedProject, PublishedRecord, PublishedDataset, Researcher, Base
 from register import (
     Dataset,
     Project,
@@ -97,14 +98,10 @@ def create_mock_register(record_count: int) -> str:
     return json_register
 
 
-def test_get_query():
-    # Insert mock data
+@pytest.fixture
+def mock_data():
     with Session(ENGINE) as session:
-        # Delete all existing projects, if any,
-        # so test can be run repeatedly
-        session.query(PublishedProject).delete()
-        session.commit()
-
+        cleanup(session)
         project0 = create_published_project(
             project=Project.parse_table_item(
                 {
@@ -259,51 +256,87 @@ def test_get_query():
 
         session.commit()
 
-    def test(params, expected_record_count):
-        assert len(get_query(ENGINE, params).all()) == expected_record_count
+        yield
+        cleanup(session)
 
-    # fmt: off
-    test({}, 400)
-    test({"host_species": "host1"}, 300)
-    test({"host_species": "host2"}, 60)
-    test({"host_species": "host3"}, 40)
-    test({"host_species": ["host1", "host2"]}, 360)
-    test({"host_species": ["host2", "host3"]}, 100)
-    test({"host_species": ["host1", "host3"]}, 340)
 
-    test({"project_name": "Project Zero", "host_species": "host1"}, 150)
-    test({"project_name": "Project Zero", "host_species": "host2"}, 30)
-    test({"project_name": "Project Zero", "host_species": "host3"}, 20)
-    test({"project_name": "Project Zero", "host_species": ["host1", "host2"]}, 180)
-    test({"project_name": "Project Zero", "host_species": ["host2", "host3"]}, 50)
-    test({"project_name": "Project Zero", "host_species": ["host1", "host3"]}, 170)
+def cleanup(session):
+    session.query(PublishedProject).delete()
+    session.query(PublishedDataset).delete()
+    session.query(PublishedRecord).delete()
+    session.query(Researcher).delete()
+    session.commit()
 
-    # case insensitive
-    test({"project_name": "project zero"}, 200)
+
+def assert_filter(params, expected_record_count):
+    assert len(get_query(ENGINE, params).all()) == expected_record_count
+
+
+def test_no_filters(mock_data):
+    assert_filter({}, 400)
+
+
+def assert_filter_by_pharos_id(mock_data):
+    assert_filter({"pharos_id": "project0-dataset0-rec0"}, 1)
+    assert_filter(
+        {"pharos_id": ["project0-dataset0-rec0", "project1-dataset1-rec1"]}, 2
+    )
+
+
+def assert_filter_by_host_species(mock_data):
+    assert_filter({"host_species": "host1"}, 300)
+    assert_filter({"host_species": "host2"}, 60)
+    assert_filter({"host_species": "host3"}, 40)
+    assert_filter({"host_species": ["host1", "host2"]}, 360)
+    assert_filter({"host_species": ["host2", "host3"]}, 100)
+    assert_filter({"host_species": ["host1", "host3"]}, 340)
+
+
+def assert_filter_by_project_name(mock_data):
+    # the project name filter is case insensitive
+    assert_filter({"project_name": "project zero"}, 200)
     # the whole string must match
-    test({"project_name": "zero"}, 0)
+    assert_filter({"project_name": "Zero"}, 0)
 
-    test({"pathogen": "path1"}, 220)
-    test({"pathogen": "path2"}, 60)
-    test({"pathogen": "path3"}, 120)
-    test({"pathogen": ["path1", "path2"]}, 280)
-    test({"pathogen": ["path2", "path3"]}, 180)
-    test({"pathogen": ["path1", "path3"]}, 340)
 
-    test({"host_species": ["host1", "host2"], "pathogen": ["path2", "path3"]}, 140)
+def assert_filter_by_pathogen(mock_data):
+    assert_filter({"pathogen": "path1"}, 220)
+    assert_filter({"pathogen": "path2"}, 60)
+    assert_filter({"pathogen": "path3"}, 120)
+    assert_filter({"pathogen": ["path1", "path2"]}, 280)
+    assert_filter({"pathogen": ["path2", "path3"]}, 180)
+    assert_filter({"pathogen": ["path1", "path3"]}, 340)
 
-    test({"collection_end_date": "2023-1-2"}, 100)
-    test({"collection_start_date": "2023-12-31"}, 300)
-    test({"collection_start_date": "2023-12-31", "host_species": "host1"}, 200)
-    test({"collection_end_date": "2023-1-2", "host_species": "host2"}, 0)
 
-    test({"researcher": "Researcher Zero"}, 200)
-    test({"researcher": "Researcher One"}, 200)
-    test({"researcher": "Researcher Two"}, 200)
-    test({"researcher": "Researcher Three"}, 200)
+def assert_filter_by_project_name_and_host_species(mock_data):
+    assert_filter({"project_name": "Project Zero", "host_species": "host1"}, 150)
+    assert_filter({"project_name": "Project Zero", "host_species": "host2"}, 30)
+    assert_filter({"project_name": "Project Zero", "host_species": "host3"}, 20)
+    assert_filter(
+        {"project_name": "Project Zero", "host_species": ["host1", "host2"]}, 180
+    )
+    assert_filter(
+        {"project_name": "Project Zero", "host_species": ["host2", "host3"]}, 50
+    )
+    assert_filter(
+        {"project_name": "Project Zero", "host_species": ["host1", "host3"]}, 170
+    )
 
-    test({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
-    test({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
-    test({"pharos_id": "project0-dataset0-rec0"}, 1)
+    assert_filter(
+        {"host_species": ["host1", "host2"], "pathogen": ["path2", "path3"]}, 140
+    )
 
-    # fmt: on
+    assert_filter({"collection_end_date": "2023-1-2"}, 100)
+    assert_filter({"collection_start_date": "2023-12-31"}, 300)
+    assert_filter({"collection_start_date": "2023-12-31", "host_species": "host1"}, 200)
+    assert_filter({"collection_end_date": "2023-1-2", "host_species": "host2"}, 0)
+
+    assert_filter({"researcher": "Researcher Zero"}, 200)
+    assert_filter({"researcher": "Researcher One"}, 200)
+    assert_filter({"researcher": "Researcher Two"}, 200)
+    assert_filter({"researcher": "Researcher Three"}, 200)
+
+    assert_filter(
+        {"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200
+    )
+    assert_filter({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
