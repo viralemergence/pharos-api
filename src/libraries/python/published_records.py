@@ -93,8 +93,9 @@ def get_compound_filter(params):
         # `field` has a property, `field_info`, but at other times, `field` is
         # itself a FieldInfo object
         field_info = getattr(field, "field_info", None) or field
-        filter_function = field_info.extra.get("filter_function")
-
+        extra = getattr(field_info, "extra", None)
+        if extra:
+            filter_function = extra.get("filter_function")
         if filter_function is None:
             continue
         # This field will be associated either with a single value or, if it's
