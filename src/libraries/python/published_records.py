@@ -89,15 +89,14 @@ def get_compound_filter(params):
     for fieldname, field in QueryStringParameters.__fields__.items():
         import pprint
 
-        print("fieldname")
-        pprint.pprint(fieldname)
-        print("field")
-        pprint.pprint(field)
-        print("field.field_info")
-        pprint.pprint(field.field_info)
-        print("field.field_info.extra")
-        pprint.pprint(field.field_info.extra)
-        filter_function = field.field_info.extra.get("filter_function")
+        filter_function = None
+
+        # Sometimes field is a FieldInfo object. Cover this case
+        if field.field_info:
+            filter_function = field.field_info.extra.get("filter_function")
+        elif getattr(field, "extra"):
+            filter_function = getattr(field, "extra").get("filter_function")
+
         if filter_function is None:
             continue
         # This field will be associated either with a single value or, if it's
