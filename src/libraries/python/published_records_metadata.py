@@ -1,14 +1,12 @@
 import boto3
 from sqlalchemy.orm import Session
-from engine import get_engine
 from models import PublishedProject, PublishedRecord, Researcher
 from column_alias import API_NAME_TO_UI_NAME_MAP
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-def get_fields():
-    engine = get_engine()
+def get_fields(engine):
     with Session(engine) as session:
         fields = {
             "project_name": {
