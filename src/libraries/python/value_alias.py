@@ -28,8 +28,8 @@ class DeadOrAlive(str, Enum):
     column in a PublishedRecord.
     """
 
-    ALIVE = "alive"
     DEAD = "dead"
+    ALIVE = "alive"
     UNKNOWN = "unknown"
 
 

@@ -2,28 +2,34 @@ version: 2.1
 
 credentials: &credentials
   - AWS Credentials
+  - DockerHub Credentials
 
-# orbs:
-#   sam: circleci/aws-sam-serverless@3.2.0
 orbs:
   sam: circleci/aws-sam-serverless@4.0
+  aws-cli: circleci/aws-cli@3.1
 
 workflows:
   version: 2
-  build:
+  build_and_test:
     jobs:
+      - test:
+          context: *credentials
+
       # dev
       - deploy:
+          requires:
+            - test
           config-env: dev
           context: *credentials
           filters:
             branches:
               only:
                 - dev
-                - feature/new-models
 
       # review
       - deploy:
+          requires:
+            - test
           config-env: review
           context: *credentials
           filters:
@@ -33,6 +39,8 @@ workflows:
 
       # staging
       - deploy:
+          requires:
+            - test
           config-env: staging
           context: *credentials
           filters:
@@ -42,6 +50,8 @@ workflows:
 
       # prod
       - deploy:
+          requires:
+            - test
           config-env: prod
           context: *credentials
           filters:
@@ -50,6 +60,72 @@ workflows:
                 - prod
 
 jobs:
+  test:
+    docker:
+      - image: cimg/python:3.10-browsers
+      - image: cimg/postgres:14.7-postgis
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: pharos-pytest
+          POSTGRES_PASSWORD: "1234"
+          username: $DOCKERHUB_USER
+          password: $DOCKERHUB_PASSWORD
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
+
+      - run:
+          name: Install dev dependencies
+          command: |
+            # python3 -m venv env .
+            # source env/bin/activate
+            pip install -r dev-requirements.txt
+
+      - run:
+          name: Install NodeJS & Pyright
+          command: |
+            sudo npm install --global pyright;
+
+      - run:
+          name: Run Type Checks
+          command: |
+            # source env/bin/activate
+            pyright
+
+      - run:
+          name: Run Style Checks
+          command: |
+            # source env/bin/activate
+            pylint src/
+
+      - run:
+          name: Add PostGIS to database
+          command: |
+            export PGPASSWORD=1234
+            psql -h localhost -p 5432 -U postgres -d pharos-pytest -c "CREATE EXTENSION postgis"
+
+      - run:
+          name: Run Tests
+          command: |
+            mkdir test-results
+            # source env/bin/activate
+            pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
+            coverage report
+
+      - store_artifacts:
+          path: htmlcov
+
+      - store_test_results:
+          path: test-results
+
+      - save_cache:
+          paths:
+            - env
+          key: v1-python-cache-{{ checksum "dev-requirements.txt" }}
+
   deploy:
     executor: sam/default
 
@@ -60,53 +136,15 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: Install Python@3.9
-          command: |
-            sudo apt install software-properties-common;
-            sudo add-apt-repository -y ppa:deadsnakes/ppa;
-            sudo apt -y update;
-            sudo apt -y install python3.9;
-            sudo apt -y install python3.9-distutils;
-            sudo apt -y install python3.9-venv;
-
-      - run:
-          name: Create virtualenv & install dev dependencies
-          command: |
-            python3.9 -m venv env .
-            source env/bin/activate
-            pip install -r dev-requirements.txt
-
-      - run:
-          name: Install NodeJS & Pyright
-          command: |
-            sudo apt install nodejs;
-            npm install --global pyright;
-
-      - run:
-          name: Run Type Checks
-          command: |
-            pyright
-
-      - run:
-          name: Run Style Checks
-          command: |
-            source env/bin/activate
-            pylint src/
-
-      - run:
-          name: Run Tests
-          command: |
-            source env/bin/activate
-            mkdir test-results
-            pytest -v --cov=src/libraries/python --cov=src/lambda  --junitxml=test-results/junit.xml --cov-report=html
-            coverage report
-
-      - store_artifacts:
-          path: htmlcov
-
-      - store_test_results:
-          path: test-results
+      # - run:
+      #     name: Install Python@3.10
+      #     command: |
+      #       sudo apt install software-properties-common;
+      #       sudo add-apt-repository -y ppa:deadsnakes/ppa;
+      #       sudo apt -y update;
+      #       sudo apt -y install python3.10;
+      #       sudo apt -y install python3.10-distutils;
+      #       sudo apt -y install python3.10-venv;
 
       - sam/install
       - run: sam build

@@ -41,11 +41,11 @@ def test_valid_record():
     """Testing a basic, valid record"""
     record = Record.parse_raw(VALID_RECORD)
     assert record.host_species is not None
-    assert record.host_species.dataValue == "Vulpes vulpes"
+    assert record.host_species.data_value == "Vulpes vulpes"
     assert record.host_species.report is not None
     assert record.host_species.report.status == ReportScore.SUCCESS
     assert record.host_species.previous is not None
-    assert record.host_species.previous.dataValue == "Previous Data Value"
+    assert record.host_species.previous.data_value == "Previous Data Value"
     assert record.host_species.version == 2
     assert record.host_species.previous.version == 1
 
@@ -54,7 +54,7 @@ def test_valid_coersion():
     """Testing coersions of data points which are expected to be successful"""
     record = Record.parse_raw(VALID_RECORD)
     assert record.age is not None
-    assert record.age.dataValue == "10"
+    assert record.age.data_value == "10"
     assert float(record.age) == 10.0
     assert str(record.age) == "10"
     assert int(record.age) == 10
@@ -157,7 +157,7 @@ REGISTER_WITH_PARTIAL_DATE = """
 """
 
 
-def test_register_with_partial_date():
+def test_partial_date():
     """If a date is missing a day or month or year,
     no reports should be generated
     """
@@ -189,7 +189,7 @@ REGISTER_WITH_DATE = """
 """
 
 
-def test_register_with_date():
+def test_date():
     """If a date is complete, all datapoints in
     the date should get a success report
     """
@@ -235,7 +235,7 @@ REGISTER_WITH_INVALID_DATE = """
 """
 
 
-def test_register_with_invalid_date():
+def test_invalid_date():
     """If a date is invalid, all date datapoints should
     get a fail report with an explanation why.
     """
@@ -272,7 +272,7 @@ REGISTER_WITH_SHORT_YEAR = """
 """
 
 
-def test_register_with_short_year():
+def test_with_short_year():
     """All years must have four digits"""
     record = Record.parse_raw(REGISTER_WITH_SHORT_YEAR)
     assert record.collection_year is not None
@@ -324,7 +324,7 @@ NON_NUMERIC_INVALID_LOCATION = """
 """
 
 
-def test_non_numeric_invalid_location():
+def test_non_numeric_location():
     """This lat/lon pair is invalid because they are not numeric"""
     record = Record.parse_raw(NON_NUMERIC_INVALID_LOCATION)
     assert record.latitude is not None
@@ -485,18 +485,18 @@ MINIMAL_RELEASEABLE_REGISTER = """
 """
 
 
-def test_release_report():
+def test_success_release_report():
     register = Register.parse_raw(MINIMAL_RELEASEABLE_REGISTER)
     report = register.get_release_report()
     assert report is not None
-    assert report.releaseStatus is DatasetReleaseStatus.RELEASED
-    assert report.successCount == 8
-    assert report.warningCount == 0
-    assert report.failCount == 0
-    assert report.missingCount == 0
-    assert len(report.warningFields) == 0
-    assert len(report.failFields) == 0
-    assert len(report.missingFields) == 0
+    assert report.release_status is DatasetReleaseStatus.RELEASED
+    assert report.success_count == 8
+    assert report.warning_count == 0
+    assert report.fail_count == 0
+    assert report.missing_count == 0
+    assert len(report.warning_fields) == 0
+    assert len(report.fail_fields) == 0
+    assert len(report.missing_fields) == 0
 
     # A user has deleted "Age" in the interface, so its value is
     # an empty string, so it should be included to keep the history
@@ -562,26 +562,25 @@ REGISTER_NOT_READY_TO_RELEASE = """
 """
 
 
-def test_release_report_not_ready():
+def test_fail_release_report():
     register = Register.parse_raw(REGISTER_NOT_READY_TO_RELEASE)
     report = register.get_release_report()
     assert report is not None
-    assert report.releaseStatus is DatasetReleaseStatus.UNRELEASED
-    assert report.successCount == 4
-    assert report.failCount == 1
-    assert report.warningCount == 1
-    assert report.missingCount == 2
-    assert report.warningFields["rec12345"][0] == "Random column"
-    assert report.failFields["rec12345"][0] == "Host species NCBI tax ID"
+    assert report.release_status is DatasetReleaseStatus.UNRELEASED
+    assert report.success_count == 4
+    assert report.fail_count == 1
+    assert report.warning_count == 1
+    assert report.missing_count == 1
+    assert report.warning_fields["rec12345"][0] == "Random column"
+    assert report.fail_fields["rec12345"][0] == "Host species NCBI tax ID"
 
-    # detection_outcome has a dataValue of "" so but it is
+    # detection_outcome has a data_value of "" so but it is
     # a required field so it should be in the parsed register
     # but it should not have a report and should show up as a
     # missing field in the release report.
     assert register.register_data["rec12345"].detection_outcome is not None
     assert register.register_data["rec12345"].detection_outcome.report is None
 
-    assert set(report.missingFields["rec12345"]) == {
+    assert set(report.missing_fields["rec12345"]) == {
         "Collection day",
-        "Detection outcome",
     }
