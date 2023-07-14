@@ -82,8 +82,8 @@ class QueryStringParameters(BaseModel):
 
 
 def get_compound_filter(params):
-    """Return a compound filter --- a filter of the form 'condition AND
-    condition AND condition [etc.]' --- for the specified parameters.
+    """Return a compound filter ('condition AND condition AND condition...')
+    for the specified parameters.
     """
     filters = []
     for fieldname, field in QueryStringParameters.__fields__.items():
@@ -91,7 +91,7 @@ def get_compound_filter(params):
         if filter_function is None:
             continue
         # This field will be associated either with a single value or, if it's
-        # a multi-value field, with a list of values
+        # a multi-value field, a list of values
         list_or_string = getattr(params, fieldname, None)
         if list_or_string:
             if isinstance(list_or_string, list):
@@ -100,7 +100,7 @@ def get_compound_filter(params):
                 # Suppose the query string was:
                 # "?pathogen=Influenza&pathogen=Hepatitis". Then
                 # `filters_for_field` would be equivalent to the following
-                # Python list:
+                # list:
                 #    [
                 #      PublishedRecord.pathogen.ilike('Influenza'),
                 #      PublishedRecord.pathogen.ilike('Hepatitis')]
@@ -116,7 +116,7 @@ def get_compound_filter(params):
 
     # Suppose that the query string was:
     # "?host_species=Wolf&host_species=Bear&pathogen=Influenza&pathogen=Hepatitis".
-    # Then `conjunction` would be equivalent to:
+    # Then `conjunction` could be written out like this:
     #    and_([
     #      or_([
     #          PublishedRecord.host_species.ilike('Wolf'),
@@ -127,8 +127,8 @@ def get_compound_filter(params):
     #          PublishedRecord.pathogen.ilike('Hepatitis'),
     #      ]),
     #    ])
-    # In plain English, this means: "the host species is wolf or bear, and the
-    # pathogen is influenza or hepatitis".
+    # In plain English, this means: "The host species is Wolf or Bear, and the
+    # pathogen is Influenza or Hepatitis".
 
     return conjunction
 
@@ -152,9 +152,8 @@ def get_multi_value_query_string_parameters(event):
     )
     # Some fields, such as project_id and collection_start_date, take a single
     # value. Others take multiple values. We can tell which fields take
-    # multiple values by their type. Single-value fields have type
-    # `Optional[str]`, while multi-value fields have the type
-    # `Optional[list[str]]`.
+    # multiple values based on their type. Single-value fields have type
+    # `Optional[str]`. Multi-value fields have the type `Optional[list[str]]`.
     multivalue_fields = [
         field
         for field in parameters_annotations
