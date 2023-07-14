@@ -8,11 +8,6 @@ from column_alias import API_NAME_TO_UI_NAME_MAP
 from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
 from register import COMPLEX_FIELDS
 
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
 
 class QueryStringParameters(BaseModel):
     page: int = Field(1, ge=1, alias="page")
