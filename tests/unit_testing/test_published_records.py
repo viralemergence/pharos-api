@@ -1,3 +1,7 @@
+# pylint: disable=redefined-outer-name
+# pylint: disable=unused-argument
+# pylint: disable=unused-import
+
 from types import SimpleNamespace
 from published_records import get_query, format_response_rows
 from fixture import ENGINE, mock_data

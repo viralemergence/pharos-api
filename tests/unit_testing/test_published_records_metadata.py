@@ -1,3 +1,7 @@
+# pylint: disable=redefined-outer-name
+# pylint: disable=unused-argument
+# pylint: disable=unused-import
+
 from fixture import ENGINE, mock_data
 from published_records_metadata import get_fields
 
