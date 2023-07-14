@@ -29,6 +29,7 @@ ENGINE = create_engine(
 )
 
 
+# pylint: disable=too-many-branches
 def create_mock_register(record_count: int) -> str:
     register_dict = {}
     register_dict["register"] = {}
@@ -95,6 +96,9 @@ def create_mock_register(record_count: int) -> str:
     json_register = json.dumps(register_dict)
 
     return json_register
+
+
+# pylint: enable=too-many-branches
 
 
 @pytest.fixture
