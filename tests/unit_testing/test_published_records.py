@@ -86,6 +86,11 @@ def test_filter_by_researcher_name_and_project_name(mock_data):
     check({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
 
 
+def test_filter_by_dataset_id(mock_data):
+    check({"dataset_id": "dataset0"}, 200)
+    check({"dataset_id": "dataset1"}, 200)
+
+
 def test_format_response_rows(mock_data):
     rows = get_query(ENGINE, {}).limit(50).offset(0).all()
     formatted_rows = format_response_rows(rows, 0)

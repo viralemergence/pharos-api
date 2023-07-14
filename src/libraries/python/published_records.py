@@ -20,9 +20,9 @@ class QueryStringParameters(BaseModel):
     pharos_id: Optional[list[str]] = Field(
         None, filter_function=lambda value: PublishedRecord.pharos_id == value
     )
-    project_id: Optional[str] = Field(
+    dataset_id: Optional[str] = Field(
         None,
-        filter_function=lambda value: PublishedRecord.dataset.project_id == value,
+        filter_function=lambda value: PublishedRecord.dataset_id == value,
     )
     collection_start_date: Optional[str] = Field(
         None,
