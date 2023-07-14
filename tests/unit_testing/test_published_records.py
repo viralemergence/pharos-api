@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from published_records import get_query
+from published_records import get_query, format_response_rows
 from fixture import ENGINE, mock_data
 
 
@@ -80,3 +80,45 @@ def test_filter_by_researcher_name(mock_data):
 def test_filter_by_researcher_name_and_project_name(mock_data):
     check({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
     check({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
+
+
+def test_format_response_rows(mock_data):
+    rows = get_query(ENGINE, {}).limit(1).offset(0).all()
+    formatted_rows = format_response_rows(rows, 0)
+    assert formatted_rows[0] == {
+        "pharosID": "project0-dataset0-rec0",
+        "rowNumber": 1,
+        "Project name": "Project Zero",
+        "Authors": "Researcher Zero, Researcher One",
+        "Collection date": "2023-01-01",
+        "Latitude": -105.2705,
+        "Longitude": 40.015,
+        "Sample ID": None,
+        "Animal ID": None,
+        "Host species": "host1",
+        "Host species NCBI tax ID": None,
+        "Collection method or tissue": None,
+        "Detection method": None,
+        "Primer sequence": None,
+        "Primer citation": None,
+        "Detection target": "target1",
+        "Detection target NCBI tax ID": None,
+        "Detection outcome": "positive",
+        "Detection measurement": None,
+        "Detection measurement units": None,
+        "Pathogen": "path1",
+        "Pathogen NCBI tax ID": None,
+        "GenBank accession": None,
+        "Detection comments": None,
+        "Organism sex": None,
+        "Dead or alive": None,
+        "Health notes": None,
+        "Life stage": None,
+        "Age": None,
+        "Mass": None,
+        "Length": None,
+        "Spatial uncertainty": None,
+        "Author": None,
+        "Collected on or after date": None,
+        "Collected on or before date": None,
+    }

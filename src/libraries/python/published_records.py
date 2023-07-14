@@ -184,10 +184,6 @@ def format_response_rows(rows, offset):
 
         researchers = published_record.dataset.project.researchers
 
-        logging.info(
-            "published_record.dataset.project!!!", published_record.dataset.project
-        )
-
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
         response_dict["Project name"] = published_record.dataset.project.name
@@ -201,7 +197,7 @@ def format_response_rows(rows, offset):
         response_dict["Longitude"] = longitude
 
         for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
-            if api_name not in COMPLEX_FIELDS:
+            if api_name not in COMPLEX_FIELDS and ui_name not in response_dict:
                 response_dict[ui_name] = getattr(published_record, api_name, None)
 
         response_rows.append(response_dict)
