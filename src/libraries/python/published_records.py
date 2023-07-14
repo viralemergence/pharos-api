@@ -2,13 +2,16 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
-from sqlalchemy import and_, or_, __version__ as SQLALCHEMY_VERSION
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
 from register import COMPLEX_FIELDS
 
-print("sqlalchemy version", SQLALCHEMY_VERSION)
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 class QueryStringParameters(BaseModel):
@@ -185,6 +188,10 @@ def format_response_rows(rows, offset):
         response_dict = {}
 
         researchers = published_record.dataset.project.researchers
+
+        logging.info(
+            "published_record.dataset.project!!!", published_record.dataset.project
+        )
 
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
