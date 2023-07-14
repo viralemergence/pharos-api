@@ -141,6 +141,7 @@ def get_query(engine, params):
             PublishedRecord.geom.ST_Y(),
         )
         query = query.filter(get_compound_filter(params))
+        query = query.order_by("pharos_id")
         return query
 
 

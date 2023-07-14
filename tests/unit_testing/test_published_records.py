@@ -83,7 +83,7 @@ def test_filter_by_researcher_name_and_project_name(mock_data):
 
 
 def test_format_response_rows(mock_data):
-    rows = get_query(ENGINE, {}).limit(1).offset(0).all()
+    rows = get_query(ENGINE, {}).limit(50).offset(0).all()
     formatted_rows = format_response_rows(rows, 0)
     assert formatted_rows[0] == {
         "pharosID": "project0-dataset0-rec0",
