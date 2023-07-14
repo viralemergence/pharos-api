@@ -10,8 +10,8 @@ from register import COMPLEX_FIELDS
 
 
 class QueryStringParameters(BaseModel):
-    page: int = Field(1, ge=1, alias="page")
-    page_size: int = Field(10, ge=1, le=100, alias="pageSize")
+    page: int = Field(ge=1, alias="page")
+    page_size: int = Field(ge=1, le=100, alias="pageSize")
 
     # The following fields filter the set of published records. Each "filter
     # function" will be used as a parameter to SQLAlchemy's Query.filter()
