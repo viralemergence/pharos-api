@@ -236,7 +236,9 @@ class PublishedRecord(Base):
     primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_target_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    detection_outcome: Mapped[DetectionOutcome] = mapped_column(AliasDetectionOutcome)
+    detection_outcome: Mapped[Optional[DetectionOutcome]] = mapped_column(
+        AliasDetectionOutcome
+    )
     detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
     pathogen: Mapped[Optional[str]] = mapped_column(CoerceStr)
