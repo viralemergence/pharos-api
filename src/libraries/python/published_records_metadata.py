@@ -16,7 +16,6 @@ def get_fields(engine):
             "researcher_name": {
                 "model": Researcher,
                 "column": "name",
-                "dataGridKey": "Authors",
             },
             "host_species": {
                 "model": PublishedRecord,

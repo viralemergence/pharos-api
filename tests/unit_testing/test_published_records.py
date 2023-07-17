@@ -98,7 +98,7 @@ def test_format_response_rows(mock_data):
         "pharosID": "project0-dataset0-rec0",
         "rowNumber": 1,
         "Project name": "Project Zero",
-        "Authors": "Researcher Zero, Researcher One",
+        "Author": "Researcher Zero, Researcher One",
         "Collection date": "2023-01-01",
         "Latitude": -105.2705,
         "Longitude": 40.015,
