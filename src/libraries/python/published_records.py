@@ -2,10 +2,16 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
-from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_, select, func
+
 from column_alias import API_NAME_TO_UI_NAME_MAP
-from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
+from models import (
+    PublishedRecord,
+    PublishedDataset,
+    PublishedProject,
+    Researcher,
+    projects_researchers,
+)
 from register import COMPLEX_FIELDS
 
 
@@ -133,16 +139,47 @@ def get_compound_filter(params):
     return conjunction
 
 
-def get_query(engine, params):
-    with Session(engine) as session:
-        query = session.query(
+def get_query(session, params):
+    authors_subquery = (
+        select(
+            projects_researchers.c.project_id,
+            func.string_agg(Researcher.name, ", ").label("researcher_names"),
+        )
+        .select_from(
+            projects_researchers.join(
+                Researcher,
+                projects_researchers.c.researcher_id == Researcher.researcher_id,
+            )
+        )
+        .group_by(projects_researchers.c.project_id)
+        .subquery()
+    )
+
+    query = (
+        session.query(
             PublishedRecord,
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
+            PublishedProject.name,
+            authors_subquery.c.researcher_names,
         )
-        query = query.filter(get_compound_filter(params))
-        query = query.order_by("pharos_id")
-        return query
+        .join(
+            PublishedDataset,
+            PublishedRecord.dataset_id == PublishedDataset.dataset_id,
+        )
+        .join(
+            PublishedProject,
+            PublishedDataset.project_id == PublishedProject.project_id,
+        )
+        .outerjoin(
+            authors_subquery,
+            PublishedProject.project_id == authors_subquery.c.project_id,
+        )
+        .filter(get_compound_filter(params))
+        .order_by(PublishedRecord.pharos_id)
+    )
+
+    return query
 
 
 def get_multi_value_query_string_parameters(event):
@@ -172,25 +209,25 @@ def get_multi_value_query_string_parameters(event):
 
 def format_response_rows(rows, offset):
     """Format the rows returned from the database to change API
-    names into display names, add query-relative row numbers,
-    and add latitude, longitude, and collection date columns.
-    """
+    names into display names and add query-relative row numbers."""
 
     response_rows = []
     for row_number, row in enumerate(rows, start=1):
-        published_record, longitude, latitude = row
+        (
+            published_record,
+            longitude,
+            latitude,
+            project_name,
+            comma_delimited_researcher_names,
+        ) = row
 
         response_dict = {}
 
-        researchers = published_record.dataset.project.researchers
-
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
-        response_dict["Project name"] = published_record.dataset.project.name
+        response_dict["Project name"] = project_name
 
-        response_dict["Author"] = ", ".join(
-            [researcher.name for researcher in researchers]
-        )
+        response_dict["Author"] = comma_delimited_researcher_names
 
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude

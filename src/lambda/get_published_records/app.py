@@ -1,6 +1,8 @@
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
+from sqlalchemy.orm import Session
+
 from engine import get_engine
 from format import format_response
 
@@ -38,10 +40,14 @@ def lambda_handler(event, _):
     limit = params.page_size
     offset = (params.page - 1) * limit
 
-    query = get_query(engine, params)
+    with Session(engine) as session:
+        query = get_query(session, params)
 
-    # Try to retrieve an extra row, to see if there are more pages
-    rows = query.limit(limit + 1).offset(offset).all()
+        # Try to retrieve an extra row, to see if there are more pages
+        query = query.limit(limit + 1).offset(offset)
+
+        rows = query.all()  # execute the query
+
     is_last_page = len(rows) <= limit
     # Don't include the extra row in the results
     rows = rows[:limit]
