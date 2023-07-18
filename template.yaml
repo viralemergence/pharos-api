@@ -570,6 +570,55 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
+  GetPublishedProjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      MemorySize: 128
+      CodeUri: src/lambda/get_published_project/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue data-lab-rds-VPCSG
+        SubnetIds:
+          # - !ImportValue data-lab-rds-SubnetA
+          # - !ImportValue data-lab-rds-SubnetB
+          - !ImportValue data-lab-rds-SubnetC
+          # - subnet-8f7652ea
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /published-project
+            Method: get
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rds-db:connect
+              Resource: !Join
+                - ":"
+                - - arn:aws:rds-db
+                  - !Ref AWS::Region
+                  - !Ref AWS::AccountId
+                  - db-user
+                  - !Select [
+                      6,
+                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                    ]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+
   GetMapTilesFunction:
     Type: AWS::Serverless::Function
     Properties:
