@@ -7,8 +7,9 @@ from engine import get_engine
 from format import format_response
 
 from published_records import (
+    add_related_data,
     format_response_rows,
-    get_query,
+    query_records,
     get_multi_value_query_string_parameters,
     QueryStringParameters,
 )
@@ -41,12 +42,14 @@ def lambda_handler(event, _):
     offset = (params.page - 1) * limit
 
     with Session(engine) as session:
-        query = get_query(session, params)
+        query = query_records(session, params)
 
         # Try to retrieve an extra row, to see if there are more pages
         query = query.limit(limit + 1).offset(offset)
 
         rows = query.all()  # execute the query
+
+        rows = add_related_data(rows)
 
     is_last_page = len(rows) <= limit
     # Don't include the extra row in the results

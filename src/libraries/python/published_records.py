@@ -139,44 +139,12 @@ def get_compound_filter(params):
     return conjunction
 
 
-def get_query(session, params):
-
-    # TODO: Switch back to ORM
-
-    authors_subquery = (
-        select(
-            projects_researchers.c.project_id,
-            func.string_agg(Researcher.name, ", ").label("researcher_names"),
-        )
-        .select_from(
-            projects_researchers.join(
-                Researcher,
-                projects_researchers.c.researcher_id == Researcher.researcher_id,
-            )
-        )
-        .group_by(projects_researchers.c.project_id)
-        .subquery()
-    )
-
+def query_records(session, params):
     query = (
         session.query(
             PublishedRecord,
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
-            PublishedProject.name,
-            authors_subquery.c.researcher_names,
-        )
-        .join(
-            PublishedDataset,
-            PublishedRecord.dataset_id == PublishedDataset.dataset_id,
-        )
-        .join(
-            PublishedProject,
-            PublishedDataset.project_id == PublishedProject.project_id,
-        )
-        .outerjoin(
-            authors_subquery,
-            PublishedProject.project_id == authors_subquery.c.project_id,
         )
         .where(get_compound_filter(params))
         .order_by(PublishedRecord.pharos_id)
@@ -210,6 +178,16 @@ def get_multi_value_query_string_parameters(event):
     return multivalue_params
 
 
+def add_related_data(rows):
+    for row in rows:
+        project = row[0].dataset.project
+        row[0].project_name = project.name
+        row[0].authors = ", ".join(
+            [researcher.name for researcher in project.researchers]
+        )
+    return rows
+
+
 def format_response_rows(rows, offset):
     """Format the rows returned from the database to change API
     names into display names and add query-relative row numbers."""
@@ -220,17 +198,15 @@ def format_response_rows(rows, offset):
             published_record,
             longitude,
             latitude,
-            project_name,
-            comma_delimited_researcher_names,
         ) = row
 
         response_dict = {}
 
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
-        response_dict["Project name"] = project_name
+        response_dict["Project name"] = published_record.project_name
 
-        response_dict["Author"] = comma_delimited_researcher_names
+        response_dict["Author"] = published_record.authors
 
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude
