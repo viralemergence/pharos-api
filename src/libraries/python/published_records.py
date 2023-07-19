@@ -175,7 +175,7 @@ def get_query(session, params):
             authors_subquery,
             PublishedProject.project_id == authors_subquery.c.project_id,
         )
-        .filter(get_compound_filter(params))
+        .where(get_compound_filter(params))
         .order_by(PublishedRecord.pharos_id)
     )
 
