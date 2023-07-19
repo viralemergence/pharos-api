@@ -25,7 +25,8 @@ ENGINE = create_engine(
         username="postgres",
         port=5432,
         password="1234",
-    )
+    ),
+    echo=True,
 )
 
 

@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
-from sqlalchemy import and_, or_, select, func
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload
 
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from models import (
@@ -10,7 +11,6 @@ from models import (
     PublishedDataset,
     PublishedProject,
     Researcher,
-    projects_researchers,
 )
 from register import COMPLEX_FIELDS
 
@@ -140,11 +140,23 @@ def get_compound_filter(params):
 
 
 def query_records(session, params):
+
     query = (
         session.query(
             PublishedRecord,
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
+        )
+        .options(
+            # In the project table, eagerly load the project name
+            joinedload(PublishedRecord.dataset)
+            .joinedload(PublishedDataset.project)
+            .load_only(PublishedProject.name),
+            # In the researcher table, eagerly load the researcher names
+            joinedload(PublishedRecord.dataset)
+            .joinedload(PublishedDataset.project)
+            .joinedload(PublishedProject.researchers)
+            .load_only(Researcher.name),
         )
         .where(get_compound_filter(params))
         .order_by(PublishedRecord.pharos_id)
@@ -182,9 +194,7 @@ def add_related_data(rows):
     for row in rows:
         project = row[0].dataset.project
         row[0].project_name = project.name
-        row[0].authors = ", ".join(
-            [researcher.name for researcher in project.researchers]
-        )
+        row[0].authors = ", ".join(project.researcher_names)
     return rows
 
 
