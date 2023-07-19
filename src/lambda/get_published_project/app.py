@@ -13,7 +13,7 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 class QueryStringParameters(BaseModel):
-    project_id: str = Field(..., alias="projectID")
+    project_id: str = Field(alias="projectID")
 
     class Config:
         extra = Extra.forbid
