@@ -521,11 +521,11 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
-  GetPublishedRecordsFunction:
+  GetPublishedProjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 128
-      CodeUri: src/lambda/get_published_records/
+      CodeUri: src/lambda/get_published_project/
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue data-lab-rds-VPCSG
@@ -538,7 +538,7 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /published-records
+            Path: /published-project
             Method: get
       Layers:
         - !Ref Libraries
@@ -570,11 +570,11 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
-  GetPublishedProjectFunction:
+  GetPublishedRecordsFunction:
     Type: AWS::Serverless::Function
     Properties:
       MemorySize: 128
-      CodeUri: src/lambda/get_published_project/
+      CodeUri: src/lambda/get_published_records/
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue data-lab-rds-VPCSG
@@ -587,7 +587,7 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /published-project
+            Path: /published-records
             Method: get
       Layers:
         - !Ref Libraries
