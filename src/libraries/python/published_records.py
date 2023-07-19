@@ -140,6 +140,9 @@ def get_compound_filter(params):
 
 
 def get_query(session, params):
+
+    # TODO: Switch back to ORM
+
     authors_subquery = (
         select(
             projects_researchers.c.project_id,
