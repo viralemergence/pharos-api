@@ -1,6 +1,6 @@
 import json
-import pytest
 import os
+import pytest
 
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session
