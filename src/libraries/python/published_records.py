@@ -148,6 +148,10 @@ def query_records(session, params):
             PublishedRecord.geom.ST_Y(),
         )
         .options(
+            # In the dataset table, eagerly load the id
+            selectinload(PublishedRecord.dataset).load_only(
+                PublishedDataset.dataset_id
+            ),
             # In the project table, eagerly load the project name
             selectinload(PublishedRecord.dataset)
             .selectinload(PublishedDataset.project)
