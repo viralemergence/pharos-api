@@ -11,7 +11,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String, TypeDecorator
-from sqlalchemy.ext.associationproxy import association_proxy
 
 
 from value_alias import (
@@ -185,7 +184,6 @@ class PublishedProject(Base):
         cascade="all, delete",
         order_by="asc(Researcher.name)",
     )
-    researcher_names = association_proxy("researchers", "name")
 
     datasets: Mapped[list["PublishedDataset"]] = relationship(
         "PublishedDataset",
@@ -218,9 +216,6 @@ class PublishedDataset(Base):
         cascade="all, delete",
         passive_deletes=True,
     )
-
-    project_name = association_proxy("project", "name")
-    researcher_names = association_proxy("project", "researcher_names")
 
 
 class PublishedRecord(Base):
@@ -264,6 +259,3 @@ class PublishedRecord(Base):
         "PublishedDataset",
         back_populates="records",
     )
-
-    project_name = association_proxy("dataset", "project_name")
-    researcher_names = association_proxy("dataset", "researcher_names")

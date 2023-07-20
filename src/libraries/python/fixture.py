@@ -27,7 +27,7 @@ ENGINE = create_engine(
         port=5432,
         password="1234",
     ),
-    echo=True,
+    echo=(os.environ.get("ECHO_SQL", "false") == "true"),
 )
 
 
@@ -101,8 +101,6 @@ def create_mock_register(record_count: int) -> str:
 
 
 # pylint: enable=too-many-branches
-
-how_many_records = float(os.environ.get("RECORD_COUNT", 400))
 
 
 @pytest.fixture
@@ -227,7 +225,7 @@ def mock_data():
                 "latestDate": "2020-01-01",
             }
         )
-        records_per_project = int(how_many_records / 2.0)
+        records_per_project = 200
         published_dataset0 = create_published_dataset(
             dataset=dataset0,
         )

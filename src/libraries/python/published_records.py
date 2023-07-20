@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from models import (
@@ -149,13 +149,13 @@ def query_records(session, params):
         )
         .options(
             # In the project table, eagerly load the project name
-            joinedload(PublishedRecord.dataset)
-            .joinedload(PublishedDataset.project)
+            selectinload(PublishedRecord.dataset)
+            .selectinload(PublishedDataset.project)
             .load_only(PublishedProject.name),
             # In the researcher table, eagerly load the researcher names
-            joinedload(PublishedRecord.dataset)
-            .joinedload(PublishedDataset.project)
-            .joinedload(PublishedProject.researchers)
+            selectinload(PublishedRecord.dataset)
+            .selectinload(PublishedDataset.project)
+            .selectinload(PublishedProject.researchers)
             .load_only(Researcher.name),
         )
         .where(get_compound_filter(params))
@@ -190,14 +190,6 @@ def get_multi_value_query_string_parameters(event):
     return multivalue_params
 
 
-def add_related_data(rows):
-    for row in rows:
-        project = row[0].dataset.project
-        row[0].project_name = project.name
-        row[0].authors = ", ".join(project.researcher_names)
-    return rows
-
-
 def format_response_rows(rows, offset):
     """Format the rows returned from the database to change API
     names into display names and add query-relative row numbers."""
@@ -214,9 +206,12 @@ def format_response_rows(rows, offset):
 
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
-        response_dict["Project name"] = published_record.project_name
 
-        response_dict["Author"] = published_record.authors
+        project = published_record.dataset.project
+        response_dict["Project name"] = project.name
+        response_dict["Author"] = ", ".join(
+            [researcher.name for researcher in project.researchers]
+        )
 
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude

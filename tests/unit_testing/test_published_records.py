@@ -2,18 +2,23 @@
 # pylint: disable=unused-argument
 # pylint: disable=unused-import
 
-import os
 from types import SimpleNamespace
 from sqlalchemy.orm import Session
-from published_records import add_related_data, format_response_rows, query_records
+from published_records import format_response_rows, query_records
+from models import PublishedRecord
 from fixture import ENGINE, mock_data
-import timeit
 
 
 def check(params, expected_record_count):
     params_obj = SimpleNamespace(**params)  # Make an object from the params dict
     with Session(ENGINE) as session:
         assert len(query_records(session, params_obj).all()) == expected_record_count
+
+
+def test_total_number_of_records(mock_data):
+    with Session(ENGINE) as session:
+        records = session.query(PublishedRecord).all()
+        assert len(records) == 400
 
 
 def test_no_filters(mock_data):
@@ -98,7 +103,6 @@ def test_filter_by_dataset_id(mock_data):
 def test_format_response_rows(mock_data):
     with Session(ENGINE) as session:
         rows = query_records(session, {}).limit(50).offset(0).all()
-        rows = add_related_data(rows)
     formatted_rows = format_response_rows(rows, 0)
     assert formatted_rows[0] == {
         "pharosID": "project0-dataset0-rec0",
