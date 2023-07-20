@@ -154,7 +154,7 @@ class Researcher(Base):
     __tablename__ = "researchers"
 
     researcher_id: Mapped[str] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(index=True)
+    name: Mapped[str]
     organization: Mapped[str]
     email: Mapped[str]
 
@@ -169,7 +169,7 @@ class PublishedProject(Base):
     __tablename__ = "projects"
 
     project_id: Mapped[str] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(index=True)
+    name: Mapped[str]
     published_date: Mapped[date]
     description: Mapped[Optional[str]]
     project_type: Mapped[Optional[str]]
@@ -232,22 +232,22 @@ class PublishedRecord(Base):
     )
     sample_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
     animal_id: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    host_species: Mapped[str] = mapped_column(CoerceStr, index=True)
+    host_species: Mapped[str] = mapped_column(CoerceStr)
     host_species_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
-    spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
-    collection_date: Mapped[date] = mapped_column(index=True)
+    spatial_uncertainty: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    collection_date: Mapped[date]
     collection_method_or_tissue: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    detection_method: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
-    primer_sequence: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
-    primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
-    detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
+    detection_method: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_sequence: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    primer_citation: Mapped[Optional[str]] = mapped_column(CoerceStr)
+    detection_target: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_target_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     detection_outcome: Mapped[Optional[DetectionOutcome]] = mapped_column(
-        AliasDetectionOutcome, index=True
+        AliasDetectionOutcome
     )
     detection_measurement: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_measurement_units: Mapped[Optional[str]] = mapped_column(CoerceStr)
-    pathogen: Mapped[Optional[str]] = mapped_column(CoerceStr, index=True)
+    pathogen: Mapped[Optional[str]] = mapped_column(CoerceStr)
     pathogen_ncbi_tax_id: Mapped[Optional[int]] = mapped_column(CoerceInt)
     genbank_accession: Mapped[Optional[str]] = mapped_column(CoerceStr)
     detection_comments: Mapped[Optional[str]] = mapped_column(CoerceStr)
