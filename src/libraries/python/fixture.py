@@ -1,5 +1,6 @@
 import json
 import pytest
+import os
 
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session
@@ -100,6 +101,8 @@ def create_mock_register(record_count: int) -> str:
 
 
 # pylint: enable=too-many-branches
+
+how_many_records = float(os.environ.get("RECORD_COUNT", 400))
 
 
 @pytest.fixture
@@ -224,11 +227,12 @@ def mock_data():
                 "latestDate": "2020-01-01",
             }
         )
+        records_per_project = int(how_many_records / 2.0)
         published_dataset0 = create_published_dataset(
             dataset=dataset0,
         )
         published_dataset0.records = create_published_records(
-            register_json=create_mock_register(200),
+            register_json=create_mock_register(records_per_project),
             project_id=project0.project_id,
             dataset_id=published_dataset0.dataset_id,
         )
@@ -252,7 +256,7 @@ def mock_data():
             dataset=dataset1,
         )
         published_dataset1.records = create_published_records(
-            register_json=create_mock_register(200),
+            register_json=create_mock_register(records_per_project),
             project_id=project1.project_id,
             dataset_id=published_dataset1.dataset_id,
         )

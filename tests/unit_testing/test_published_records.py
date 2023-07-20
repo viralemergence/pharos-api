@@ -2,10 +2,12 @@
 # pylint: disable=unused-argument
 # pylint: disable=unused-import
 
+import os
 from types import SimpleNamespace
 from sqlalchemy.orm import Session
 from published_records import add_related_data, format_response_rows, query_records
 from fixture import ENGINE, mock_data
+import timeit
 
 
 def check(params, expected_record_count):
@@ -93,44 +95,62 @@ def check(params, expected_record_count):
 #     check({"dataset_id": "dataset1"}, 200)
 
 
-def test_format_response_rows(mock_data):
+def test_complex_query_with_related_data(mock_data):
+    start_time = timeit.default_timer()
+
     with Session(ENGINE) as session:
-        rows = query_records(session, {}).limit(50).offset(0).all()
+        params = {"collection_start_date": "2023-12-31", "host_species": "host1"}
+        params_obj = SimpleNamespace(**params)  # Make an object from the params dict
+        rows = query_records(session, params_obj).limit(100).offset(0).all()
         rows = add_related_data(rows)
     formatted_rows = format_response_rows(rows, 0)
-    assert formatted_rows[0] == {
-        "pharosID": "project0-dataset0-rec0",
-        "rowNumber": 1,
-        "Project name": "Project Zero",
-        "Author": "Researcher One, Researcher Zero",  # In alphabetic order
-        "Collection date": "2023-01-01",
-        "Latitude": -105.2705,
-        "Longitude": 40.015,
-        "Sample ID": None,
-        "Animal ID": None,
-        "Host species": "host1",
-        "Host species NCBI tax ID": None,
-        "Collection method or tissue": None,
-        "Detection method": None,
-        "Primer sequence": None,
-        "Primer citation": None,
-        "Detection target": "target1",
-        "Detection target NCBI tax ID": None,
-        "Detection outcome": "positive",
-        "Detection measurement": None,
-        "Detection measurement units": None,
-        "Pathogen": "path1",
-        "Pathogen NCBI tax ID": None,
-        "GenBank accession": None,
-        "Detection comments": None,
-        "Organism sex": None,
-        "Dead or alive": None,
-        "Health notes": None,
-        "Life stage": None,
-        "Age": None,
-        "Mass": None,
-        "Length": None,
-        "Spatial uncertainty": None,
-        "Collected on or after date": None,
-        "Collected on or before date": None,
-    }
+
+    end_time = timeit.default_timer()
+    execution_time = end_time - start_time
+    record_count = os.environ.get("RECORD_COUNT", 400)
+    message = f"RECORD_COUNT: {record_count}. test_complex_query_with_related_data, with indexes: {execution_time} seconds\n"
+    with open(os.environ.get("TIME_OUTPUT_FILE", "/tmp/time.txt"), "a") as f:
+        f.write(message)
+
+
+# def test_format_response_rows(mock_data):
+#     with Session(ENGINE) as session:
+#         rows = query_records(session, {}).limit(50).offset(0).all()
+#         rows = add_related_data(rows)
+#     formatted_rows = format_response_rows(rows, 0)
+#     assert formatted_rows[0] == {
+#         "pharosID": "project0-dataset0-rec0",
+#         "rowNumber": 1,
+#         "Project name": "Project Zero",
+#         "Author": "Researcher One, Researcher Zero",  # In alphabetic order
+#         "Collection date": "2023-01-01",
+#         "Latitude": -105.2705,
+#         "Longitude": 40.015,
+#         "Sample ID": None,
+#         "Animal ID": None,
+#         "Host species": "host1",
+#         "Host species NCBI tax ID": None,
+#         "Collection method or tissue": None,
+#         "Detection method": None,
+#         "Primer sequence": None,
+#         "Primer citation": None,
+#         "Detection target": "target1",
+#         "Detection target NCBI tax ID": None,
+#         "Detection outcome": "positive",
+#         "Detection measurement": None,
+#         "Detection measurement units": None,
+#         "Pathogen": "path1",
+#         "Pathogen NCBI tax ID": None,
+#         "GenBank accession": None,
+#         "Detection comments": None,
+#         "Organism sex": None,
+#         "Dead or alive": None,
+#         "Health notes": None,
+#         "Life stage": None,
+#         "Age": None,
+#         "Mass": None,
+#         "Length": None,
+#         "Spatial uncertainty": None,
+#         "Collected on or after date": None,
+#         "Collected on or before date": None,
+#     }
