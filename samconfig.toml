@@ -32,7 +32,7 @@ region = "us-west-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = false
-parameter_overrides = "CorsAllow=\"https://review-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets2\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+parameter_overrides = "CorsAllow=\"https://review-pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets2\" ProjectsTableName=\"projects\" LayerName=\"layer\""
 image_repositories = []
 tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 
@@ -46,7 +46,7 @@ region = "us-west-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = false
-parameter_overrides = "CorsAllow=\"https://prod-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+parameter_overrides = "CorsAllow=\"https://pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
 image_repositories = []
 tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 
@@ -59,6 +59,6 @@ s3_prefix = "pharos-api-staging"
 region = "us-west-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "CorsAllow=\"https://staging-pharos-frontend.talusanalytics.com\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+parameter_overrides = "CorsAllow=\"https://staging-pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
 image_repositories = []
 tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
