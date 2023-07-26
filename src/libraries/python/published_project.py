@@ -1,7 +1,7 @@
 import json
-from sqlalchemy import Engine, select
-from typing import TypedDict, cast
+from typing import TypedDict
 
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
 from models import PublishedProject
@@ -50,7 +50,7 @@ def get_published_project_data(
 
         datasets_formatted: list[DatasetFormatted] = [
             {
-                "datasetID": dataset.dataset_id, 
+                "datasetID": dataset.dataset_id,
                 "name": dataset.name
             }
             for dataset in project.datasets
@@ -81,13 +81,13 @@ def get_published_project_data(
     }
 
     if project.related_materials:
-        project_formatted["relatedMaterials"] = cast(json.loads(project.related_materials), list[str])
+        project_formatted["relatedMaterials"] = json.loads(project.related_materials)
 
     if project.project_publications:
-        project_formatted["projectPublications"] = cast(json.loads(project.project_publications),list[str])
+        project_formatted["projectPublications"] = json.loads(project.project_publications)
 
     if project.others_citing:
-        project_formatted["othersCiting"] = cast(json.loads(project.others_citing), list[str])
+        project_formatted["othersCiting"] = json.loads(project.others_citing)
 
 
     return project_formatted
