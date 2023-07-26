@@ -9,17 +9,22 @@ from models import PublishedProject
 
 class DatasetFormatted(TypedDict):
     """Published dataset formatted for consumption by the UI."""
+
     datasetID: str
     name: str
 
+
 class AuthorFormatted(TypedDict):
     """Published author formatted for consumption by the UI."""
+
     name: str
     organization: str
     researcherID: str
 
+
 class ProjectFormatted(TypedDict):
     """Published project formatted for consumption by the UI."""
+
     projectID: str
     name: str
     datePublished: str
@@ -49,10 +54,7 @@ def get_published_project_data(
             raise ValueError(f'Project "{project_id}" not found')
 
         datasets_formatted: list[DatasetFormatted] = [
-            {
-                "datasetID": dataset.dataset_id,
-                "name": dataset.name
-            }
+            {"datasetID": dataset.dataset_id, "name": dataset.name}
             for dataset in project.datasets
         ]
 
@@ -84,10 +86,11 @@ def get_published_project_data(
         project_formatted["relatedMaterials"] = json.loads(project.related_materials)
 
     if project.project_publications:
-        project_formatted["projectPublications"] = json.loads(project.project_publications)
+        project_formatted["projectPublications"] = json.loads(
+            project.project_publications
+        )
 
     if project.others_citing:
         project_formatted["othersCiting"] = json.loads(project.others_citing)
-
 
     return project_formatted
