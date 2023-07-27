@@ -36,6 +36,10 @@ API_NAME_TO_UI_NAME_MAP = {
     "latitude": "Latitude",
     "longitude": "Longitude",
     "spatial_uncertainty": "Spatial uncertainty",
+    "project_name": "Project name",
+    "researcher_name": "Author",
+    "collection_start_date": "Collected on or after date",
+    "collection_end_date": "Collected on or before date",
 }
 
 UI_NAME_TO_API_NAME_MAP = {v: k for k, v in API_NAME_TO_UI_NAME_MAP.items()}
