@@ -99,7 +99,7 @@ jobs:
           name: Run Style Checks
           command: |
             # source env/bin/activate
-            pylint src/
+            pylint src/ tests/
 
       - run:
           name: Add PostGIS to database
