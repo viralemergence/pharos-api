@@ -3,9 +3,15 @@ from typing import Optional
 from pydantic import BaseModel, Extra, Field, validator
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
+
 from column_alias import API_NAME_TO_UI_NAME_MAP
-from models import PublishedRecord, PublishedDataset, PublishedProject, Researcher
+from models import (
+    PublishedRecord,
+    PublishedDataset,
+    PublishedProject,
+    Researcher,
+)
 from register import COMPLEX_FIELDS
 
 
@@ -133,16 +139,34 @@ def get_compound_filter(params):
     return conjunction
 
 
-def get_query(engine, params):
-    with Session(engine) as session:
-        query = session.query(
+def query_records(session, params):
+
+    query = (
+        session.query(
             PublishedRecord,
             PublishedRecord.geom.ST_X(),
             PublishedRecord.geom.ST_Y(),
         )
-        query = query.filter(get_compound_filter(params))
-        query = query.order_by("pharos_id")
-        return query
+        .options(
+            # In the dataset table, eagerly load the id
+            selectinload(PublishedRecord.dataset).load_only(
+                PublishedDataset.dataset_id
+            ),
+            # In the project table, eagerly load the project name
+            selectinload(PublishedRecord.dataset)
+            .selectinload(PublishedDataset.project)
+            .load_only(PublishedProject.name),
+            # In the researcher table, eagerly load the researcher names
+            selectinload(PublishedRecord.dataset)
+            .selectinload(PublishedDataset.project)
+            .selectinload(PublishedProject.researchers)
+            .load_only(Researcher.name),
+        )
+        .where(get_compound_filter(params))
+        .order_by(PublishedRecord.pharos_id)
+    )
+
+    return query
 
 
 def get_multi_value_query_string_parameters(event):
@@ -172,24 +196,25 @@ def get_multi_value_query_string_parameters(event):
 
 def format_response_rows(rows, offset):
     """Format the rows returned from the database to change API
-    names into display names, add query-relative row numbers,
-    and add latitude, longitude, and collection date columns.
-    """
+    names into display names and add query-relative row numbers."""
 
     response_rows = []
     for row_number, row in enumerate(rows, start=1):
-        published_record, longitude, latitude = row
+        (
+            published_record,
+            longitude,
+            latitude,
+        ) = row
 
         response_dict = {}
 
-        researchers = published_record.dataset.project.researchers
-
         response_dict["pharosID"] = published_record.pharos_id
         response_dict["rowNumber"] = row_number + offset
-        response_dict["Project name"] = published_record.dataset.project.name
 
+        project = published_record.dataset.project
+        response_dict["Project name"] = project.name
         response_dict["Author"] = ", ".join(
-            [researcher.name for researcher in researchers]
+            [researcher.name for researcher in project.researchers]
         )
 
         response_dict["Collection date"] = published_record.collection_date.isoformat()

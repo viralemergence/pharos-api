@@ -182,6 +182,7 @@ class PublishedProject(Base):
         secondary=projects_researchers,
         back_populates="projects",
         cascade="all, delete",
+        order_by="asc(Researcher.name)",
     )
 
     datasets: Mapped[list["PublishedDataset"]] = relationship(
