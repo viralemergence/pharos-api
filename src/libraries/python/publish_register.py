@@ -14,8 +14,14 @@ def create_published_project(project: Project) -> PublishedProject:
     published_project = PublishedProject()
     published_project.project_id = project.project_id
     published_project.name = project.name
-    published_project.description = project.description
     published_project.published_date = datetime.utcnow().date()
+    published_project.description = project.description
+    published_project.project_type = project.project_type
+    published_project.surveillance_status = project.surveillance_status
+    published_project.citation = project.citation
+    published_project.related_materials = json.dumps(project.related_materials)
+    published_project.project_publications = json.dumps(project.project_publications)
+    published_project.others_citing = json.dumps(project.others_citing)
 
     return published_project
 
