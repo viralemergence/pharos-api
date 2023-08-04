@@ -107,7 +107,7 @@ def test_format_response_rows(mock_data):
     assert formatted_rows[0] == {
         "pharosID": "project0-dataset0-rec0",
         "rowNumber": 1,
-        "Project name": "Project Zero",
+        "Project": "Project Zero",
         "Author": "Researcher One, Researcher Zero",  # In alphabetic order
         "Collection date": "2023-01-01",
         "Latitude": -105.2705,
