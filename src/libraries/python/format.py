@@ -15,7 +15,6 @@ class SetEncoder(json.JSONEncoder):
 
 
 def format_response(code, body, preformatted=False):
-
     if not preformatted:
         try:
             body_string = json.dumps(body, cls=SetEncoder)
