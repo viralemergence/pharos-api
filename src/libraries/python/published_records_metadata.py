@@ -1,4 +1,5 @@
 import boto3
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models import PublishedProject, PublishedRecord, Researcher
 from column_alias import API_NAME_TO_UI_NAME_MAP
@@ -8,6 +9,20 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 def get_fields(engine):
     with Session(engine) as session:
+        earliest_date_used_string = None
+        latest_date_used_string = None
+
+        earliest_and_latest_date = session.query(
+            func.min(PublishedRecord.collection_date),
+            func.max(PublishedRecord.collection_date),
+        ).first()
+
+        if earliest_and_latest_date:
+            earliest_date_used = earliest_and_latest_date[0]
+            latest_date_used = earliest_and_latest_date[1]
+            earliest_date_used_string = earliest_date_used.strftime("%Y-%m-%d")
+            latest_date_used_string = latest_date_used.strftime("%Y-%m-%d")
+
         fields = {
             "project_name": {
                 "model": PublishedProject,
@@ -37,11 +52,15 @@ def get_fields(engine):
                 "dataGridKey": "Collection date",
                 "type": "date",
                 "filterGroup": "collection_date",
+                "earliestDateUsed": earliest_date_used_string,
+                "latestDateUsed": latest_date_used_string,
             },
             "collection_end_date": {
                 "dataGridKey": "Collection date",
                 "type": "date",
                 "filterGroup": "collection_date",
+                "earliestDateUsed": earliest_date_used_string,
+                "latestDateUsed": latest_date_used_string,
             },
         }
 
