@@ -13,6 +13,9 @@ def get_fields(engine):
         # 'Latest' as in 'furthest into the future', not as in 'most recent'
         latest_date_used_string = None
 
+        # pylint mistakenly rejects func.min and func.max
+        # https://github.com/sqlalchemy/sqlalchemy/issues/9189
+        # pylint: disable=not-callable
         earliest_and_latest_date = session.query(
             func.min(PublishedRecord.collection_date),
             func.max(PublishedRecord.collection_date),
