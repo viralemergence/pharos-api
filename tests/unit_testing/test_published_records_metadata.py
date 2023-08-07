@@ -17,6 +17,10 @@ def test_get_fields(mock_data):
         "negative",
         "positive",
     ]
+    assert fields["collection_start_date"]["earliestDateUsed"] == "2023-01-01"
+    assert fields["collection_start_date"]["latestDateUsed"] == "2026-01-01"
+    assert fields["collection_end_date"]["earliestDateUsed"] == "2023-01-01"
+    assert fields["collection_end_date"]["latestDateUsed"] == "2026-01-01"
     assert list(fields.keys()) == [
         "project_name",
         "researcher_name",

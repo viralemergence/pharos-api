@@ -10,6 +10,7 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 def get_fields(engine):
     with Session(engine) as session:
         earliest_date_used_string = None
+        # 'Latest' as in 'furthest into the future', not as in 'most recent'
         latest_date_used_string = None
 
         earliest_and_latest_date = session.query(
