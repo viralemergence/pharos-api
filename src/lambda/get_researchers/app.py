@@ -5,7 +5,7 @@ from pydantic import BaseModel, Extra, Field, ValidationError
 
 from engine import get_engine
 from format import format_response
-from researchers import get_researchers
+from researchers import get_formatted_researchers
 
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
@@ -41,7 +41,7 @@ def lambda_handler(event, _):
         researcher_ids = validated.multi_value_query_string_parameters.researcher_ids
 
     try:
-        researchers = get_researchers(engine, researcher_ids)
+        researchers = get_formatted_researchers(engine, researcher_ids)
     except ValueError as e:
         return format_response(404, {"message": str(e)})
 
