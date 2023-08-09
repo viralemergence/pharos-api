@@ -137,6 +137,4 @@ def test_format_response_rows(mock_data):
         "Mass": None,
         "Length": None,
         "Spatial uncertainty": None,
-        "Collected on or after date": None,
-        "Collected on or before date": None,
     }

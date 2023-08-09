@@ -7,14 +7,14 @@ from column_alias import API_NAME_TO_UI_NAME_MAP
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
-def get_fields(engine):
+def get_possible_filters(engine):
     with Session(engine) as session:
         earliest_date_used_string = None
         # 'Latest' as in 'furthest into the future', not as in 'most recent'
         latest_date_used_string = None
 
         # pylint mistakenly rejects func.min and func.max
-        # https://github.com/sqlalchemy/sqlalchemy/issues/9189
+        # See: https://github.com/sqlalchemy/sqlalchemy/issues/9189
         # pylint: disable=not-callable
         earliest_and_latest_date = session.query(
             func.min(PublishedRecord.collection_date),
@@ -27,7 +27,7 @@ def get_fields(engine):
             earliest_date_used_string = earliest_date_used.strftime("%Y-%m-%d")
             latest_date_used_string = latest_date_used.strftime("%Y-%m-%d")
 
-        fields = {
+        possible_filters = {
             "project_name": {
                 "model": PublishedProject,
                 "column": "name",
@@ -52,25 +52,17 @@ def get_fields(engine):
                 "model": PublishedRecord,
                 "column": "pathogen",
             },
-            "collection_start_date": {
+            "collection_date": {
                 "dataGridKey": "Collection date",
                 "type": "date",
-                "filterGroup": "collection_date",
-                "earliestDateUsed": earliest_date_used_string,
-                "latestDateUsed": latest_date_used_string,
-            },
-            "collection_end_date": {
-                "dataGridKey": "Collection date",
-                "type": "date",
-                "filterGroup": "collection_date",
-                "earliestDateUsed": earliest_date_used_string,
-                "latestDateUsed": latest_date_used_string,
+                "earliestPossibleDate": earliest_date_used_string,
+                "latestPossibleDate": latest_date_used_string,
             },
         }
 
-        for field_name, field in fields.items():
-            model = field.get("model")
-            column = field.get("column")
+        for filter_id, possible_filter in possible_filters.items():
+            model = possible_filter.get("model")
+            column = possible_filter.get("column")
             if model and column:
                 options = [
                     getattr(record, column)
@@ -80,12 +72,15 @@ def get_fields(engine):
                     .all()
                 ]
                 options = [option for option in options if option is not None]
-                field["options"] = options
-                del field["model"]
-                del field["column"]
+                possible_filter["options"] = options
+                del possible_filter["model"]
+                del possible_filter["column"]
             # Labels and data grid keys not specified above are determined by column_alias.py
-            if "label" not in field and field_name in API_NAME_TO_UI_NAME_MAP:
-                field["label"] = API_NAME_TO_UI_NAME_MAP[field_name]
-            if "dataGridKey" not in field and field_name in API_NAME_TO_UI_NAME_MAP:
-                field["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[field_name]
-        return fields
+            if "label" not in possible_filter and filter_id in API_NAME_TO_UI_NAME_MAP:
+                possible_filter["label"] = API_NAME_TO_UI_NAME_MAP[filter_id]
+            if (
+                "dataGridKey" not in possible_filter
+                and filter_id in API_NAME_TO_UI_NAME_MAP
+            ):
+                possible_filter["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[filter_id]
+        return possible_filters
