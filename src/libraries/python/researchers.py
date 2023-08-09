@@ -15,10 +15,18 @@ class ResearcherFormatted(TypedDict):
     projects: list[str]
 
 
-def get_researchers(
+class ResearchersResponse(TypedDict):
+    """Response for researchers endpoint. This will need to
+    be expanded include pagination and filtering information.
+    """
+
+    data: list[ResearcherFormatted]
+
+
+def get_formatted_researchers(
     engine: Engine,
     researcher_ids: list[str],
-) -> list[ResearcherFormatted]:
+) -> ResearchersResponse:
     """Get researchers matching the array of researcher_ids, or
     return all researchers if researcher_ids is empty, and format
     the data for consumption by the UI
@@ -44,4 +52,4 @@ def get_researchers(
             for researcher in session.scalars(researchers).all()
         ]
 
-        return researchers_formatted
+        return {"data": researchers_formatted}
