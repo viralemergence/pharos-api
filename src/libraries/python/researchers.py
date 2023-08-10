@@ -17,7 +17,7 @@ class ResearcherProject(TypedDict):
 
     projectID: str
     name: str
-    publishedDate: str
+    datePublished: str
     authors: list[ResearcherProjectAuthor]
 
 
@@ -67,7 +67,7 @@ def get_formatted_researchers(
                     {
                         "projectID": project.project_id,
                         "name": project.name,
-                        "publishedDate": project.published_date.isoformat() + "Z",
+                        "datePublished": project.published_date.isoformat() + "Z",
                         "authors": [
                             {
                                 "researcherID": author.researcher_id,
