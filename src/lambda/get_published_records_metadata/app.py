@@ -9,11 +9,10 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 def lambda_handler(_, __):
     engine = get_engine()
-    [possible_filters, filter_groups] = get_possible_filters(engine)
+    possible_filters = get_possible_filters(engine)
     return format_response(
         200,
         {
             "possibleFilters": possible_filters,
-            "filterGroups": filter_groups,
         },
     )
