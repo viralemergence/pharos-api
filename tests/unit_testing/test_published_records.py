@@ -108,7 +108,10 @@ def test_format_response_rows(mock_data):
         "pharosID": "project0-dataset0-rec0",
         "rowNumber": 1,
         "Project name": "Project Zero",
-        "Author": "Researcher One, Researcher Zero",  # In alphabetic order
+        "Author": [
+            {"name": "Researcher One", "researcherID": "researcher1"},
+            {"name": "Researcher Zero", "researcherID": "researcher0"},
+        ],
         "Collection date": "2023-01-01",
         "Latitude": -105.2705,
         "Longitude": 40.015,
