@@ -60,7 +60,7 @@ class QueryStringParameters(BaseModel):
     detection_target: Optional[list[str]] = Field(
         None, filter_function=PublishedRecord.detection_target.ilike
     )
-    researcher: Optional[list[str]] = Field(
+    researcher_name: Optional[list[str]] = Field(
         None,
         filter_function=lambda value: PublishedRecord.dataset.has(
             PublishedDataset.project.has(
@@ -140,7 +140,6 @@ def get_compound_filter(params):
 
 
 def query_records(session, params):
-
     query = (
         session.query(
             PublishedRecord,
