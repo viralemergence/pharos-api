@@ -5,6 +5,22 @@ from sqlalchemy.orm import Session
 from models import Researcher
 
 
+class ResearcherProjectAuthor(TypedDict):
+    """Public researcher project author information for linking other authors"""
+
+    researcherID: str
+    name: str
+
+
+class ResearcherProject(TypedDict):
+    """Public researcher project information for consumption by the UI"""
+
+    projectID: str
+    name: str
+    datePublished: str
+    authors: list[ResearcherProjectAuthor]
+
+
 class ResearcherFormatted(TypedDict):
     """Public researcher information for consumption by the UI"""
 
@@ -12,7 +28,7 @@ class ResearcherFormatted(TypedDict):
     name: str
     email: str
     organization: str
-    projects: list[str]
+    projects: list[ResearcherProject]
 
 
 class ResearchersResponse(TypedDict):
@@ -47,7 +63,21 @@ def get_formatted_researchers(
                 "name": researcher.name,
                 "email": researcher.email,
                 "organization": researcher.organization,
-                "projects": [project.project_id for project in researcher.projects],
+                "projects": [
+                    {
+                        "projectID": project.project_id,
+                        "name": project.name,
+                        "datePublished": project.published_date.isoformat() + "Z",
+                        "authors": [
+                            {
+                                "researcherID": author.researcher_id,
+                                "name": author.name,
+                            }
+                            for author in project.researchers
+                        ],
+                    }
+                    for project in researcher.projects
+                ],
             }
             for researcher in session.scalars(researchers).all()
         ]

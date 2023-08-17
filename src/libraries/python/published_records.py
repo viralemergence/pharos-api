@@ -212,9 +212,13 @@ def format_response_rows(rows, offset):
 
         project = published_record.dataset.project
         response_dict["Project name"] = project.name
-        response_dict["Author"] = ", ".join(
-            [researcher.name for researcher in project.researchers]
-        )
+        response_dict["Author"] = [
+            {
+                "name": researcher.name,
+                "researcherID": researcher.researcher_id,
+            }
+            for researcher in project.researchers
+        ]
 
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude
