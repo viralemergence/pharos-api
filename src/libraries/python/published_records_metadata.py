@@ -24,8 +24,9 @@ def get_possible_filters(engine):
         if earliest_and_latest_date:
             earliest_date_used = earliest_and_latest_date[0]
             latest_date_used = earliest_and_latest_date[1]
-            earliest_date_used_string = earliest_date_used.strftime("%Y-%m-%d")
-            latest_date_used_string = latest_date_used.strftime("%Y-%m-%d")
+            if earliest_date_used and latest_date_used:
+                earliest_date_used_string = earliest_date_used.strftime("%Y-%m-%d")
+                latest_date_used_string = latest_date_used.strftime("%Y-%m-%d")
 
         possible_filters = {
             "project_name": {
