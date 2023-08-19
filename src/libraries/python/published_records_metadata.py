@@ -9,9 +9,9 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 def get_possible_filters(engine):
     with Session(engine) as session:
-        earliest_date_used_string = None
+        earliest_date_in_database_string = None
         # 'Latest' as in 'furthest into the future', not as in 'most recent'
-        latest_date_used_string = None
+        latest_date_in_database_string = None
 
         # pylint mistakenly rejects func.min and func.max
         # See: https://github.com/sqlalchemy/sqlalchemy/issues/9189
@@ -22,11 +22,15 @@ def get_possible_filters(engine):
         ).first()
 
         if earliest_and_latest_date:
-            earliest_date_used = earliest_and_latest_date[0]
-            latest_date_used = earliest_and_latest_date[1]
-            if earliest_date_used and latest_date_used:
-                earliest_date_used_string = earliest_date_used.strftime("%Y-%m-%d")
-                latest_date_used_string = latest_date_used.strftime("%Y-%m-%d")
+            earliest_date_in_database = earliest_and_latest_date[0]
+            latest_date_in_database = earliest_and_latest_date[1]
+            if earliest_date_in_database and latest_date_in_database:
+                earliest_date_in_database_string = earliest_date_in_database.strftime(
+                    "%Y-%m-%d"
+                )
+                latest_date_in_database_string = latest_date_in_database.strftime(
+                    "%Y-%m-%d"
+                )
 
         possible_filters = {
             "project_name": {
@@ -56,8 +60,8 @@ def get_possible_filters(engine):
             "collection_date": {
                 "dataGridKey": "Collection date",
                 "type": "date",
-                "earliestPossibleDate": earliest_date_used_string,
-                "latestPossibleDate": latest_date_used_string,
+                "earliestDateInDatabase": earliest_date_in_database_string,
+                "latestDateInDatabase": latest_date_in_database_string,
             },
         }
 
