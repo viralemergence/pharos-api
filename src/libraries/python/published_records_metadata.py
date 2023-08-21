@@ -57,7 +57,15 @@ def get_possible_filters(engine):
                 "model": PublishedRecord,
                 "column": "pathogen",
             },
-            "collection_date": {
+            "collection_start_date": {
+                "label": "Collection date",
+                "dataGridKey": "Collection date",
+                "type": "date",
+                "earliestDateInDatabase": earliest_date_in_database_string,
+                "latestDateInDatabase": latest_date_in_database_string,
+            },
+            "collection_end_date": {
+                "label": "Collection date",
                 "dataGridKey": "Collection date",
                 "type": "date",
                 "earliestDateInDatabase": earliest_date_in_database_string,
