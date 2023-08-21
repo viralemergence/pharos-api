@@ -17,8 +17,10 @@ def test_get_possible_filters(mock_data):
         "negative",
         "positive",
     ]
-    assert filters["collection_date"]["earliestPossibleDate"] == "2023-01-01"
-    assert filters["collection_date"]["latestPossibleDate"] == "2026-01-01"
+    assert filters["collection_start_date"]["earliestDateInDatabase"] == "2023-01-01"
+    assert filters["collection_start_date"]["latestDateInDatabase"] == "2026-01-01"
+    assert filters["collection_end_date"]["earliestDateInDatabase"] == "2023-01-01"
+    assert filters["collection_end_date"]["latestDateInDatabase"] == "2026-01-01"
     assert list(filters.keys()) == [
         "project_name",
         "researcher_name",
@@ -26,5 +28,6 @@ def test_get_possible_filters(mock_data):
         "detection_target",
         "detection_outcome",
         "pathogen",
-        "collection_date",
+        "collection_start_date",
+        "collection_end_date",
     ]
