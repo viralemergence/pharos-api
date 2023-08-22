@@ -84,15 +84,15 @@ def test_filter_by_collection_date_and_host_species(mock_data):
 
 
 def test_filter_by_researcher_name(mock_data):
-    check({"researcher": "Researcher Zero"}, 200)
-    check({"researcher": "Researcher One"}, 200)
-    check({"researcher": "Researcher Two"}, 200)
-    check({"researcher": "Researcher Three"}, 200)
+    check({"researcher_name": "Researcher Zero"}, 200)
+    check({"researcher_name": "Researcher One"}, 200)
+    check({"researcher_name": "Researcher Two"}, 200)
+    check({"researcher_name": "Researcher Three"}, 200)
 
 
 def test_filter_by_researcher_name_and_project_name(mock_data):
-    check({"researcher": "Researcher Zero", "project_name": "Project Zero"}, 200)
-    check({"researcher": "Researcher Zero", "project_name": "Project One"}, 0)
+    check({"researcher_name": "Researcher Zero", "project_name": "Project Zero"}, 200)
+    check({"researcher_name": "Researcher Zero", "project_name": "Project One"}, 0)
 
 
 def test_filter_by_dataset_id(mock_data):
@@ -140,6 +140,4 @@ def test_format_response_rows(mock_data):
         "Mass": None,
         "Length": None,
         "Spatial uncertainty": None,
-        "Collected on or after date": None,
-        "Collected on or before date": None,
     }
