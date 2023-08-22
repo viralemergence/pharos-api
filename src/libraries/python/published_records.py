@@ -193,12 +193,6 @@ def get_multi_value_query_string_parameters(event):
     return multivalue_params
 
 
-SKIP_RENAMING_FIELDS = [
-    "researcher_name",
-    *COMPLEX_FIELDS,
-]
-
-
 def format_response_rows(rows, offset):
     """Format the rows returned from the database to change API
     names into display names and add query-relative row numbers."""
@@ -231,7 +225,7 @@ def format_response_rows(rows, offset):
         response_dict["Longitude"] = longitude
 
         for api_name, ui_name in API_NAME_TO_UI_NAME_MAP.items():
-            if api_name not in SKIP_RENAMING_FIELDS and ui_name not in response_dict:
+            if api_name not in COMPLEX_FIELDS and ui_name not in response_dict:
                 response_dict[ui_name] = getattr(published_record, api_name, None)
 
         response_rows.append(response_dict)
