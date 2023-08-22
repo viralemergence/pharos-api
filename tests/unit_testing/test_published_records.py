@@ -108,7 +108,7 @@ def test_format_response_rows(mock_data):
         "pharosID": "project0-dataset0-rec0",
         "rowNumber": 1,
         "Project": "Project Zero",
-        "Author": [
+        "Researcher": [
             {"name": "Researcher One", "researcherID": "researcher1"},
             {"name": "Researcher Zero", "researcherID": "researcher0"},
         ],

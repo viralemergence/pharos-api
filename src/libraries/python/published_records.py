@@ -212,7 +212,7 @@ def format_response_rows(rows, offset):
 
         project = published_record.dataset.project
         response_dict["Project"] = project.name
-        response_dict["Author"] = [
+        response_dict["Researcher"] = [
             {
                 "name": researcher.name,
                 "researcherID": researcher.researcher_id,
