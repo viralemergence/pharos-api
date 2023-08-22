@@ -60,7 +60,7 @@ class QueryStringParameters(BaseModel):
     detection_target: Optional[list[str]] = Field(
         None, filter_function=PublishedRecord.detection_target.ilike
     )
-    researcher: Optional[list[str]] = Field(
+    researcher_name: Optional[list[str]] = Field(
         None,
         filter_function=lambda value: PublishedRecord.dataset.has(
             PublishedDataset.project.has(
@@ -140,7 +140,6 @@ def get_compound_filter(params):
 
 
 def query_records(session, params):
-
     query = (
         session.query(
             PublishedRecord,
@@ -213,10 +212,13 @@ def format_response_rows(rows, offset):
 
         project = published_record.dataset.project
         response_dict["Project"] = project.name
-        response_dict["Author"] = ", ".join(
-            [researcher.name for researcher in project.researchers]
-        )
-
+        response_dict["Author"] = [
+            {
+                "name": researcher.name,
+                "researcherID": researcher.researcher_id,
+            }
+            for researcher in project.researchers
+        ]
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude
         response_dict["Longitude"] = longitude
