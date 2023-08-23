@@ -18,6 +18,7 @@ from register import COMPLEX_FIELDS
 class QueryStringParameters(BaseModel):
     page: int = Field(ge=1, alias="page")
     page_size: int = Field(ge=1, le=100, alias="pageSize")
+    sort: Optional[list[str]] = Field(alias="sort")
 
     # The following fields filter the set of published records. Each "filter
     # function" will be used as a parameter to SQLAlchemy's Query.filter()
@@ -162,7 +163,6 @@ def query_records(session, params):
             .load_only(Researcher.name),
         )
         .where(get_compound_filter(params))
-        .order_by(PublishedRecord.pharos_id)
     )
 
     return query
@@ -231,3 +231,15 @@ def format_response_rows(rows, offset):
         response_rows.append(response_dict)
 
     return response_rows
+
+
+COLUMN_ID_TO_SORT_FIELD = {
+    "collection_date": PublishedRecord.collection_date,
+    "project": PublishedProject.name,
+    "host_species": PublishedRecord.host_species,
+    "pathogen": PublishedRecord.pathogen,
+    "detection_target": PublishedRecord.detection_target,
+    # Not yet supported
+    # "researcher_name": PublishedAuthor.name,
+    "detection_outcome": PublishedRecord.detection_outcome,
+}
