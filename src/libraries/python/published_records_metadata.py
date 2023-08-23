@@ -104,7 +104,6 @@ sortable_fields = {
     "project_name": PublishedProject.name,
     # Not yet supported
     # "researcher_name": PublishedAuthor.name,
-    "detection_outcome": PublishedRecord.detection_outcome,
     "sample_id": PublishedRecord.sample_id,
     "animal_id": PublishedRecord.animal_id,
     "host_species": PublishedRecord.host_species,
