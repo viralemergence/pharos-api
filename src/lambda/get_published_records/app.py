@@ -11,8 +11,8 @@ from published_records import (
     query_records,
     get_multi_value_query_string_parameters,
     QueryStringParameters,
-    COLUMN_ID_TO_SORT_FIELD,
 )
+from published_records_metadata import sortable_fields
 from models import PublishedRecord
 from column_alias import UI_NAME_TO_API_NAME_MAP
 
@@ -58,7 +58,9 @@ def lambda_handler(event, _):
                 if sort.startswith("-"):
                     order = "desc"
                     sort = sort[1:]
-                field_to_sort = COLUMN_ID_TO_SORT_FIELD[UI_NAME_TO_API_NAME_MAP[sort]]
+                field_to_sort = sortable_fields.get(
+                    UI_NAME_TO_API_NAME_MAP.get(sort) or ""
+                )
                 if not field_to_sort:
                     raise FieldDoesNotExistException
                 print("field_to_sort")

@@ -97,3 +97,37 @@ def get_possible_filters(engine):
             ):
                 possible_filter["dataGridKey"] = API_NAME_TO_UI_NAME_MAP[filter_id]
         return possible_filters
+
+
+sortable_fields = {
+    "collection_date": PublishedRecord.collection_date,
+    "project": PublishedProject.name,
+    # Not yet supported
+    # "researcher_name": PublishedAuthor.name,
+    "detection_outcome": PublishedRecord.detection_outcome,
+    "sample_id": PublishedRecord.sample_id,
+    "animal_id": PublishedRecord.animal_id,
+    "host_species": PublishedRecord.host_species,
+    "host_species_ncbi_tax_id": PublishedRecord.host_species_ncbi_tax_id,
+    "collection_method_or_tissue": PublishedRecord.collection_method_or_tissue,
+    "detection_method": PublishedRecord.detection_method,
+    "primer_sequence": PublishedRecord.primer_sequence,
+    "primer_citation": PublishedRecord.primer_citation,
+    "detection_target": PublishedRecord.detection_target,
+    "detection_target_ncbi_tax_id": PublishedRecord.detection_target_ncbi_tax_id,
+    "detection_outcome": PublishedRecord.detection_outcome,
+    "detection_measurement": PublishedRecord.detection_measurement,
+    "detection_measurement_units": PublishedRecord.detection_measurement_units,
+    "pathogen": PublishedRecord.pathogen,
+    "pathogen_ncbi_tax_id": PublishedRecord.pathogen_ncbi_tax_id,
+    "genbank_accession": PublishedRecord.genbank_accession,
+    "detection_comments": PublishedRecord.detection_comments,
+    "organism_sex": PublishedRecord.organism_sex,
+    "dead_or_alive": PublishedRecord.dead_or_alive,
+    "health_notes": PublishedRecord.health_notes,
+    "life_stage": PublishedRecord.life_stage,
+    "age": PublishedRecord.age,
+    "mass": PublishedRecord.mass,
+    "length": PublishedRecord.length,
+    "spatial_uncertainty": PublishedRecord.spatial_uncertainty,
+}
