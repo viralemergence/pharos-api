@@ -13,6 +13,7 @@ API_NAME_TO_UI_NAME_MAP = {
     "collection_day": "Collection day",
     "collection_month": "Collection month",
     "collection_year": "Collection year",
+    "collection_date": "Collection date",
     "collection_method_or_tissue": "Collection method or tissue",
     "detection_method": "Detection method",
     "primer_sequence": "Primer sequence",
@@ -37,9 +38,7 @@ API_NAME_TO_UI_NAME_MAP = {
     "longitude": "Longitude",
     "spatial_uncertainty": "Spatial uncertainty",
     "project_name": "Project name",
-    "researcher_name": "Author",
-    "collection_start_date": "Collected on or after date",
-    "collection_end_date": "Collected on or before date",
+    "researcher_name": "Researcher",
 }
 
 UI_NAME_TO_API_NAME_MAP = {v: k for k, v in API_NAME_TO_UI_NAME_MAP.items()}
