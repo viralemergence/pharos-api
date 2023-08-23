@@ -2,7 +2,7 @@ import boto3
 
 from format import format_response
 from published_records_metadata import get_possible_filters, sortable_fields
-from column_alias import UI_NAME_TO_API_NAME_MAP
+from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
@@ -11,14 +11,14 @@ SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 def lambda_handler(_, __):
     engine = get_engine()
     possible_filters = get_possible_filters(engine)
-    sortable_fields_using_ui_names = {
-        (UI_NAME_TO_API_NAME_MAP.get(key) or key, value)
-        for key, value in sortable_fields
-    }
+    ui_names_of_sortable_fields = [
+        API_NAME_TO_UI_NAME_MAP.get(field_name) or field_name
+        for field_name in sortable_fields.keys()
+    ]
     return format_response(
         200,
         {
             "possibleFilters": possible_filters,
-            "sortableFields": sortable_fields_using_ui_names,
+            "sortableFields": ui_names_of_sortable_fields,
         },
     )

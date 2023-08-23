@@ -101,7 +101,7 @@ def get_possible_filters(engine):
 
 sortable_fields = {
     "collection_date": PublishedRecord.collection_date,
-    "project": PublishedProject.name,
+    "project_name": PublishedProject.name,
     # Not yet supported
     # "researcher_name": PublishedAuthor.name,
     "detection_outcome": PublishedRecord.detection_outcome,
