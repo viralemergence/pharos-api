@@ -17,13 +17,13 @@ Parameters:
     Default: layer
   DatasetsS3Bucket:
     Type: String
-    Default: bucket
+    Default: datasets-bucket
   NVersions:
     Type: String
     Default: 5
   # RDSStackName:
   #   Type: String
-  #   Default: data-lab-rds
+  #   Default: pharos-database
   # DatabaseName:
   #   Type: String
   #   Default: pharos
@@ -349,11 +349,9 @@ Resources:
       CodeUri: src/lambda/publish_registers/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Layers:
         - !Ref Libraries
@@ -385,7 +383,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -403,11 +401,9 @@ Resources:
       CodeUri: src/lambda/publish_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -446,7 +442,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -469,11 +465,9 @@ Resources:
       CodeUri: src/lambda/unpublish_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -511,7 +505,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -528,11 +522,9 @@ Resources:
       CodeUri: src/lambda/get_published_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -560,7 +552,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -577,11 +569,9 @@ Resources:
       CodeUri: src/lambda/get_published_records/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -609,7 +599,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -625,11 +615,9 @@ Resources:
       CodeUri: src/lambda/get_published_records_metadata/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -657,7 +645,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -674,11 +662,9 @@ Resources:
       CodeUri: src/lambda/get_map_tiles/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -706,7 +692,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -723,11 +709,9 @@ Resources:
       CodeUri: src/lambda/get_researchers/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -755,7 +739,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -772,11 +756,9 @@ Resources:
       CodeUri: src/lambda/get_published_records_metadata/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -804,7 +786,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -821,11 +803,9 @@ Resources:
       CodeUri: src/lambda/get_map_tiles/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
@@ -853,7 +833,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
         - Statement:
             - Effect: Allow
@@ -869,11 +849,11 @@ Resources:
       CodeUri: src/lambda/download_data/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetA
-          - !ImportValue data-lab-rds-SubnetB
-          - subnet-8f7652ea
+          - !ImportValue pharos-database-DatabaseSubnetA
+          - !ImportValue pharos-database-DatabaseSubnetB
+          # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -885,7 +865,7 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
+          HOST: !ImportValue pharos-database-RDSProxyEndpoint
           PORT: "5432"
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
@@ -916,7 +896,7 @@ Resources:
                   - db-user
                   - !Select [
                       6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
+                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
                     ]
 
   PermissionsFunction:
@@ -926,36 +906,25 @@ Resources:
       CodeUri: src/lambda/access_permissions/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
-          # - subnet-8f7652ea
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
         Variables:
-          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
-          PORT: "5432"
+          HOST: !ImportValue pharos-database-RDSProxyEndpoint
+          PORT: !ImportValue pharos-database-Port
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-          USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
+          # USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - Statement:
             - Effect: Allow
               Action:
                 - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
+              Resource: 
+                !ImportValue pharos-database-RDSProxyArn
         - Statement:
             - Effect: Allow
               Action:
