@@ -50,7 +50,7 @@ def get_formatted_researchers(
 
     with Session(engine) as session:
 
-        researchers = select(Researcher)
+        researchers = select(Researcher).order_by(Researcher.name)
 
         if researcher_ids:
             researchers = researchers.where(
