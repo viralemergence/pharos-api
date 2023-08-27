@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from engine import get_engine
 from format import format_response
+from models import PublishedRecord
 
 from published_records import (
     format_response_rows,
@@ -41,16 +42,22 @@ def lambda_handler(event, _):
     offset = (params.page - 1) * limit
 
     with Session(engine) as session:
+        # Get the total number of records in the database
+        record_count = session.query(PublishedRecord).count()
+
+        # Get records that match the filters
         query = query_records(session, params)
 
-        # Try to retrieve an extra row, to see if there are more pages
-        query = query.limit(limit + 1).offset(offset)
+        # Retrieve total number of matching records before limiting results to just one page
+        matching_record_count = query.count()
 
-        rows = query.all()  # execute the query
+        # Limit results to just one page
+        query = query.limit(limit).offset(offset)
 
-    is_last_page = len(rows) <= limit
-    # Don't include the extra row in the results
-    rows = rows[:limit]
+        # Execute the query
+        rows = query.all()
+
+    is_last_page = matching_record_count <= limit + offset
 
     response_rows = format_response_rows(rows, offset)
 
@@ -59,5 +66,7 @@ def lambda_handler(event, _):
         {
             "publishedRecords": response_rows,
             "isLastPage": is_last_page,
+            "recordCount": record_count,
+            "matchingRecordCount": matching_record_count,
         },
     )
