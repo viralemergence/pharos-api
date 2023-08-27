@@ -8,8 +8,7 @@ from format import format_response
 from models import PublishedRecord
 
 from published_records import (
-    format_response_rows,
-    query_records,
+    get_published_records_response,
     get_multi_value_query_string_parameters,
     QueryStringParameters,
 )
@@ -36,37 +35,6 @@ def lambda_handler(event, _):
         return format_response(400, e.json(), preformatted=True)
 
     engine = get_engine()
+    response = get_published_records_response(engine, validated.query_string_parameters)
 
-    params = validated.query_string_parameters
-    limit = params.page_size
-    offset = (params.page - 1) * limit
-
-    with Session(engine) as session:
-        # Get the total number of records in the database
-        record_count = session.query(PublishedRecord).count()
-
-        # Get records that match the filters
-        query = query_records(session, params)
-
-        # Retrieve total number of matching records before limiting results to just one page
-        matching_record_count = query.count()
-
-        # Limit results to just one page
-        query = query.limit(limit).offset(offset)
-
-        # Execute the query
-        rows = query.all()
-
-    is_last_page = matching_record_count <= limit + offset
-
-    response_rows = format_response_rows(rows, offset)
-
-    return format_response(
-        200,
-        {
-            "publishedRecords": response_rows,
-            "isLastPage": is_last_page,
-            "recordCount": record_count,
-            "matchingRecordCount": matching_record_count,
-        },
-    )
+    return format_response(200, response)
