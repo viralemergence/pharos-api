@@ -158,7 +158,7 @@ def test_get_published_records_response_without_filters(mock_data):
     params = QueryStringParameters(pageSize=50, page=1, **{})
     response = get_published_records_response(ENGINE, params)
     assert len(response["publishedRecords"]) == 50
-    assert response["isLastPage"] == False
+    assert response["isLastPage"] is False
     assert response["recordCount"] == 400
     assert response["matchingRecordCount"] == 400
 
@@ -169,6 +169,6 @@ def test_get_published_records_response_with_filters(mock_data):
     )
     response = get_published_records_response(ENGINE, params)
     assert len(response["publishedRecords"]) == 50
-    assert response["isLastPage"] == False
+    assert response["isLastPage"] is False
     assert response["recordCount"] == 400
     assert response["matchingRecordCount"] == 200
