@@ -12,6 +12,7 @@ from published_records import (
     get_multi_value_query_string_parameters,
     QueryStringParameters,
 )
+from models import PublishedRecord
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
@@ -23,6 +24,10 @@ class GetPublishedRecordsEvent(BaseModel):
 
     class Config:
         extra = Extra.ignore
+
+
+class FieldDoesNotExistException(Exception):
+    pass
 
 
 def lambda_handler(event, _):

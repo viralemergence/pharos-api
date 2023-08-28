@@ -118,7 +118,7 @@ def test_format_response_rows(mock_data):
     assert formatted_rows[0] == {
         "pharosID": "project0-dataset0-rec0",
         "rowNumber": 1,
-        "Project name": "Project Zero",
+        "Project": "Project Zero",
         "Researcher": [
             {"name": "Researcher One", "researcherID": "researcher1"},
             {"name": "Researcher Zero", "researcherID": "researcher0"},

@@ -15,11 +15,18 @@ from models import (
     Researcher,
 )
 from register import COMPLEX_FIELDS
+from published_records_metadata import sortable_fields
+from column_alias import UI_NAME_TO_API_NAME_MAP
+
+
+class FieldDoesNotExistException(Exception):
+    pass
 
 
 class QueryStringParameters(BaseModel):
     page: int = Field(ge=1, alias="page")
     page_size: int = Field(ge=1, le=100, alias="pageSize")
+    sort: Optional[list[str]] = Field(alias="sort")
 
     # The following fields filter the set of published records. Each "filter
     # function" will be used as a parameter to SQLAlchemy's Query.filter()
@@ -167,7 +174,6 @@ def query_records(session: Session, params: QueryStringParameters) -> Tuple[Quer
             .load_only(Researcher.name),
         )
         .where(compound_filter)
-        .order_by(PublishedRecord.pharos_id)
     )
 
     return (query, filter_count)
@@ -216,7 +222,7 @@ def format_response_rows(rows, offset):
         response_dict["rowNumber"] = row_number + offset
 
         project = published_record.dataset.project
-        response_dict["Project name"] = project.name
+        response_dict["Project"] = project.name
         response_dict["Researcher"] = [
             {
                 "name": researcher.name,
@@ -224,7 +230,6 @@ def format_response_rows(rows, offset):
             }
             for researcher in project.researchers
         ]
-
         response_dict["Collection date"] = published_record.collection_date.isoformat()
         response_dict["Latitude"] = latitude
         response_dict["Longitude"] = longitude
@@ -253,6 +258,26 @@ def get_published_records_response(
 
         # Retrieve total number of matching records before limiting results to just one page
         matching_record_count = query.count()
+
+        if params.sort:
+            for sort in params.sort:
+                order = "asc"
+                if sort.startswith("-"):
+                    order = "desc"
+                    sort = sort[1:]
+                field_to_sort = sortable_fields.get(
+                    UI_NAME_TO_API_NAME_MAP.get(sort) or ""
+                )
+                if not field_to_sort:
+                    raise FieldDoesNotExistException
+                print("field_to_sort")
+                print(field_to_sort)
+
+                if order == "desc":
+                    field_to_sort = field_to_sort.desc()
+                query = query.order_by(field_to_sort)
+
+        query = query.order_by(PublishedRecord.pharos_id)
 
         # Limit results to just one page
         query = query.limit(limit).offset(offset)
