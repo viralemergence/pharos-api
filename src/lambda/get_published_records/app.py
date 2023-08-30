@@ -1,11 +1,7 @@
 import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
-
-from sqlalchemy.orm import Session
-
 from engine import get_engine
 from format import format_response
-from models import PublishedRecord
 
 from published_records import (
     get_published_records_response,

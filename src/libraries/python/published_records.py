@@ -1,6 +1,5 @@
 from datetime import datetime
-from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from pydantic import BaseModel, Extra, Field, validator
 
 from sqlalchemy import and_, or_
@@ -254,7 +253,7 @@ def get_published_records_response(
         record_count = session.query(PublishedRecord).count()
 
         # Get records that match the filters
-        (query, filter_count) = query_records(session, params)
+        (query, _) = query_records(session, params)
 
         # Retrieve total number of matching records before limiting results to just one page
         matching_record_count = query.count()
