@@ -6,7 +6,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, Query, selectinload
 
-from column_alias import API_NAME_TO_UI_NAME_MAP
+from column_alias import API_NAME_TO_UI_NAME_MAP, UI_NAME_TO_API_NAME_MAP
 from models import (
     PublishedRecord,
     PublishedDataset,
@@ -15,7 +15,6 @@ from models import (
 )
 from register import COMPLEX_FIELDS
 from published_records_metadata import sortable_fields
-from column_alias import UI_NAME_TO_API_NAME_MAP
 
 
 class FieldDoesNotExistException(Exception):

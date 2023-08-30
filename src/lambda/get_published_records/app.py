@@ -8,7 +8,6 @@ from published_records import (
     get_multi_value_query_string_parameters,
     QueryStringParameters,
 )
-from models import PublishedRecord
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
