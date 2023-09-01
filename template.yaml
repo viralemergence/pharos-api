@@ -3,7 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   pharos-api
 
-  Sample SAM Template for pharos-api
+  SAM Template for pharos-api stack-specific resources.
+
+  This template can be deployed multiple times in the
+  same AWS account, to create separate environments.
+
+  sam sync should be used to create developer-specific stacks.
 
 Parameters:
   CorsAllow:
@@ -374,20 +379,6 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
@@ -430,20 +421,6 @@ Resources:
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -496,20 +473,6 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
@@ -540,20 +503,6 @@ Resources:
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -590,24 +539,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
   GetPublishedRecordsMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -636,24 +572,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
   GetMapTilesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -683,24 +606,10 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
-
+                - "*"
 
   GetResearchersFunction:
     Type: AWS::Serverless::Function
@@ -730,20 +639,6 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
@@ -777,24 +672,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
   GetMapTilesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -821,20 +703,6 @@ Resources:
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -884,20 +752,6 @@ Resources:
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue pharos-database-RDSProxyArn],
-                    ]
 
   PermissionsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -919,12 +773,6 @@ Resources:
           # USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: 
-                !ImportValue pharos-database-RDSProxyArn
         - Statement:
             - Effect: Allow
               Action:
