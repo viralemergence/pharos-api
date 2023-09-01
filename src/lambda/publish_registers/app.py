@@ -19,8 +19,6 @@ from publish_register import (
 )
 
 
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
-
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 

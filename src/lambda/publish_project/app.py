@@ -11,7 +11,6 @@ from auth import check_auth
 from format import format_response
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
