@@ -75,6 +75,7 @@ def lambda_handler(event, context):
         port=PORT,
         password=credentials["password"],
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
+        database="postgres",
     )
 
     try:
