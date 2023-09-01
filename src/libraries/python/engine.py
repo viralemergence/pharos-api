@@ -8,7 +8,7 @@ from sqlalchemy import URL
 DATABASE = os.environ["DATABASE"]
 
 SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-east-2")
-response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBProxySecret")
+response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBAdminSecret")
 CREDENTIALS = json.loads(response["SecretString"])
 
 
