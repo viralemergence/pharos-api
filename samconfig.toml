@@ -66,9 +66,44 @@ tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 [prod]
 [prod.deploy]
 [prod.deploy.parameters]
-stack_name = "pharos-api-prod-16"
+stack_name = "pharos-api-prod"
 resolve_s3 = true
-s3_prefix = "pharos-api-prod-16"
+s3_prefix = "pharos-api-prod"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+image_repositories = []
+
+
+[staging]
+[staging.deploy]
+[staging.deploy.parameters]
+stack_name = "pharos-api-staging"
+resolve_s3 = true
+s3_prefix = "pharos-api-staging"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+image_repositories = []
+
+
+[review]
+[review.deploy]
+[review.deploy.parameters]
+stack_name = "pharos-api-review"
+resolve_s3 = true
+s3_prefix = "pharos-api-review"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+image_repositories = []
+
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "pharos-api-dev"
+resolve_s3 = true
+s3_prefix = "pharos-api-dev"
 region = "us-east-2"
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
