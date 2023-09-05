@@ -24,8 +24,8 @@ workflows:
           filters:
             branches:
               only:
-                - pharos-2-deployment
-                # - dev
+                - dev
+                - feature/pharos-2-deployment
 
       # review
       - deploy:
