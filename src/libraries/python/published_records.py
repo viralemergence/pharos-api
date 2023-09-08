@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 from pydantic import BaseModel, Extra, Field, validator
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, Query, selectinload
 
-from column_alias import API_NAME_TO_UI_NAME_MAP
+from column_alias import API_NAME_TO_UI_NAME_MAP, UI_NAME_TO_API_NAME_MAP
 from models import (
     PublishedRecord,
     PublishedDataset,
@@ -13,6 +14,11 @@ from models import (
     Researcher,
 )
 from register import COMPLEX_FIELDS
+from published_records_metadata import sortable_fields
+
+
+class FieldDoesNotExistException(Exception):
+    pass
 
 
 class QueryStringParameters(BaseModel):
@@ -88,9 +94,10 @@ class QueryStringParameters(BaseModel):
         extra = Extra.forbid
 
 
-def get_compound_filter(params):
-    """Return a compound filter ('condition AND condition AND condition...')
-    for the specified parameters.
+def get_compound_filter(params: QueryStringParameters):
+    """Create a compound filter ('condition AND condition AND condition...')
+    for the specified parameters. This function returns a tuple:
+    (compound_filter, filter_count)
     """
     filters = []
     for fieldname, field in QueryStringParameters.__fields__.items():
@@ -121,9 +128,9 @@ def get_compound_filter(params):
                 filters.append(filter_function(value))
     conjunction = and_(True, *filters)  # Using `True` to avoid a deprecation warning
 
-    # Suppose that the query string was:
+    # Suppose that the query string is:
     # "?host_species=Wolf&host_species=Bear&pathogen=Influenza&pathogen=Hepatitis".
-    # Then `conjunction` could be written out like this:
+    # Then `conjunction` is equivalent to:
     #    and_([
     #      or_([
     #          PublishedRecord.host_species.ilike('Wolf'),
@@ -135,12 +142,14 @@ def get_compound_filter(params):
     #      ]),
     #    ])
     # In plain English, this means: "The host species is Wolf or Bear, and the
-    # pathogen is Influenza or Hepatitis".
+    # pathogen is Influenza or Hepatitis."
 
-    return conjunction
+    return (conjunction, len(filters))
 
 
-def query_records(session, params):
+def query_records(session: Session, params: QueryStringParameters) -> Tuple[Query, int]:
+    """Returns a tuple: (query, filter_count)"""
+    (compound_filter, filter_count) = get_compound_filter(params)
     query = (
         session.query(
             PublishedRecord,
@@ -162,10 +171,10 @@ def query_records(session, params):
             .selectinload(PublishedProject.researchers)
             .load_only(Researcher.name),
         )
-        .where(get_compound_filter(params))
+        .where(compound_filter)
     )
 
-    return query
+    return (query, filter_count)
 
 
 def get_multi_value_query_string_parameters(event):
@@ -231,3 +240,57 @@ def format_response_rows(rows, offset):
         response_rows.append(response_dict)
 
     return response_rows
+
+
+def get_published_records_response(
+    engine: Engine, params: QueryStringParameters
+) -> Dict[str, Any]:
+    limit = params.page_size
+    offset = (params.page - 1) * limit
+
+    with Session(engine) as session:
+        # Get the total number of records in the database
+        record_count = session.query(PublishedRecord).count()
+
+        # Get records that match the filters
+        (query, _) = query_records(session, params)
+
+        # Retrieve total number of matching records before limiting results to just one page
+        matching_record_count = query.count()
+
+        if params.sort:
+            for sort in params.sort:
+                order = "asc"
+                if sort.startswith("-"):
+                    order = "desc"
+                    sort = sort[1:]
+                field_to_sort = sortable_fields.get(
+                    UI_NAME_TO_API_NAME_MAP.get(sort) or ""
+                )
+                if not field_to_sort:
+                    raise FieldDoesNotExistException
+                print("field_to_sort")
+                print(field_to_sort)
+
+                if order == "desc":
+                    field_to_sort = field_to_sort.desc()
+                query = query.order_by(field_to_sort)
+
+        query = query.order_by(PublishedRecord.pharos_id)
+
+        # Limit results to just one page
+        query = query.limit(limit).offset(offset)
+
+        # Execute the query
+        rows = query.all()
+
+    is_last_page = matching_record_count <= limit + offset
+
+    response_rows = format_response_rows(rows, offset)
+
+    return {
+        "publishedRecords": response_rows,
+        "isLastPage": is_last_page,
+        "recordCount": record_count,
+        "matchingRecordCount": matching_record_count,
+    }
