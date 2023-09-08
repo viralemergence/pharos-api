@@ -3,21 +3,25 @@
 # pylint: disable=unused-import
 
 from fixture import ENGINE, mock_data
-from published_records_metadata import get_fields
+from published_records_metadata import get_possible_filters
 
 
-def test_get_fields(mock_data):
-    fields = get_fields(ENGINE)
-    assert fields["project_name"]["options"] == ["Project One", "Project Zero"]
-    assert fields["host_species"]["options"] == ["host1", "host2", "host3"]
-    assert fields["pathogen"]["options"] == ["path1", "path2", "path3"]
-    assert fields["detection_target"]["options"] == ["target1", "target2", "target3"]
-    assert fields["detection_outcome"]["options"] == [
+def test_get_possible_filters(mock_data):
+    filters = get_possible_filters(ENGINE)
+    assert filters["project_name"]["options"] == ["Project One", "Project Zero"]
+    assert filters["host_species"]["options"] == ["host1", "host2", "host3"]
+    assert filters["pathogen"]["options"] == ["path1", "path2", "path3"]
+    assert filters["detection_target"]["options"] == ["target1", "target2", "target3"]
+    assert filters["detection_outcome"]["options"] == [
         "inconclusive",
         "negative",
         "positive",
     ]
-    assert list(fields.keys()) == [
+    assert filters["collection_start_date"]["earliestDateInDatabase"] == "2023-01-01"
+    assert filters["collection_start_date"]["latestDateInDatabase"] == "2026-01-01"
+    assert filters["collection_end_date"]["earliestDateInDatabase"] == "2023-01-01"
+    assert filters["collection_end_date"]["latestDateInDatabase"] == "2026-01-01"
+    assert list(filters.keys()) == [
         "project_name",
         "researcher_name",
         "host_species",
