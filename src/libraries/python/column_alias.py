@@ -37,7 +37,7 @@ API_NAME_TO_UI_NAME_MAP = {
     "latitude": "Latitude",
     "longitude": "Longitude",
     "spatial_uncertainty": "Spatial uncertainty",
-    "project_name": "Project name",
+    "project_name": "Project",
     "researcher_name": "Researcher",
 }
 
