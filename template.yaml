@@ -273,17 +273,30 @@ Resources:
           Properties:
             Path: /save-project
             Method: post
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue data-lab-rds-VPCSG
+        SubnetIds:
+          - !ImportValue data-lab-rds-SubnetC
       Layers:
         - !Ref Libraries
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
       Policies:
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
 
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction

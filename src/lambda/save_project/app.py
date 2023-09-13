@@ -1,13 +1,19 @@
+import json
 import os
 from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
 from pydantic import BaseModel, Extra, Field, ValidationError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from auth import check_auth
+from engine import get_engine
 from format import format_response
-from register import Project
+from models import PublishedProject
+from publish_register import create_published_project
+from register import Project, ProjectPublishStatus
 
 
 DYNAMODB = boto3.resource("dynamodb")
@@ -24,6 +30,37 @@ class SaveProjectBody(BaseModel):
         extra = Extra.forbid
 
 
+def update_published_project(project: Project):
+    engine = get_engine()
+
+    if not project.project_id:
+        raise ValueError("Project must have a project_id")
+
+    with Session(engine) as session:
+        published_project = session.scalar(
+            select(PublishedProject).where(
+                PublishedProject.project_id == project.project_id
+            )
+        )
+
+        if not published_project:
+            raise ValueError("Project not found in database")
+
+        published_project.name = project.name
+        published_project.published_date = datetime.utcnow().date()
+        published_project.description = project.description
+        published_project.project_type = project.project_type
+        published_project.surveillance_status = project.surveillance_status
+        published_project.citation = project.citation
+        published_project.related_materials = json.dumps(project.related_materials)
+        published_project.project_publications = json.dumps(
+            project.project_publications
+        )
+        published_project.others_citing = json.dumps(project.others_citing)
+
+        session.commit()
+
+
 def lambda_handler(event, _):
     try:
         validated = SaveProjectBody.parse_raw(event.get("body", "{}"))
@@ -38,7 +75,7 @@ def lambda_handler(event, _):
 
     try:
         project_response = METADATA_TABLE.get_item(
-            Key={"projectID": validated.project.project_id}
+            Key={"pk": validated.project.project_id, "sk": "_meta"}
         )
 
         if project_response.get("Item"):
@@ -51,10 +88,19 @@ def lambda_handler(event, _):
                 return format_response(403, "Not Authorized")
 
             if prev_project.last_updated and validated.project.last_updated:
-                prev_updated = datetime.fromisoformat(prev_project.last_updated)
-                next_updated = datetime.fromisoformat(validated.project.last_updated)
+                prev_updated = datetime.strptime(
+                    prev_project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
+                next_updated = datetime.strptime(
+                    validated.project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
 
                 if next_updated > prev_updated:
+                    # If the project was already published, update everything
+                    # in the published project as well.
+                    if prev_project.publish_status == ProjectPublishStatus.PUBLISHED:
+                        update_published_project(validated.project)
+
                     try:
                         METADATA_TABLE.put_item(Item=validated.project.table_item())
                         return format_response(200, "Succesful upload")
