@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -32,18 +33,41 @@ def lambda_handler(event, _):
 
     user = check_auth(validated.researcher_id)
 
-    # This should also check if the user has permission to
-    # edit this project, but to add that we need to create
-    # a dedicated route for creating projects because when
-    # a project is created, the user is updated with the new
-    # projectID at the same time as the save_project lambda
-    # is called. Those two updates need to be in the same
-    # api route in the case of new project creation.
     if not user:
         return format_response(403, "Not Authorized")
 
-    # in the future need to query the existing project (if it
-    # exists) and merge the new data with the old data
+    try:
+        project_response = METADATA_TABLE.get_item(
+            Key={"projectID": validated.project.project_id}
+        )
+
+        if project_response.get("Item"):
+            prev_project = Project.parse_table_item(project_response["Item"])
+
+            # Check to make sure this researcher is an author on the project
+            if prev_project.authors and not user.researcher_id in [
+                author.researcher_id for author in prev_project.authors
+            ]:
+                return format_response(403, "Not Authorized")
+
+            if prev_project.last_updated and validated.project.last_updated:
+                prev_updated = datetime.fromisoformat(prev_project.last_updated)
+                next_updated = datetime.fromisoformat(validated.project.last_updated)
+
+                if next_updated > prev_updated:
+                    try:
+                        METADATA_TABLE.put_item(Item=validated.project.table_item())
+                        return format_response(200, "Succesful upload")
+
+                    except ClientError as e:
+                        return format_response(500, e)
+            else:
+                return format_response(200, "Newer updates exist")
+
+    except ClientError as e:
+        # If the project does not already exist,
+        # we can skip ahead to creating it
+        pass
 
     try:
         METADATA_TABLE.put_item(Item=validated.project.table_item())
