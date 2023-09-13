@@ -12,7 +12,6 @@ from auth import check_auth
 from engine import get_engine
 from format import format_response
 from models import PublishedProject
-from publish_register import create_published_project
 from register import Project, ProjectPublishStatus
 
 
