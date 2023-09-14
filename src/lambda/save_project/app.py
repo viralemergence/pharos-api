@@ -86,6 +86,13 @@ def lambda_handler(event, _):
             ]:
                 return format_response(403, "Not Authorized")
 
+            # merge the two projects, preserving the union of dataset_ids
+            # regardless of which project is newer
+            next_project = prev_project
+            next_project.dataset_ids = prev_project.dataset_ids + list(
+                set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
+            )
+
             if prev_project.last_updated and validated.project.last_updated:
                 prev_updated = datetime.strptime(
                     prev_project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -100,14 +107,12 @@ def lambda_handler(event, _):
                     if prev_project.publish_status == ProjectPublishStatus.PUBLISHED:
                         update_published_project(validated.project)
 
-                    try:
-                        METADATA_TABLE.put_item(Item=validated.project.table_item())
-                        return format_response(200, "Succesful upload")
+            try:
+                METADATA_TABLE.put_item(Item=next_project.table_item())
+                return format_response(200, "Succesful upload")
 
-                    except ClientError as e:
-                        return format_response(500, e)
-            else:
-                return format_response(200, "Newer updates exist")
+            except ClientError as e:
+                return format_response(500, e)
 
     except ClientError as e:
         # If the project does not already exist,
