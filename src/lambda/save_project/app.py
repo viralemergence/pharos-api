@@ -107,21 +107,31 @@ def lambda_handler(event, _):
                     if prev_project.publish_status == ProjectPublishStatus.PUBLISHED:
                         update_published_project(validated.project)
 
+                    # overwrite the old project with the new one
+                    next_project = validated.project
+
             try:
+                next_project.dataset_ids = prev_project.dataset_ids + list(
+                    set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
+                )
                 METADATA_TABLE.put_item(Item=next_project.table_item())
+                return format_response(200, "Succesful upload")
+
+            except ClientError as e:
+                return format_response(500, e)
+        else:
+            # if the table response doesn't have an item, just save the incoming project
+            try:
+                METADATA_TABLE.put_item(Item=validated.project.table_item())
                 return format_response(200, "Succesful upload")
 
             except ClientError as e:
                 return format_response(500, e)
 
     except ClientError as e:
-        # If the project does not already exist,
-        # we can skip ahead to creating it
-        pass
+        try:
+            METADATA_TABLE.put_item(Item=validated.project.table_item())
+            return format_response(200, "Succesful upload")
 
-    try:
-        METADATA_TABLE.put_item(Item=validated.project.table_item())
-        return format_response(200, "Succesful upload")
-
-    except ClientError as e:
-        return format_response(500, e)
+        except ClientError as e:
+            return format_response(500, e)
