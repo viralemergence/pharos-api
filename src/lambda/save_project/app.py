@@ -86,12 +86,8 @@ def lambda_handler(event, _):
             ]:
                 return format_response(403, "Not Authorized")
 
-            # merge the two projects, preserving the union of dataset_ids
-            # regardless of which project is newer
+            # by default preserve the previous project
             next_project = prev_project
-            next_project.dataset_ids = prev_project.dataset_ids + list(
-                set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
-            )
 
             if prev_project.last_updated and validated.project.last_updated:
                 prev_updated = datetime.strptime(
@@ -110,10 +106,12 @@ def lambda_handler(event, _):
                     # overwrite the old project with the new one
                     next_project = validated.project
 
+            # regardless of which project is newer, take the union of dataset_ids
+            next_project.dataset_ids = prev_project.dataset_ids + list(
+                set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
+            )
             try:
-                next_project.dataset_ids = prev_project.dataset_ids + list(
-                    set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
-                )
+
                 METADATA_TABLE.put_item(Item=next_project.table_item())
                 return format_response(200, "Succesful upload")
 
@@ -128,7 +126,8 @@ def lambda_handler(event, _):
             except ClientError as e:
                 return format_response(500, e)
 
-    except ClientError as e:
+    except ClientError:
+        # if the project doesn't exist, save it
         try:
             METADATA_TABLE.put_item(Item=validated.project.table_item())
             return format_response(200, "Succesful upload")
