@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from datetime import datetime
 
 import boto3
@@ -87,7 +88,7 @@ def lambda_handler(event, _):
                 return format_response(403, "Not Authorized")
 
             # by default preserve the previous project
-            next_project = prev_project
+            next_project = copy.deepcopy(prev_project)
 
             if prev_project.last_updated and validated.project.last_updated:
                 prev_updated = datetime.strptime(
@@ -110,6 +111,32 @@ def lambda_handler(event, _):
             next_project.dataset_ids = prev_project.dataset_ids + list(
                 set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
             )
+
+            # and the union of deleted_dataset_ids
+            if not prev_project.deleted_dataset_ids:
+                prev_project.deleted_dataset_ids = []
+            if not validated.project.deleted_dataset_ids:
+                validated.project.deleted_dataset_ids = []
+
+            next_project.deleted_dataset_ids = prev_project.deleted_dataset_ids + list(
+                set(validated.project.deleted_dataset_ids)
+                - set(prev_project.deleted_dataset_ids)
+            )
+
+            # remove any dataset from dataset_ids that is in deleted_dataset_ids
+            next_project.dataset_ids = list(
+                set(next_project.dataset_ids) - set(next_project.deleted_dataset_ids)
+            )
+
+            newly_deleted_dataset_ids = set(next_project.deleted_dataset_ids) - set(
+                prev_project.deleted_dataset_ids
+            )
+
+            # handle newly-deleted datasets
+            if len(newly_deleted_dataset_ids) > 0:
+                print("DO DATASET DELETION")
+                print(newly_deleted_dataset_ids)
+
             try:
 
                 METADATA_TABLE.put_item(Item=next_project.table_item())
