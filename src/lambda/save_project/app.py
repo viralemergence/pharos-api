@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from datetime import datetime
 
 import boto3
@@ -60,6 +61,51 @@ def update_published_project(project: Project):
         session.commit()
 
 
+def merge_project(server_project: Project, remote_project: Project):
+    # by default preserve the previous project
+    next_project = copy.deepcopy(server_project)
+
+    if server_project.last_updated and remote_project.last_updated:
+        prev_updated = datetime.strptime(
+            server_project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        next_updated = datetime.strptime(
+            remote_project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+
+        if next_updated > prev_updated:
+            # If the project was already published, update everything
+            # in the published project as well.
+            if server_project.publish_status == ProjectPublishStatus.PUBLISHED:
+                update_published_project(remote_project)
+
+            # overwrite the old project with the new one
+            next_project = remote_project
+
+    # regardless of which project is newer, take the union of dataset_ids
+    next_project.dataset_ids = server_project.dataset_ids + list(
+        set(remote_project.dataset_ids) - set(server_project.dataset_ids)
+    )
+
+    # and the union of deleted_dataset_ids
+    if not server_project.deleted_dataset_ids:
+        server_project.deleted_dataset_ids = []
+    if not remote_project.deleted_dataset_ids:
+        remote_project.deleted_dataset_ids = []
+
+    next_project.deleted_dataset_ids = server_project.deleted_dataset_ids + list(
+        set(remote_project.deleted_dataset_ids)
+        - set(server_project.deleted_dataset_ids)
+    )
+
+    # remove any dataset from dataset_ids that is in deleted_dataset_ids
+    next_project.dataset_ids = list(
+        set(next_project.dataset_ids) - set(next_project.deleted_dataset_ids)
+    )
+
+    return next_project
+
+
 def lambda_handler(event, _):
     try:
         validated = SaveProjectBody.parse_raw(event.get("body", "{}"))
@@ -86,30 +132,8 @@ def lambda_handler(event, _):
             ]:
                 return format_response(403, "Not Authorized")
 
-            # by default preserve the previous project
-            next_project = prev_project
+            next_project = merge_project(prev_project, validated.project)
 
-            if prev_project.last_updated and validated.project.last_updated:
-                prev_updated = datetime.strptime(
-                    prev_project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
-                )
-                next_updated = datetime.strptime(
-                    validated.project.last_updated, "%Y-%m-%dT%H:%M:%S.%fZ"
-                )
-
-                if next_updated > prev_updated:
-                    # If the project was already published, update everything
-                    # in the published project as well.
-                    if prev_project.publish_status == ProjectPublishStatus.PUBLISHED:
-                        update_published_project(validated.project)
-
-                    # overwrite the old project with the new one
-                    next_project = validated.project
-
-            # regardless of which project is newer, take the union of dataset_ids
-            next_project.dataset_ids = prev_project.dataset_ids + list(
-                set(validated.project.dataset_ids) - set(prev_project.dataset_ids)
-            )
             try:
 
                 METADATA_TABLE.put_item(Item=next_project.table_item())

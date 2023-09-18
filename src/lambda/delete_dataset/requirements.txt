@@ -1,0 +1,5 @@
+SQLAlchemy
+GeoAlchemy2
+psycopg2-binary
+pydantic
+pydantic
