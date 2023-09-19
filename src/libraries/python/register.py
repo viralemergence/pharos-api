@@ -98,6 +98,7 @@ class Project(BaseModel):
     project_id: str = Field(..., alias="projectID")
     name: str
     dataset_ids: list[str] = Field(..., alias="datasetIDs")
+    deleted_dataset_ids: Optional[list[str]] = Field(None, alias="deletedDatasetIDs")
     last_updated: Optional[str] = Field(None, alias="lastUpdated")
     description: Optional[str]
     project_type: Optional[str] = Field(None, alias="projectType")
