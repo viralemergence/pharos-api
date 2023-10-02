@@ -203,6 +203,15 @@ class Dataset(BaseModel):
     release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
 
+    age: Optional[str]
+    """The user-selected units for the age field"""
+
+    mass: Optional[str]
+    """The user-selected units for the mass field"""
+
+    length: Optional[str]
+    """The user-selected units for the length field"""
+
     class Config:
         extra = Extra.forbid
         use_enum_values = True
@@ -594,7 +603,7 @@ class Record(BaseModel):
 
         return year
 
-    @validator("age", "mass", "length")
+    @validator("age", "mass", "length", "spatial_uncertainty")
     @validator_skip_fail_warn
     @validator_skip_empty_string
     def check_float(cls, value: DefaultPassDatapoint):
