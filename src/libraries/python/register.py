@@ -603,7 +603,7 @@ class Record(BaseModel):
 
         return year
 
-    @validator("age", "mass", "length")
+    @validator("age", "mass", "length", "spatial_uncertainty")
     @validator_skip_fail_warn
     @validator_skip_empty_string
     def check_float(cls, value: DefaultPassDatapoint):
