@@ -26,6 +26,9 @@ Parameters:
   NVersions:
     Type: String
     Default: 5
+  UserPoolName:
+    Type: String
+    Default: userpool
   # RDSStackName:
   #   Type: String
   #   Default: pharos-database
@@ -48,6 +51,7 @@ Globals:
     Architectures:
       - x86_64
     Handler: app.lambda_handler
+
   Api:
     Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
     TracingEnabled: True
@@ -108,6 +112,39 @@ Resources:
   #       BlockPublicPolicy: false
   #       IgnorePublicAcls: false
   #       RestrictPublicBuckets: false
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: 
+        !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+
+  UserPoolDomain: 
+    Type: AWS::Cognito::UserPoolDomain
+    Properties: 
+      Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
+      UserPoolId: !Ref UserPool
+
+  ApiCognitoAuthorizer:          
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: 'method.request.header.Authorization'
+      Name: ApiCognitoAuthorizer
+      ProviderARNs:
+        - !GetAtt UserPool.Arn
+      RestApiId: !Ref ServerlessRestApi
+      Type: COGNITO_USER_POOLS
+
+
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -170,9 +207,9 @@ Resources:
             Method: post
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
@@ -207,9 +244,9 @@ Resources:
             Method: post
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
@@ -336,9 +373,9 @@ Resources:
             Method: post
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
