@@ -120,6 +120,13 @@ Resources:
         !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UsernameAttributes:
         - email
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -127,6 +134,15 @@ Resources:
         - AttributeDataType: String
           Name: email
           Required: false
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
 
   UserPoolDomain: 
     Type: AWS::Cognito::UserPoolDomain
@@ -408,6 +424,8 @@ Resources:
           Properties:
             Path: /list-projects
             Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
