@@ -52,9 +52,9 @@ Globals:
       - x86_64
     Handler: app.lambda_handler
 
-  Api:
-    Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
-    TracingEnabled: True
+  # Api:
+  #   Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
+  #   TracingEnabled: True
 
 Resources:
   Libraries:
@@ -150,16 +150,27 @@ Resources:
       Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UserPoolId: !Ref UserPool
 
-  ApiCognitoAuthorizer:          
-    Type: AWS::ApiGateway::Authorizer
-    Properties:
-      IdentitySource: 'method.request.header.Authorization'
-      Name: ApiCognitoAuthorizer
-      ProviderARNs:
-        - !GetAtt UserPool.Arn
-      RestApiId: !Ref ServerlessRestApi
-      Type: COGNITO_USER_POOLS
+  # ApiCognitoAuthorizer:          
+  #   Type: AWS::ApiGateway::Authorizer
+  #   Properties:
+  #     IdentitySource: 'method.request.header.Authorization'
+  #     Name: ApiCognitoAuthorizer
+  #     ProviderARNs:
+  #       - !GetAtt UserPool.Arn
+  #     RestApiId: !Ref ApiGatewayApi
+  #     Type: COGNITO_USER_POOLS
 
+
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
+      Auth:
+        DefaultAuthorizer: ApiCognitoAuthorizer
+        Authorizers:
+          ApiCognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
 
 
   GetUserFunction:
@@ -171,6 +182,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /auth
             Method: post
       Layers:
@@ -195,6 +208,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /create-user
             Method: post
       Layers:
@@ -219,6 +234,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-dataset
             Method: post
       VpcConfig:
@@ -256,6 +273,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /delete-dataset
             Method: post
       VpcConfig:
@@ -298,6 +317,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
       Layers:
@@ -322,6 +343,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-register
             Method: post
       Layers:
@@ -354,6 +377,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /load-register
             Method: post
       Layers:
@@ -385,6 +410,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-project
             Method: post
       VpcConfig:
@@ -422,6 +449,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-projects
             Method: post
             # Auth:
@@ -449,6 +478,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /release-dataset
             Method: post
       Layers:
@@ -524,6 +555,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /publish-project
             Method: post
       Layers:
@@ -574,6 +607,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /unpublish-project
             Method: post
       Layers:
@@ -617,6 +652,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-project
             Method: get
       Layers:
@@ -650,6 +687,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-records
             Method: get
       Layers:
@@ -683,6 +722,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /metadata-for-published-records
             Method: get
       Layers:
@@ -717,6 +758,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /map/{mapPath+}
             Method: get
       Layers:
@@ -750,6 +793,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /researchers
             Method: get
       Layers:
@@ -783,6 +828,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /metadata-for-published-records
             Method: get
       Layers:
@@ -817,6 +864,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /map/{mapPath+}
             Method: get
       Layers:
