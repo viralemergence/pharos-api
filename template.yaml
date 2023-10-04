@@ -474,7 +474,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       Timeout: 900
-      MemorySize: 1024
+      MemorySize: 1769
       CodeUri: src/lambda/publish_registers/
       VpcConfig:
         SecurityGroupIds:
