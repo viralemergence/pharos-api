@@ -967,7 +967,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PharosApi:
     Description: "API Endpoint:"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   MetadataTableName:
     Description: "Metadata Table Name"
     Value: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
