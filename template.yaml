@@ -473,8 +473,8 @@ Resources:
   PublishRegistersFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Timeout: 300
-      MemorySize: 512
+      Timeout: 900
+      MemorySize: 1024
       CodeUri: src/lambda/publish_registers/
       VpcConfig:
         SecurityGroupIds:
