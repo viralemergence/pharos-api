@@ -150,7 +150,7 @@ Resources:
       Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UserPoolId: !Ref UserPool
 
-  # ApiCognitoAuthorizer:          
+  # ApiCognitoAuthorizer:
   #   Type: AWS::ApiGateway::Authorizer
   #   Properties:
   #     IdentitySource: 'method.request.header.Authorization'
