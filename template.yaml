@@ -424,8 +424,8 @@ Resources:
           Properties:
             Path: /list-projects
             Method: post
-            Auth:
-              Authorizer: CognitoAuthorizer
+            # Auth:
+            #   Authorizer: CognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
