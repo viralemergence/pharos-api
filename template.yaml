@@ -842,77 +842,6 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
-  # GetPublishedRecordsMetadataFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     MemorySize: 128
-  #     CodeUri: src/lambda/get_published_records_metadata/
-  #     VpcConfig:
-  #       SecurityGroupIds:
-  #         - !ImportValue pharos-database-VPCSG
-  #       SubnetIds:
-  #         - !ImportValue pharos-database-LambdaSubnet
-  #         # - subnet-8f7652ea
-  #     Events:
-  #       Auth:
-  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-  #         Properties:
-  #           RestApiId:
-  #             Ref: ApiGatewayApi
-  #           Path: /metadata-for-published-records
-  #           Method: get
-  #     Layers:
-  #       - !Ref Libraries
-  #     Environment:
-  #       Variables:
-  #         CORS_ALLOW: !Ref CorsAllow
-  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-  #     Policies:
-  #       - AWSLambdaVPCAccessExecutionRole
-  #       - Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - secretsmanager:GetSecretValue
-  #             Resource:
-  #               # TODO: Fix this wildcard and replace with the ???? wildcard system
-  #               - "*"
-
-  # GetMapTilesFunction:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     Timeout: 30
-  #     MemorySize: 512
-  #     CodeUri: src/lambda/get_map_tiles/
-  #     VpcConfig:
-  #       SecurityGroupIds:
-  #         - !ImportValue pharos-database-VPCSG
-  #       SubnetIds:
-  #         - !ImportValue pharos-database-LambdaSubnet
-  #         # - subnet-8f7652ea
-  #     Events:
-  #       Auth:
-  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-  #         Properties:
-  #           RestApiId:
-  #             Ref: ApiGatewayApi
-  #           Path: /map/{mapPath+}
-  #           Method: get
-  #     Layers:
-  #       - !Ref Libraries
-  #     Environment:
-  #       Variables:
-  #         CORS_ALLOW: !Ref CorsAllow
-  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-  #     Policies:
-  #       - AWSLambdaVPCAccessExecutionRole
-  #       - Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - secretsmanager:GetSecretValue
-  #             Resource:
-  #               # TODO: Fix this wildcard and replace with the ???? wildcard system
-  #               - "*"
-
   # DownloadDataFunction:
   #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
   #   Properties:
@@ -991,15 +920,12 @@ Resources:
       ServiceToken: !GetAtt PermissionsFunction.Arn
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PharosApi:
-    Description: "API Endpoint:"
+    Description: "API Endpoint"
     Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  MetadataTableName:
-    Description: "Metadata Table Name"
-    Value: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-  # AuthFunctionIamRole:
-  #   Description: "Implicit IAM Role created for Fake Auth function"
-  #   Value: !GetAtt AuthFunction.Arn
+  UserPoolID:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool
+  ClientID:
+    Description: "Phros Frontend Client ID"
+    Value: !Ref UserPoolClient
