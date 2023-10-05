@@ -193,6 +193,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /auth
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -219,6 +221,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /create-user
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -245,6 +249,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /save-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -284,6 +290,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /delete-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -328,6 +336,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -354,6 +364,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /save-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -388,6 +400,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /load-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -421,6 +435,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /save-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -461,7 +477,7 @@ Resources:
             Path: /list-projects
             Method: post
             Auth:
-              Authorizer: CognitoAuthorizer
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -489,6 +505,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /release-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -566,6 +584,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /publish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -618,6 +638,8 @@ Resources:
               Ref: ApiGatewayApi
             Path: /unpublish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
