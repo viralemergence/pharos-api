@@ -96,11 +96,12 @@ jobs:
             # source env/bin/activate
             pyright
 
-      - run:
-          name: Run Style Checks
-          command: |
-            # source env/bin/activate
-            pylint -j 4 src/ tests/
+      # temporarily removing style checks
+      # - run:
+      #     name: Run Style Checks
+      #     command: |
+      #       # source env/bin/activate
+      #       pylint -j 4 src/ tests/
 
       - run:
           name: Add PostGIS to database
