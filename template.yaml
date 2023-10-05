@@ -52,9 +52,9 @@ Globals:
       - x86_64
     Handler: app.lambda_handler
 
-  Api:
-    Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
-    TracingEnabled: True
+  # Api:
+  #   Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
+  #   TracingEnabled: True
 
 Resources:
   Libraries:
@@ -116,8 +116,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: 
-        !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
+      UserPoolName: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:
@@ -144,23 +143,42 @@ Resources:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  UserPoolDomain: 
+  UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
-    Properties: 
+    Properties:
       Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UserPoolId: !Ref UserPool
 
-  ApiCognitoAuthorizer:          
-    Type: AWS::ApiGateway::Authorizer
+  # ApiCognitoAuthorizer:
+  #   Type: AWS::ApiGateway::Authorizer
+  #   Properties:
+  #     IdentitySource: 'method.request.header.Authorization'
+  #     Name: ApiCognitoAuthorizer
+  #     ProviderARNs:
+  #       - !GetAtt UserPool.Arn
+  #     RestApiId: !Ref ApiGatewayApi
+  #     Type: COGNITO_USER_POOLS
+
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
     Properties:
-      IdentitySource: 'method.request.header.Authorization'
-      Name: ApiCognitoAuthorizer
-      ProviderARNs:
-        - !GetAtt UserPool.Arn
-      RestApiId: !Ref ServerlessRestApi
-      Type: COGNITO_USER_POOLS
+      StageName: Prod
+      # Cors:
+      # Cors: "'*'"
 
+      Cors:
+        AllowMethods: "'POST, GET'"
+        AllowHeaders: "'*'"
+        AllowOrigin: !Join ["", ["'", !Ref CorsAllow, "'"]]
+        MaxAge: "'600'"
+        AllowCredentials: false
 
+      Auth:
+        # DefaultAuthorizer: ApiCognitoAuthorizer
+        # AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          ApiCognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -171,8 +189,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /auth
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -195,8 +217,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /create-user
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -219,8 +245,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -256,8 +286,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /delete-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -298,8 +332,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -322,8 +360,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -354,8 +396,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /load-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -385,8 +431,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue pharos-database-VPCSG
@@ -422,10 +472,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-projects
             Method: post
-            # Auth:
-            #   Authorizer: CognitoAuthorizer
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -449,8 +501,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /release-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -524,8 +580,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /publish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -574,8 +634,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /unpublish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -617,6 +681,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-project
             Method: get
       Layers:
@@ -650,6 +716,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-records
             Method: get
       Layers:
@@ -683,6 +751,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /metadata-for-published-records
             Method: get
       Layers:
@@ -717,6 +787,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /map/{mapPath+}
             Method: get
       Layers:
@@ -750,6 +822,8 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /researchers
             Method: get
       Layers:
@@ -768,72 +842,76 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
-  GetPublishedRecordsMetadataFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      MemorySize: 128
-      CodeUri: src/lambda/get_published_records_metadata/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue pharos-database-VPCSG
-        SubnetIds:
-          - !ImportValue pharos-database-LambdaSubnet
-          # - subnet-8f7652ea
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /metadata-for-published-records
-            Method: get
-      Layers:
-        - !Ref Libraries
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-      Policies:
-        - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                # TODO: Fix this wildcard and replace with the ???? wildcard system
-                - "*"
+  # GetPublishedRecordsMetadataFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     MemorySize: 128
+  #     CodeUri: src/lambda/get_published_records_metadata/
+  #     VpcConfig:
+  #       SecurityGroupIds:
+  #         - !ImportValue pharos-database-VPCSG
+  #       SubnetIds:
+  #         - !ImportValue pharos-database-LambdaSubnet
+  #         # - subnet-8f7652ea
+  #     Events:
+  #       Auth:
+  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+  #         Properties:
+  #           RestApiId:
+  #             Ref: ApiGatewayApi
+  #           Path: /metadata-for-published-records
+  #           Method: get
+  #     Layers:
+  #       - !Ref Libraries
+  #     Environment:
+  #       Variables:
+  #         CORS_ALLOW: !Ref CorsAllow
+  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+  #     Policies:
+  #       - AWSLambdaVPCAccessExecutionRole
+  #       - Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - secretsmanager:GetSecretValue
+  #             Resource:
+  #               # TODO: Fix this wildcard and replace with the ???? wildcard system
+  #               - "*"
 
-  GetMapTilesFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Timeout: 30
-      MemorySize: 512
-      CodeUri: src/lambda/get_map_tiles/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue pharos-database-VPCSG
-        SubnetIds:
-          - !ImportValue pharos-database-LambdaSubnet
-          # - subnet-8f7652ea
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /map/{mapPath+}
-            Method: get
-      Layers:
-        - !Ref Libraries
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-      Policies:
-        - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                # TODO: Fix this wildcard and replace with the ???? wildcard system
-                - "*"
+  # GetMapTilesFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Timeout: 30
+  #     MemorySize: 512
+  #     CodeUri: src/lambda/get_map_tiles/
+  #     VpcConfig:
+  #       SecurityGroupIds:
+  #         - !ImportValue pharos-database-VPCSG
+  #       SubnetIds:
+  #         - !ImportValue pharos-database-LambdaSubnet
+  #         # - subnet-8f7652ea
+  #     Events:
+  #       Auth:
+  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+  #         Properties:
+  #           RestApiId:
+  #             Ref: ApiGatewayApi
+  #           Path: /map/{mapPath+}
+  #           Method: get
+  #     Layers:
+  #       - !Ref Libraries
+  #     Environment:
+  #       Variables:
+  #         CORS_ALLOW: !Ref CorsAllow
+  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+  #     Policies:
+  #       - AWSLambdaVPCAccessExecutionRole
+  #       - Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - secretsmanager:GetSecretValue
+  #             Resource:
+  #               # TODO: Fix this wildcard and replace with the ???? wildcard system
+  #               - "*"
 
   # DownloadDataFunction:
   #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -918,7 +996,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PharosApi:
     Description: "API Endpoint:"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   MetadataTableName:
     Description: "Metadata Table Name"
     Value: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
