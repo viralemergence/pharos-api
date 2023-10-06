@@ -927,5 +927,5 @@ Outputs:
     Description: "Cognito User Pool ID"
     Value: !Ref UserPool
   ClientID:
-    Description: "Phros Frontend Client ID"
+    Description: "Pharos Frontend Client ID"
     Value: !Ref UserPoolClient
