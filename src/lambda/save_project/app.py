@@ -5,7 +5,7 @@ from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, Field, ValidationError
+from pydantic import BaseModel, Extra, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -133,7 +133,6 @@ def lambda_handler(event, _):
         )
 
         if project_response.get("Item"):
-
             prev_project = Project.parse_table_item(project_response["Item"])
             next_project = merge_project(prev_project, validated.project)
 
