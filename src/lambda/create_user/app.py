@@ -24,14 +24,14 @@ def lambda_handler(event, _):
         return format_response(401, e.json())
 
     user_data = json.loads(event.get("body", "{}"))
-    user_data["researcher_id"] = researcher_id
+    user_data["researcherID"] = researcher_id
 
     try:
         validated = User.parse_obj(user_data)
 
     except ValidationError as e:
         print(e.json(indent=2))
-        return {"statusCode": 400, "body": e.json()}
+        return format_response(400, e.json())
 
     # Need to add handling merging of the user's list of
     # projects here, because for now an out-of-sync client
