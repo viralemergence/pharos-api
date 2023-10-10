@@ -19,15 +19,26 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class SaveRegisterData(BaseModel):
     """Data model for the save register request"""
 
-    researcher_id: str = Field(..., alias="researcherID")
-    dataset_id: str = Field(..., alias="datasetID")
-    register_data: Dict[str, Record] = Field(..., alias="register")
+    project_id: str = Field(alias="projectID")
+    dataset_id: str = Field(alias="datasetID")
+    register_data: Dict[str, Record] = Field(alias="register")
 
     class Config:
         extra = Extra.forbid
 
 
 def lambda_handler(event, _):
+    try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+
+    if not user.project_ids:
+        return format_response(404, "Researcher has no projects")
+
     # parse and validate event data
     try:
         validated = SaveRegisterData.parse_raw(event["body"])
@@ -35,10 +46,8 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    # Placeholder check user authorization
-    authorized = check_auth(validated.researcher_id)
-    if not authorized:
-        return format_response(403, "Not Authorized")
+    if validated.project_id not in user.project_ids:
+        return format_response(403, "Researcher does not have access to this project")
 
     try:
         # Dump the validated register to JSON
