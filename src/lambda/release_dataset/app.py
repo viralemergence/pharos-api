@@ -21,22 +21,28 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class ReleaseDatasetBody(BaseModel):
     """Event data payload to release a dataset."""
 
-    researcher_id: str = Field(..., alias="researcherID")
-    project_id: str = Field(..., alias="projectID")
-    dataset_id: str = Field(..., alias="datasetID")
+    project_id: str = Field(alias="projectID")
+    dataset_id: str = Field(alias="datasetID")
 
 
 def lambda_handler(event, _):
+    try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+    if not user.project_ids:
+        return format_response(404, "Researcher has no projects")
+
     try:
         validated = ReleaseDatasetBody.parse_raw(event["body"])
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-    if not user:
-        return format_response(403, "Not Authorized")
-    if not user.project_ids or not validated.project_id in user.project_ids:
+    if validated.project_id in user.project_ids:
         return format_response(403, "Researcher is not authorized for this project")
 
     try:
@@ -51,7 +57,7 @@ def lambda_handler(event, _):
         register_json = register_response["Body"].read().decode("UTF-8")
 
     except (ValueError, ClientError):
-        return format_response(400, "Dataset not found")
+        return format_response(500, "Dataset not found")
 
     try:
         register = Register.parse_raw(register_json)
