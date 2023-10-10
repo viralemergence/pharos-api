@@ -44,7 +44,7 @@ def lambda_handler(event, _):
         validated = SaveRegisterData.parse_raw(event["body"])
     except ValidationError as e:
         print(e.json(indent=2))
-        return {"statusCode": 400, "body": e.json()}
+        return format_response(400, e)
 
     if validated.project_id not in user.project_ids:
         return format_response(403, "Researcher does not have access to this project")
