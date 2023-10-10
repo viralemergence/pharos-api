@@ -42,7 +42,7 @@ def lambda_handler(event, _):
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    if validated.project_id in user.project_ids:
+    if not validated.project_id in user.project_ids:
         return format_response(403, "Researcher is not authorized for this project")
 
     try:
