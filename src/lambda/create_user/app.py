@@ -1,10 +1,10 @@
 import os
-import uuid
 import json
 
 import boto3
 from botocore.exceptions import ClientError
 from pydantic import ValidationError
+from auth import Claims
 
 from format import format_response
 from register import User
@@ -15,10 +15,18 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 def lambda_handler(event, _):
     try:
-        user_data = json.loads(event.get("body", "{}"))
-        if not "researcherID" in user_data:
-            user_data["researcherID"] = "res" + uuid.uuid4().hex
+        claims = Claims.parse_obj(
+            event.get("requestContext", {}).get("authorizer", {}).get("claims", {})
+        )
+        researcher_id = f"res{claims.sub}"
 
+    except ValidationError as e:
+        return format_response(401, e.json())
+
+    user_data = json.loads(event.get("body", "{}"))
+    user_data["researcher_id"] = researcher_id
+
+    try:
         validated = User.parse_obj(user_data)
 
     except ValidationError as e:
