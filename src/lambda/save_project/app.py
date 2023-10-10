@@ -23,7 +23,6 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 class SaveProjectBody(BaseModel):
     """Event data payload to save a project."""
 
-    researcher_id: str = Field(..., alias="researcherID")
     project: Project
 
     class Config:
@@ -107,16 +106,26 @@ def merge_project(server_project: Project, remote_project: Project):
 
 
 def lambda_handler(event, _):
+
+    try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+
+    if not user.project_ids:
+        return format_response(403, "Researcher has no projects")
+
     try:
         validated = SaveProjectBody.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-
-    if not user:
-        return format_response(403, "Not Authorized")
+    if not validated.project.project_id in user.project_ids:
+        return format_response(403, "Researcher does not have access to this project")
 
     try:
         project_response = METADATA_TABLE.get_item(
@@ -124,14 +133,8 @@ def lambda_handler(event, _):
         )
 
         if project_response.get("Item"):
+
             prev_project = Project.parse_table_item(project_response["Item"])
-
-            # Check to make sure this researcher is an author on the project
-            if prev_project.authors and not user.researcher_id in [
-                author.researcher_id for author in prev_project.authors
-            ]:
-                return format_response(403, "Not Authorized")
-
             next_project = merge_project(prev_project, validated.project)
 
             try:
