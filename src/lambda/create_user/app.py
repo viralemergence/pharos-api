@@ -40,12 +40,14 @@ def lambda_handler(event, _):
 
     try:
         users_response = METADATA_TABLE.put_item(Item=validated.table_item())
+        print(users_response)
         return format_response(
             200,
-            {
-                "researcherID": validated.researcher_id,
-                "table_response": users_response,
-            },
+            {}
+            # {
+            #     "researcherID": validated.researcher_id,
+            #     "table_response": users_response,
+            # },
         )
 
     except ClientError as e:
