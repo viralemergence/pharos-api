@@ -3,7 +3,12 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   pharos-api
 
-  Sample SAM Template for pharos-api
+  SAM Template for pharos-api stack-specific resources.
+
+  This template can be deployed multiple times in the
+  same AWS account, to create separate environments.
+
+  sam sync should be used to create developer-specific stacks.
 
 Parameters:
   CorsAllow:
@@ -17,19 +22,23 @@ Parameters:
     Default: layer
   DatasetsS3Bucket:
     Type: String
-    Default: bucket
+    Default: datasets-bucket
   NVersions:
     Type: String
     Default: 5
+  UserPoolName:
+    Type: String
+    Default: userpool
   # RDSStackName:
   #   Type: String
-  #   Default: data-lab-rds
+  #   Default: pharos-database
   # DatabaseName:
   #   Type: String
   #   Default: pharos
-  DataDownloadBucket:
-    Type: String
-    Default: data-bucket
+
+  # DataDownloadBucket:
+  #   Type: String
+  #   Default: data-bucket
 
 # comment to force build
 
@@ -42,9 +51,10 @@ Globals:
     Architectures:
       - x86_64
     Handler: app.lambda_handler
-  Api:
-    Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
-    TracingEnabled: True
+
+  # Api:
+  #   Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
+  #   TracingEnabled: True
 
 Resources:
   Libraries:
@@ -93,15 +103,82 @@ Resources:
               NewerNoncurrentVersions: 2
               NoncurrentDays: 5
 
-  DataDownload:
-    Type: AWS::S3::Bucket
+  # DataDownload:
+  #   Type: AWS::S3::Bucket
+  #   Properties:
+  #     BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+  #     PublicAccessBlockConfiguration:
+  #       BlockPublicAcls: false
+  #       BlockPublicPolicy: false
+  #       IgnorePublicAcls: false
+  #       RestrictPublicBuckets: false
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
     Properties:
-      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
+      UserPoolName: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
+      UserPoolId: !Ref UserPool
+
+  # ApiCognitoAuthorizer:
+  #   Type: AWS::ApiGateway::Authorizer
+  #   Properties:
+  #     IdentitySource: 'method.request.header.Authorization'
+  #     Name: ApiCognitoAuthorizer
+  #     ProviderARNs:
+  #       - !GetAtt UserPool.Arn
+  #     RestApiId: !Ref ApiGatewayApi
+  #     Type: COGNITO_USER_POOLS
+
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      # Cors:
+      # Cors: "'*'"
+
+      Cors:
+        AllowMethods: "'POST, GET'"
+        AllowHeaders: "'Accept, Accept-CH, Accept-Charset, Accept-Datetime, Accept-Encoding, Accept-Ext, Accept-Features, Accept-Language, Accept-Params, Accept-Ranges, Access-Control-Allow-Credentials, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Access-Control-Expose-Headers, Access-Control-Max-Age, Access-Control-Request-Headers, Access-Control-Request-Method, Age, Allow, Alternates, Authentication-Info, Authorization, C-Ext, C-Man, C-Opt, C-PEP, C-PEP-Info, CONNECT, Cache-Control, Compliance, Connection, Content-Base, Content-Disposition, Content-Encoding, Content-ID, Content-Language, Content-Length, Content-Location, Content-MD5, Content-Range, Content-Script-Type, Content-Security-Policy, Content-Style-Type, Content-Transfer-Encoding, Content-Type, Content-Version, Cookie, Cost, DAV, DELETE, DNT, DPR, Date, Default-Style, Delta-Base, Depth, Derived-From, Destination, Differential-ID, Digest, ETag, Expect, Expires, Ext, From, GET, GetProfile, HEAD, HTTP-date, Host, IM, If, If-Match, If-Modified-Since, If-None-Match, If-Range, If-Unmodified-Since, Keep-Alive, Label, Last-Event-ID, Last-Modified, Link, Location, Lock-Token, MIME-Version, Man, Max-Forwards, Media-Range, Message-ID, Meter, Negotiate, Non-Compliance, OPTION, OPTIONS, OWS, Opt, Optional, Ordering-Type, Origin, Overwrite, P3P, PEP, PICS-Label, POST, PUT, Pep-Info, Permanent, Position, Pragma, ProfileObject, Protocol, Protocol-Query, Protocol-Request, Proxy-Authenticate, Proxy-Authentication-Info, Proxy-Authorization, Proxy-Features, Proxy-Instruction, Public, RWS, Range, Referer, Refresh, Resolution-Hint, Resolver-Location, Retry-After, Safe, Sec-Websocket-Extensions, Sec-Websocket-Key, Sec-Websocket-Origin, Sec-Websocket-Protocol, Sec-Websocket-Version, Security-Scheme, Server, Set-Cookie, Set-Cookie2, SetProfile, SoapAction, Status, Status-URI, Strict-Transport-Security, SubOK, Subst, Surrogate-Capability, Surrogate-Control, TCN, TE, TRACE, Timeout, Title, Trailer, Transfer-Encoding, UA-Color, UA-Media, UA-Pixels, UA-Resolution, UA-Windowpixels, URI, Upgrade, User-Agent, Variant-Vary, Vary, Version, Via, Viewport-Width, WWW-Authenticate, Want-Digest, Warning, Width, X-Content-Duration, X-Content-Security-Policy, X-Content-Type-Options, X-CustomHeader, X-DNSPrefetch-Control, X-Forwarded-For, X-Forwarded-Port, X-Forwarded-Proto, X-Frame-Options, X-Modified, X-OTHER, X-PING, X-PINGOTHER, X-Powered-By, X-Requested-With'"
+        AllowOrigin: !Join ["", ["'", !Ref CorsAllow, "'"]]
+        MaxAge: "'600'"
+        AllowCredentials: false
+
+      Auth:
+        # DefaultAuthorizer: ApiCognitoAuthorizer
+        # AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          ApiCognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
 
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -112,8 +189,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /auth
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -136,8 +217,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /create-user
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -160,13 +245,17 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
@@ -197,13 +286,17 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /delete-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
@@ -239,8 +332,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -263,8 +360,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -295,8 +396,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /load-register
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -326,13 +431,17 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /save-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
@@ -363,8 +472,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /list-projects
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -388,8 +501,12 @@ Resources:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /release-dataset
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Timeout: 300
@@ -412,16 +529,14 @@ Resources:
   PublishRegistersFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      Timeout: 300
-      MemorySize: 512
+      Timeout: 900
+      MemorySize: 1769
       CodeUri: src/lambda/publish_registers/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Layers:
         - !Ref Libraries
@@ -444,20 +559,6 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
@@ -471,18 +572,20 @@ Resources:
       CodeUri: src/lambda/publish_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /publish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -505,20 +608,6 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
@@ -537,18 +626,20 @@ Resources:
       CodeUri: src/lambda/unpublish_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /unpublish-project
             Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
       Environment:
@@ -567,20 +658,6 @@ Resources:
         - S3CrudPolicy: # S3 implementation
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -596,16 +673,16 @@ Resources:
       CodeUri: src/lambda/get_published_project/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-project
             Method: get
       Layers:
@@ -616,20 +693,6 @@ Resources:
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -645,16 +708,16 @@ Resources:
       CodeUri: src/lambda/get_published_records/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /published-records
             Method: get
       Layers:
@@ -668,24 +731,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
   GetPublishedRecordsMetadataFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -693,16 +743,16 @@ Resources:
       CodeUri: src/lambda/get_published_records_metadata/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /metadata-for-published-records
             Method: get
       Layers:
@@ -716,24 +766,11 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
   GetMapTilesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -742,16 +779,16 @@ Resources:
       CodeUri: src/lambda/get_map_tiles/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /map/{mapPath+}
             Method: get
       Layers:
@@ -765,24 +802,10 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
-
+                - "*"
 
   GetResearchersFunction:
     Type: AWS::Serverless::Function
@@ -791,16 +814,16 @@ Resources:
       CodeUri: src/lambda/get_researchers/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
+          - !ImportValue pharos-database-LambdaSubnet
           # - subnet-8f7652ea
       Events:
         Auth:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
             Path: /researchers
             Method: get
       Layers:
@@ -814,178 +837,52 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
-  GetPublishedRecordsMetadataFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      MemorySize: 128
-      CodeUri: src/lambda/get_published_records_metadata/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
-        SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
-          # - subnet-8f7652ea
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /metadata-for-published-records
-            Method: get
-      Layers:
-        - !Ref Libraries
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-      Policies:
-        - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                # TODO: Fix this wildcard and replace with the ???? wildcard system
-                - "*"
-  GetMapTilesFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Timeout: 30
-      MemorySize: 512
-      CodeUri: src/lambda/get_map_tiles/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
-        SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
-          # - subnet-8f7652ea
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /map/{mapPath+}
-            Method: get
-      Layers:
-        - !Ref Libraries
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-      Policies:
-        - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - secretsmanager:GetSecretValue
-              Resource:
-                # TODO: Fix this wildcard and replace with the ???? wildcard system
-                - "*"
-
-  DownloadDataFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-    Properties:
-      CodeUri: src/lambda/download_data/
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
-        SubnetIds:
-          - !ImportValue data-lab-rds-SubnetA
-          - !ImportValue data-lab-rds-SubnetB
-          - subnet-8f7652ea
-      Events:
-        Auth:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /download-data
-            Method: post
-      Layers:
-        - !Ref Libraries
-      Environment:
-        Variables:
-          CORS_ALLOW: !Ref CorsAllow
-          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
-          PORT: "5432"
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-          USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
-          PASSWORD: testingrds
-          REGION: !Ref AWS::Region
-          BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-          METADATA_TABLE_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-          DATASETS_S3_BUCKET: # S3 implementation
-            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-      Policies:
-        - AWSLambdaVPCAccessExecutionRole
-        - DynamoDBCrudPolicy:
-            TableName:
-              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-        - S3CrudPolicy: # S3 implementation
-            BucketName:
-              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
+  # DownloadDataFunction:
+  #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  #   Properties:
+  #     CodeUri: src/lambda/download_data/
+  #     VpcConfig:
+  #       SecurityGroupIds:
+  #         - !ImportValue pharos-database-VPCSG
+  #       SubnetIds:
+  #         - !ImportValue pharos-database-DatabaseSubnetA
+  #         - !ImportValue pharos-database-DatabaseSubnetB
+  #         # - subnet-8f7652ea
+  #     Events:
+  #       Auth:
+  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+  #         Properties:
+  #           Path: /download-data
+  #           Method: post
+  #     Layers:
+  #       - !Ref Libraries
+  #     Environment:
+  #       Variables:
+  #         CORS_ALLOW: !Ref CorsAllow
+  #         HOST: !ImportValue pharos-database-RDSProxyEndpoint
+  #         PORT: "5432"
+  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+  #         USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
+  #         PASSWORD: testingrds
+  #         REGION: !Ref AWS::Region
+  #         BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+  #         METADATA_TABLE_NAME:
+  #           !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+  #         DATASETS_S3_BUCKET: # S3 implementation
+  #           !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+  #     Policies:
+  #       - AWSLambdaVPCAccessExecutionRole
+  #       - DynamoDBCrudPolicy:
+  #           TableName:
+  #             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+  #       - S3CrudPolicy: # S3 implementation
+  #           BucketName:
+  #             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
   PermissionsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -994,36 +891,19 @@ Resources:
       CodeUri: src/lambda/access_permissions/
       VpcConfig:
         SecurityGroupIds:
-          - !ImportValue data-lab-rds-VPCSG
+          - !ImportValue pharos-database-VPCSG
         SubnetIds:
-          # - !ImportValue data-lab-rds-SubnetA
-          # - !ImportValue data-lab-rds-SubnetB
-          - !ImportValue data-lab-rds-SubnetC
-          # - subnet-8f7652ea
+          - !ImportValue pharos-database-LambdaSubnet
       Layers:
         - !Ref Libraries
       Environment:
         Variables:
-          HOST: !ImportValue data-lab-rds-RDSProxyEndpoint
-          PORT: "5432"
+          HOST: !ImportValue pharos-database-RDSProxyEndpoint
+          PORT: !ImportValue pharos-database-Port
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-          USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
+          # USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
-        - Statement:
-            - Effect: Allow
-              Action:
-                - rds-db:connect
-              Resource: !Join
-                - ":"
-                - - arn:aws:rds-db
-                  - !Ref AWS::Region
-                  - !Ref AWS::AccountId
-                  - db-user
-                  - !Select [
-                      6,
-                      !Split [":", !ImportValue data-lab-rds-RDSProxyArn],
-                    ]
         - Statement:
             - Effect: Allow
               Action:
@@ -1040,15 +920,12 @@ Resources:
       ServiceToken: !GetAtt PermissionsFunction.Arn
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   PharosApi:
-    Description: "API Endpoint:"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  MetadataTableName:
-    Description: "Metadata Table Name"
-    Value: !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-  # AuthFunctionIamRole:
-  #   Description: "Implicit IAM Role created for Fake Auth function"
-  #   Value: !GetAtt AuthFunction.Arn
+    Description: "API Endpoint"
+    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  UserPoolID:
+    Description: "Cognito User Pool ID"
+    Value: !Ref UserPool
+  ClientID:
+    Description: "Pharos Frontend Client ID"
+    Value: !Ref UserPoolClient

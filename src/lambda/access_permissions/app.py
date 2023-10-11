@@ -10,25 +10,28 @@ import cfnresponse
 
 from models import Base
 
+print("set up boto3 clients")
 RDS = boto3.client("rds")
 CF = boto3.client("cloudformation")
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-east-2")
 
+print("get connection info")
 HOST = os.environ["HOST"]
 PORT = int(os.environ["PORT"])
 DATABASE = os.environ["DATABASE"]
-USERNAME = os.environ["USERNAME"]
+# USERNAME = os.environ["USERNAME"]
 
 extensions = {}
 
 
+print("declare get_secret")
+
+
 def get_secret(secret_id):
+    print("get_secret called")
     response = SECRETS_MANAGER.get_secret_value(SecretId=secret_id)
+    print("secret response:", response)
     return json.loads(response["SecretString"])
-
-
-# Requesting secret at during init so it's cached in the runtime
-CREDENTIALS = get_secret("data-lab-rds-test")
 
 
 def handle_statements(
@@ -60,16 +63,19 @@ def lambda_handler(event, context):
         cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
         return
 
+    credentials = get_secret("pharos-database-DBAdminSecret")
+
     response_data: dict[str, str] = {}
 
     print("Connect to DB as Superuser")
     master_url = URL.create(
         drivername="postgresql+psycopg2",
         host=HOST,
-        username=CREDENTIALS["username"],
+        username=credentials["username"],
         port=PORT,
-        password=CREDENTIALS["password"],
+        password=credentials["password"],
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
+        database="postgres",
     )
 
     try:
@@ -143,9 +149,9 @@ def lambda_handler(event, context):
         drivername="postgresql+psycopg2",
         host=HOST,
         database=DATABASE,
-        username=CREDENTIALS["username"],
+        username=credentials["username"],
         port=PORT,
-        password=CREDENTIALS["password"],
+        password=credentials["password"],
         query={"sslmode": "verify-full", "sslrootcert": "./AmazonRootCA1.pem"},
     )
 

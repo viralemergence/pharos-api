@@ -3,7 +3,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, Field, ValidationError
+from pydantic import BaseModel, Extra, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -20,7 +20,6 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 class UploadDatasetBody(BaseModel):
     """Event data payload to upload a dataset."""
 
-    researcher_id: str = Field(..., alias="researcherID")
     dataset: Dataset
 
     class Config:
@@ -48,20 +47,24 @@ def update_publised_dataset(dataset: Dataset):
 
 def lambda_handler(event, _):
     try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+    if not user.project_ids:
+        return format_response(403, "Researcher has no projects")
+
+    try:
         validated = UploadDatasetBody.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-
     # check if the user is valid and has access to the project
-    if (
-        not user
-        or not user.project_ids
-        or not validated.dataset.project_id in user.project_ids
-    ):
-        return format_response(403, "Not Authorized")
+    if not validated.dataset.project_id in user.project_ids:
+        return format_response(403, "User does not have access to this project")
 
     next_dataset = validated.dataset
 

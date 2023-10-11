@@ -8,57 +8,48 @@ tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 [default.build.parameters]
 tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
 
-[dev]
-[dev.deploy]
-[dev.deploy.parameters]
-stack_name = "pharos-api-dev"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
-s3_prefix = "pharos-api-dev"
-region = "us-west-1"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-disable_rollback = false
-parameter_overrides = "CorsAllow=\"*\" UsersTableName=\"users\" DatasetsTableName=\"datasets2\" ProjectsTableName=\"projects\" LayerName=\"layer\""
-image_repositories = []
-tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
-
-[review]
-[review.deploy]
-[review.deploy.parameters]
-stack_name = "pharos-api-review"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
-s3_prefix = "pharos-api-review"
-region = "us-west-1"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-disable_rollback = false
-parameter_overrides = "CorsAllow=\"https://review-pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets2\" ProjectsTableName=\"projects\" LayerName=\"layer\""
-image_repositories = []
-tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
-
 [prod]
 [prod.deploy]
 [prod.deploy.parameters]
 stack_name = "pharos-api-prod"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
+resolve_s3 = true
 s3_prefix = "pharos-api-prod"
-region = "us-west-1"
-confirm_changeset = true
+region = "us-east-2"
 capabilities = "CAPABILITY_IAM"
-disable_rollback = false
-parameter_overrides = "CorsAllow=\"https://pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
 image_repositories = []
-tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
+
 
 [staging]
 [staging.deploy]
 [staging.deploy.parameters]
 stack_name = "pharos-api-staging"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1qyq7zg39j1iy"
+resolve_s3 = true
 s3_prefix = "pharos-api-staging"
-region = "us-west-1"
-confirm_changeset = true
+region = "us-east-2"
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "CorsAllow=\"https://staging-pharos.viralemergence.org\" UsersTableName=\"users\" DatasetsTableName=\"datasets\" ProjectsTableName=\"projects\" LayerName=\"layer\""
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
 image_repositories = []
-tags = "Project=\"Pharos\" Project:Detail=\"Pharos\""
+
+
+[review]
+[review.deploy]
+[review.deploy.parameters]
+stack_name = "pharos-api-review"
+resolve_s3 = true
+s3_prefix = "pharos-api-review"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"http://localhost:8000\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+image_repositories = []
+
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "pharos-api-dev"
+resolve_s3 = true
+s3_prefix = "pharos-api-dev"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "CorsAllow=\"https://dev-pharos-2.viralemergence.org\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+image_repositories = []
