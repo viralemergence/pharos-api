@@ -4,10 +4,11 @@ import time
 
 import boto3
 from pydantic import BaseModel, Extra
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from engine import get_engine
-from models import Base, PublishedDataset, PublishedRecord
+from models import Base, PublishedDataset, PublishedProject, PublishedRecord
 
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
@@ -18,8 +19,6 @@ from publish_register import (
     create_published_records,
 )
 
-
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -88,8 +87,23 @@ def lambda_handler(event: dict, _):
                 users=metadata.project_users,
             )
 
-            # This loop could be moved to multiple parallel lambdas
-            for dataset in metadata.released_datasets:
+            session.add(published_project)
+            session.commit()
+
+        # This loop could be moved to multiple parallel lambdas
+        for dataset in metadata.released_datasets:
+            print("Publishing Dataset", dataset.dataset_id)
+            start = time.time()
+            with Session(engine) as session:
+                published_project = session.scalar(
+                    select(PublishedProject).where(
+                        PublishedProject.project_id == metadata.project.project_id
+                    )
+                )
+
+                if not published_project:
+                    raise Exception("Project not found")
+
                 published_dataset = create_published_dataset(dataset=dataset)
 
                 published_dataset.records = download_and_create_published_records(
@@ -99,16 +113,12 @@ def lambda_handler(event: dict, _):
 
                 published_project.datasets.append(published_dataset)
 
-            start = time.time()
+                session.commit()
+                print(f"Published dataset {dataset.name}", time.time() - start)
 
-            session.add(published_project)
-            session.commit()
-
-            print("Commit session", time.time() - start)
-
-            metadata.project.last_updated = datetime.utcnow().isoformat() + "Z"
-            metadata.project.publish_status = ProjectPublishStatus.PUBLISHED
-            METADATA_TABLE.put_item(Item=metadata.project.table_item())
+        metadata.project.last_updated = datetime.utcnow().isoformat() + "Z"
+        metadata.project.publish_status = ProjectPublishStatus.PUBLISHED
+        METADATA_TABLE.put_item(Item=metadata.project.table_item())
 
     except Exception as e:  # pylint: disable=broad-except
         print(e)

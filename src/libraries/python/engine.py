@@ -7,8 +7,8 @@ from sqlalchemy import URL
 
 DATABASE = os.environ["DATABASE"]
 
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
-response = SECRETS_MANAGER.get_secret_value(SecretId="data-lab-rds-test")
+SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-east-2")
+response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBAdminSecret")
 CREDENTIALS = json.loads(response["SecretString"])
 
 
@@ -17,7 +17,7 @@ def get_engine():
     database_url = URL.create(
         drivername="postgresql+psycopg2",
         # host=CREDENTIALS["host"],
-        host="data-lab-rds-proxy.proxy-cvsrrvlopzxr.us-west-1.rds.amazonaws.com",
+        host="pharos-database-proxy.proxy-c3ngc0ulwwgm.us-east-2.rds.amazonaws.com",
         database=DATABASE,
         username=CREDENTIALS["username"],
         # port=CREDENTIALS["port"],

@@ -1,4 +1,3 @@
-import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 from engine import get_engine
 from format import format_response
@@ -8,8 +7,6 @@ from published_records import (
     get_multi_value_query_string_parameters,
     QueryStringParameters,
 )
-
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 class GetPublishedRecordsEvent(BaseModel):

@@ -22,8 +22,7 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
 class UnpublishProjectData(BaseModel):
-    researcher_id: str = Field(..., alias="researcherID")
-    project_id: str = Field(..., alias="projectID")
+    project_id: str = Field(alias="projectID")
 
     class Config:
         extra = Extra.forbid
@@ -31,14 +30,24 @@ class UnpublishProjectData(BaseModel):
 
 def lambda_handler(event, _):
     try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+
+    if not user.project_ids:
+        return format_response(403, "Researcher has no projects")
+
+    try:
         validated = UnpublishProjectData.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-    if not user or not user.project_ids or not validated.project_id in user.project_ids:
-        return format_response(403, "Not Authorized")
+    if not validated.project_id in user.project_ids:
+        return format_response(403, "Researcher does not have access to this project")
 
     try:
         # Delete records from the database
