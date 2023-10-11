@@ -25,7 +25,6 @@ workflows:
             branches:
               only:
                 - dev
-                - feature/pharos-2-deployment
 
       # review
       - deploy:
