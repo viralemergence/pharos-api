@@ -16,7 +16,6 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class LoadRegisterBody(BaseModel):
     """Event data payload to load a dataset register."""
 
-    researcher_id: str = Field(..., alias="researcherID")
     project_id: str = Field(..., alias="projectID")
     dataset_id: str = Field(..., alias="datasetID")
 
@@ -27,16 +26,21 @@ class LoadRegisterBody(BaseModel):
 def lambda_handler(event, _):
 
     try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+    if not user.project_ids:
+        return format_response(404, "Researcher has no projects")
+
+    try:
         validated = LoadRegisterBody.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-    if not user:
-        return format_response(403, "Not Authorized")
-    if not user.project_ids:
-        return format_response(403, "Researcher has no projects")
     if validated.project_id not in user.project_ids:
         return format_response(403, "Researcher does not have access to this project")
 

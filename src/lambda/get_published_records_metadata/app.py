@@ -1,11 +1,7 @@
-import boto3
-
 from format import format_response
 from published_records_metadata import get_possible_filters, sortable_fields
 from column_alias import API_NAME_TO_UI_NAME_MAP
 from engine import get_engine
-
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 def lambda_handler(_, __):

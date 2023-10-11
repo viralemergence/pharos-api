@@ -1,10 +1,7 @@
-import boto3
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models import PublishedProject, PublishedRecord, Researcher
 from column_alias import API_NAME_TO_UI_NAME_MAP
-
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 def get_possible_filters(engine):

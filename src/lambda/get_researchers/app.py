@@ -1,14 +1,10 @@
 from typing import Optional
 
-import boto3
 from pydantic import BaseModel, Extra, Field, ValidationError
 
 from engine import get_engine
 from format import format_response
 from researchers import get_formatted_researchers
-
-
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 
 class QueryStringParameters(BaseModel):
