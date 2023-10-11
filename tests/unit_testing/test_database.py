@@ -26,6 +26,8 @@ JOHN_SMITH = User.parse_table_item(
         "pk": "resl90OaJvWZR",
         "sk": "_meta",
         "name": "John Smith",
+        "firstName": "John",
+        "lastName": "Smith",
         "email": "john.smith@institute.org",
         "organization": "Institute of Research",
         "projectIDs": {"prjl90OaJvWZR"},
@@ -38,6 +40,8 @@ JANE_DOE = User.parse_table_item(
         "pk": "resl90l123kxd",
         "sk": "_meta",
         "name": "Jane Doe",
+        "firstName": "Jane",
+        "lastName": "Doe",
         "email": "jane.doe@institute.org",
         "organization": "Institute of Research",
         "projectIDs": {"prjl90OaJvWZR"},
@@ -166,6 +170,8 @@ def test_researcher():
             Researcher(
                 researcher_id=JOHN_SMITH.researcher_id,
                 name=JOHN_SMITH.name,
+                first_name=JOHN_SMITH.first_name,
+                last_name=JOHN_SMITH.last_name,
                 organization=JOHN_SMITH.organization,
                 email=JOHN_SMITH.email,
             )
