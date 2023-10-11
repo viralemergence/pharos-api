@@ -53,6 +53,12 @@ class User(BaseModel):
     project_ids: Optional[set[str]] = Field(None, alias="projectIDs")
     """The projectIDs of the projects this user can access and edit."""
 
+    first_name: str = Field(None, alias="firstName")
+    """The first name of the user."""
+
+    last_name: str = Field(None, alias="lastName")
+    """The last name of the user."""
+
     class Config:
         extra = Extra.forbid
 
