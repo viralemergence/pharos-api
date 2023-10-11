@@ -71,6 +71,8 @@ def upsert_project_users(
                 name=user.name,
                 organization=user.organization,
                 email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
             )
         )
 
