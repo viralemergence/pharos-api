@@ -38,6 +38,7 @@ disable = [
   "missing-module-docstring",
   "too-few-public-methods",
   "too-many-ancestors",
+  "too-many-branches",
   "abstract-method",
   "duplicate-code",
   "fixme",

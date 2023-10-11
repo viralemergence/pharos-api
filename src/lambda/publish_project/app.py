@@ -11,7 +11,6 @@ from auth import check_auth
 from format import format_response
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus, User
 
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-west-1")
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -28,7 +27,6 @@ class PublishProjectData(BaseModel):
     """Event data payload to publish a project."""
 
     project_id: str = Field(..., alias="projectID")
-    researcher_id: str = Field(..., alias="researcherID")
 
     class Config:
         extra = Extra.forbid
@@ -48,14 +46,23 @@ class PublishRegistersData(BaseModel):
 def lambda_handler(event, _):  # pylint: disable=too-many-branches
 
     try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+    if not user.project_ids:
+        return format_response(404, "Researcher has no projects")
+
+    try:
         validated = PublishProjectData.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-    if not user or not user.project_ids or not validated.project_id in user.project_ids:
-        return format_response(403, "Not Authorized")
+    if not validated.project_id in user.project_ids:
+        return format_response(403, "Researcher does not have access to this project")
 
     try:
         # Retrieve project metadata and datasets
@@ -65,10 +72,10 @@ def lambda_handler(event, _):  # pylint: disable=too-many-branches
 
     except ClientError as e:
         print(e)
-        return format_response(403, "Error retrieving project metadata")
+        return format_response(500, "Error retrieving project metadata")
 
     if not metadata_response["Items"]:
-        return format_response(403, "Metadata not found")
+        return format_response(500, "Metadata not found")
 
     project: Union[Project, None] = None
     released_datasets: list[Dataset] = []
@@ -105,7 +112,7 @@ def lambda_handler(event, _):  # pylint: disable=too-many-branches
 
     except ClientError as e:
         print(e)
-        return format_response(403, "Error saving project and dataset metadata")
+        return format_response(500, "Error saving project and dataset metadata")
 
     try:
         # Retrieve project authors
@@ -121,7 +128,7 @@ def lambda_handler(event, _):  # pylint: disable=too-many-branches
         )
     except ClientError as e:
         print(e)
-        return format_response(403, "Error retrieving researchers")
+        return format_response(500, "Error retrieving researchers")
 
     project_users: list[User] = [
         User.parse_table_item(item)

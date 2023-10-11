@@ -3,7 +3,7 @@ import os
 import boto3
 from botocore.client import ClientError
 
-from pydantic import BaseModel, Extra, Field, ValidationError
+from pydantic import BaseModel, Extra, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from auth import check_auth
@@ -22,7 +22,6 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class DeleteDatasetBody(BaseModel):
     """Event data payload to upload a dataset."""
 
-    researcher_id: str = Field(..., alias="researcherID")
     dataset: Dataset
 
     class Config:
@@ -47,20 +46,23 @@ def delete_published_dataset(dataset: Dataset):
 
 
 def lambda_handler(event, _):
+
+    try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+
     try:
         validated = DeleteDatasetBody.parse_raw(event.get("body", "{}"))
     except ValidationError as e:
         print(e.json(indent=2))
         return {"statusCode": 400, "body": e.json()}
 
-    user = check_auth(validated.researcher_id)
-
     # check if the user is valid and has access to the project
-    if (
-        not user
-        or not user.project_ids
-        or not validated.dataset.project_id in user.project_ids
-    ):
+    if not user.project_ids or not validated.dataset.project_id in user.project_ids:
         return format_response(403, "Not Authorized")
 
     if validated.dataset.release_status == DatasetReleaseStatus.PUBLISHING:
