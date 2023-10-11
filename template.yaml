@@ -149,22 +149,10 @@ Resources:
       Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UserPoolId: !Ref UserPool
 
-  # ApiCognitoAuthorizer:
-  #   Type: AWS::ApiGateway::Authorizer
-  #   Properties:
-  #     IdentitySource: 'method.request.header.Authorization'
-  #     Name: ApiCognitoAuthorizer
-  #     ProviderARNs:
-  #       - !GetAtt UserPool.Arn
-  #     RestApiId: !Ref ApiGatewayApi
-  #     Type: COGNITO_USER_POOLS
-
   ApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
-      # Cors:
-      # Cors: "'*'"
 
       Cors:
         AllowMethods: "'POST, GET'"
@@ -174,8 +162,6 @@ Resources:
         AllowCredentials: false
 
       Auth:
-        # DefaultAuthorizer: ApiCognitoAuthorizer
-        # AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
           ApiCognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
