@@ -27,6 +27,8 @@ def test_get_researcher():
             Researcher(
                 researcher_id="res1",
                 name="researcher1",
+                first_name="researcher",
+                last_name="1",
                 organization="org1",
                 email="res1@example.com",
             )
@@ -35,6 +37,8 @@ def test_get_researcher():
             Researcher(
                 researcher_id="res2",
                 name="researcher2",
+                first_name="researcher",
+                last_name="2",
                 organization="org2",
                 email="res2@example.com",
             )
@@ -43,6 +47,8 @@ def test_get_researcher():
             Researcher(
                 researcher_id="res3",
                 name="researcher3",
+                first_name="researcher",
+                last_name="3",
                 organization="org3",
                 email="res3@example.com",
             )
@@ -69,6 +75,10 @@ def test_get_researcher():
     assert researchers["data"][0]["name"] == "researcher1"
     assert researchers["data"][1]["name"] == "researcher2"
 
+    assert researchers["data"][0]["firstName"] == "researcher"
+    assert researchers["data"][0]["lastName"] == "1"
+    assert researchers["data"][1]["firstName"] == "researcher"
+    assert researchers["data"][1]["lastName"] == "2"
     # get researchers with a list containing one
     # researcher_id which is not in the database
     researchers = get_formatted_researchers(ENGINE, ["res_does_not_exist"])
