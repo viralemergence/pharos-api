@@ -156,6 +156,8 @@ class Researcher(Base):
     name: Mapped[str]
     organization: Mapped[str]
     email: Mapped[str]
+    first_name: Mapped[str]
+    last_name: Mapped[str]
 
     projects: Mapped[list["PublishedProject"]] = relationship(
         secondary=projects_researchers,

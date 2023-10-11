@@ -26,6 +26,8 @@ class ResearcherFormatted(TypedDict):
 
     researcherID: str
     name: str
+    firstName: str
+    lastName: str
     email: str
     organization: str
     projects: list[ResearcherProject]
@@ -61,6 +63,8 @@ def get_formatted_researchers(
             {
                 "researcherID": researcher.researcher_id,
                 "name": researcher.name,
+                "firstName": researcher.first_name,
+                "lastName": researcher.last_name,
                 "email": researcher.email,
                 "organization": researcher.organization,
                 "projects": [
