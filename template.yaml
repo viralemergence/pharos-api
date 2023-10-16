@@ -29,18 +29,10 @@ Parameters:
   UserPoolName:
     Type: String
     Default: userpool
-  # RDSStackName:
-  #   Type: String
-  #   Default: pharos-database
-  # DatabaseName:
-  #   Type: String
-  #   Default: pharos
 
-  # DataDownloadBucket:
-  #   Type: String
-  #   Default: data-bucket
-
-# comment to force build
+  DataDownloadBucket:
+    Type: String
+    Default: downloads-bucket
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -51,10 +43,6 @@ Globals:
     Architectures:
       - x86_64
     Handler: app.lambda_handler
-
-  # Api:
-  #   Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
-  #   TracingEnabled: True
 
 Resources:
   Libraries:
@@ -103,15 +91,32 @@ Resources:
               NewerNoncurrentVersions: 2
               NoncurrentDays: 5
 
-  # DataDownload:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #     BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-  #     PublicAccessBlockConfiguration:
-  #       BlockPublicAcls: false
-  #       BlockPublicPolicy: false
-  #       IgnorePublicAcls: false
-  #       RestrictPublicBuckets: false
+  DataDownloadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  RDSPutPolicy:
+    Type: AWS::IAM:ManagedPolicy
+    Properties:
+      Roles:
+        - !ImportValue pharos-database-RDSInstanceRole
+      Policies:
+        - PolicyName:
+            !Join ["-", [!Ref AWS::StackName, !Ref RDSInstancePolicyName]]
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - S3:PutObject
+                Resource:
+                  - !GetAtt DataDownloadBucket.Arn
+                  # - !Sub arn:aws:s3:::${DataDownloadBucket}/*
 
   UserPool:
     Type: AWS::Cognito::UserPool
