@@ -43,7 +43,8 @@ Globals:
       - x86_64
     Handler: app.lambda_handler
   Api:
-    Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
+    Cors: '*'
+      # !Join ["", ["'", !Ref CorsAllow, "'"]]
     TracingEnabled: True
 
 Resources:
