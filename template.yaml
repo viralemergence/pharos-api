@@ -30,7 +30,7 @@ Parameters:
     Type: String
     Default: userpool
 
-  DataDownloadBucket:
+  DataDownloadBucketName:
     Type: String
     Default: downloads-bucket
 
@@ -94,7 +94,8 @@ Resources:
   DataDownloadBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
+      BucketName:
+        !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
@@ -102,21 +103,20 @@ Resources:
         RestrictPublicBuckets: false
 
   RDSPutPolicy:
-    Type: AWS::IAM:ManagedPolicy
+    Type: AWS::IAM::ManagedPolicy
     Properties:
       Roles:
         - !ImportValue pharos-database-RDSInstanceRole
-      Policies:
-        - PolicyName:
-            !Join ["-", [!Ref AWS::StackName, !Ref RDSInstancePolicyName]]
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - S3:PutObject
-                Resource:
-                  - !GetAtt DataDownloadBucket.Arn
-                  # - !Sub arn:aws:s3:::${DataDownloadBucket}/*
+      # PolicyName: !Join ["-", [!Ref AWS::StackName, "RDSPutPolicy"]]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - S3:PutObject
+            Resource:
+              - !GetAtt DataDownloadBucket.Arn
+                # - !Sub arn:aws:s3:::${DataDownloadBucket}/*
 
   UserPool:
     Type: AWS::Cognito::UserPool
