@@ -16,7 +16,7 @@ resolve_s3 = true
 s3_prefix = "pharos-api-prod"
 region = "us-east-2"
 capabilities = "CAPABILITY_IAM"
-parameter_overrides = "CorsAllow=\"https://pharos-2.viralemergence.org\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
+parameter_overrides = "CorsAllow=\"https://pharos.viralemergence.org\" MetadataTableName=\"metadata\" LayerName=\"layer\" DatasetsS3Bucket=\"datasets-bucket\" NVersions=\"5\" DataDownloadBucket=\"pharos-database-export-bucket\""
 image_repositories = []
 
 
