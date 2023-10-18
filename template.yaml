@@ -139,7 +139,7 @@ Resources:
     Properties:
       UserPoolId: !Ref UserPool
       GenerateSecret: false
-      AccessTokenValidity: 3600
+      RefreshTokenValidity: 3600
       ExplicitAuthFlows:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
