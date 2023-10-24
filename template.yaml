@@ -115,8 +115,7 @@ Resources:
             Action:
               - S3:PutObject
             Resource:
-              - !GetAtt DataDownloadBucket.Arn
-                # - !Sub arn:aws:s3:::${DataDownloadBucket}/*
+              - !Sub arn:aws:s3:::${DataDownloadBucket}/*
 
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -826,6 +825,52 @@ Resources:
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+
+  DownloadDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda/download_data/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+      Events:
+        Auth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /download
+            Method: GET
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          REGION: !Ref AWS::Region
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          DATA_DOWNLOAD_BUCKET_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
         - Statement:
             - Effect: Allow
               Action:
