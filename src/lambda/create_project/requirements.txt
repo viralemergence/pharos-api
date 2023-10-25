@@ -1,0 +1,4 @@
+SQLAlchemy
+GeoAlchemy2
+psycopg2-binary
+pydantic==1.10.6

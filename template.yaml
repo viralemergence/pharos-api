@@ -453,6 +453,47 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
+  CreateProjectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - MetadataTable
+    Properties:
+      CodeUri: src/lambda/create_project/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /create-project
+            Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
