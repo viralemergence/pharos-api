@@ -1,3 +1,11 @@
+"""
+NOTE:
+
+    This function is significantly misnamed; this function
+    is used to save updated metadata about the user, and
+    only used for user creation as a secondary purpose.
+
+"""
 import os
 import json
 
