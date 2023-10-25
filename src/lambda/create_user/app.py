@@ -39,6 +39,30 @@ def lambda_handler(event, _):
     # created on another client by the same user.
 
     try:
+        user_response = METADATA_TABLE.get_item(
+            Key={"pk": researcher_id, "sk": "_meta"}
+        )
+
+        if "Item" in user_response:
+            user = User.parse_table_item(user_response["Item"])
+
+            if user.project_ids:
+                if validated.project_ids:
+                    validated.project_ids.update(user.project_ids)
+                else:
+                    validated.project_ids = user.project_ids
+
+            if user.download_ids:
+                if validated.download_ids:
+                    validated.download_ids.update(user.download_ids)
+                else:
+                    validated.download_ids = user.download_ids
+
+    except ClientError as e:
+        # if there's no prior user, record don't merge
+        pass
+
+    try:
         users_response = METADATA_TABLE.put_item(Item=validated.table_item())
         print(users_response)
         return format_response(
