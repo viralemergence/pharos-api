@@ -920,6 +920,37 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
+  CreateCSVExportFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 900
+      CodeUri: src/lambda/create_export/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+          # - subnet-8f7652ea
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+
   # DownloadDataFunction:
   #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
   #   Properties:
