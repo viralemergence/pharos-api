@@ -59,6 +59,9 @@ class User(BaseModel):
     last_name: str = Field(None, alias="lastName")
     """The last name of the user."""
 
+    download_ids: Optional[set[str]] = Field(None, alias="downloadIDs")
+    """The set of downloadIDs of the downloads this user has created."""
+
     class Config:
         extra = Extra.forbid
 
