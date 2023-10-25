@@ -1,19 +1,19 @@
 import json
 import os
-import boto3
 from datetime import datetime
 
-# from pydantic import ValidationError
-import psycopg2
-from sqlalchemy import sql
-from sqlalchemy.orm import Session
+from pydantic import ValidationError
+from auth import check_auth
+
+import nanoid
+
+import boto3
 
 # from auth import check_auth
-from engine import get_engine
 from format import format_response
 
-REGION = os.environ["REGION"]
 
+LAMBDACLIENT = boto3.client("lambda")
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
@@ -26,35 +26,83 @@ response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBAdminSec
 CREDENTIALS = json.loads(response["SecretString"])
 
 
+# restrict alphabet and length, and add prefix
+def generate_downloadID():
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    return f"dwn{nanoid.generate(alphabet, 11)}"
+
+
 def lambda_handler(event, _):
 
-    # try:
-    #     user = check_auth(event)
-    # except ValidationError:
-    #     return format_response(403, "Not Authorized")
+    try:
+        user = check_auth(event)
+    except ValidationError:
+        return format_response(403, "Not Authorized")
+
+    if not user:
+        return format_response(403, "Not Authorized")
+
+    downloadID = generate_downloadID()
+
+    if not user.download_ids:
+        user.download_ids = set()
+
+    user.download_ids = user.download_ids.add(downloadID)
+
+    METADATA_TABLE.put_item(Item=user.table_item())
 
     date = datetime.utcnow().date()
     file_path = f"data_{date.strftime('%Y_%m_%d')}"
     s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{file_path}', '{REGION}')"
 
-    connection = psycopg2.connect(
-        database=DATABASE,
-        user=CREDENTIALS["username"],
-        password=CREDENTIALS["password"],
-        host="pharos-database-proxy.proxy-c3ngc0ulwwgm.us-east-2.rds.amazonaws.com",
-        port=5432,
-    )
+    # engine = get_engine()
+    # engine.execution_options(isolation_level="AUTOCOMMIT")
 
-    connection.set_session(autocommit=True)
+    # connection = engine.connect()
+    # start = time.time()
+    # connection.execute(
+    #     sql.text(
+    #         "SELECT pg_sleep(10);"
+    #         + f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM published_records', {s3_uri}, options :='format csv, header');"
+    #     )
+    # )
+    # end = time.time()
+    # print(f"Query took {end - start} seconds")
+    # connection.close()
 
-    cursor = connection.cursor()
+    # start = time.time()
+    # with Session(engine) as session:
+    #     session.execute(
+    #         sql.text(
+    #             f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM published_records', {s3_uri}, options :='format csv, header');"
+    #         )
+    #     )
+    # end = time.time()
+    # print(f"Query took {end - start} seconds")
 
-    cursor.execute(
-        f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM published_records', {s3_uri}, options :='format csv, header');"
-    )
+    # connection = psycopg2.connect(
+    #     database=DATABASE,
+    #     user=CREDENTIALS["username"],
+    #     password=CREDENTIALS["password"],
+    #     host="pharos-database-proxy.proxy-c3ngc0ulwwgm.us-east-2.rds.amazonaws.com",
+    #     port=5432,
+    #     async_=1,
+    # )
 
-    cursor.close()
-    connection.close()
+    # # connection.set_session(autocommit=True)
+
+    # cursor = connection.cursor()
+
+    # start = time.time()
+    # cursor.execute(
+    #     "SELECT pg_sleep(10);"
+    #     + f"SELECT * from aws_s3.query_export_to_s3('SELECT * FROM published_records', {s3_uri}, options :='format csv, header');"
+    # )
+    # end = time.time()
+    # print(f"Query took {end - start} seconds")
+
+    # cursor.close()
+    # connection.close()
 
     return format_response(200, {"uri": s3_uri})
 
