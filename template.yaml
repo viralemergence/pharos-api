@@ -898,12 +898,9 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
-          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-          REGION: !Ref AWS::Region
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-          DATA_DOWNLOAD_BUCKET_NAME:
-            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+          CREATE_CSV_EXPORT_LAMBDA: !GetAtt CreateCSVExportFunction.Arn
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
@@ -919,6 +916,12 @@ Resources:
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !GetAtt CreateCSVExportFunction.Arn
 
   CreateCSVExportFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -938,6 +941,10 @@ Resources:
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          REGION: !Ref AWS::Region
+          CORS_ALLOW: !Ref CorsAllow
+          DATA_DOWNLOAD_BUCKET_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
         - DynamoDBCrudPolicy:
@@ -949,6 +956,12 @@ Resources:
                 - secretsmanager:GetSecretValue
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+              Resource:
                 - "*"
 
   # DownloadDataFunction:

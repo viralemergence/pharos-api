@@ -2,34 +2,36 @@ import json
 import os
 from datetime import datetime
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from auth import check_auth
 
-import nanoid
 
 import boto3
 
 # from auth import check_auth
 from format import format_response
+from register import User
 
 
 LAMBDACLIENT = boto3.client("lambda")
-DYNAMODB = boto3.resource("dynamodb")
-METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
+CREATE_CSV_EXPORT_LAMBDA = os.environ["CREATE_CSV_EXPORT_LAMBDA"]
 
-S3CLIENT = boto3.client("s3")
-DATA_DOWNLOAD_BUCKET_NAME = os.environ["DATA_DOWNLOAD_BUCKET_NAME"]
+# DYNAMODB = boto3.resource("dynamodb")
+# METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
-DATABASE = os.environ["DATABASE"]
-SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-east-2")
-response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBAdminSecret")
-CREDENTIALS = json.loads(response["SecretString"])
+# S3CLIENT = boto3.client("s3")
+# DATA_DOWNLOAD_BUCKET_NAME = os.environ["DATA_DOWNLOAD_BUCKET_NAME"]
+
+# DATABASE = os.environ["DATABASE"]
+# SECRETS_MANAGER = boto3.client("secretsmanager", region_name="us-east-2")
+# response = SECRETS_MANAGER.get_secret_value(SecretId="pharos-database-DBAdminSecret")
+# CREDENTIALS = json.loads(response["SecretString"])
 
 
-# restrict alphabet and length, and add prefix
-def generate_downloadID():
-    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    return f"dwn{nanoid.generate(alphabet, 11)}"
+class CreateExportData(BaseModel):
+    """event payload to export a csv of published records"""
+
+    user: User
 
 
 def lambda_handler(event, _):
@@ -42,18 +44,22 @@ def lambda_handler(event, _):
     if not user:
         return format_response(403, "Not Authorized")
 
-    downloadID = generate_downloadID()
+    LAMBDACLIENT.invoke(
+        FunctionName=CREATE_CSV_EXPORT_LAMBDA,
+        InvocationType="Event",
+        Payload=CreateExportData(user=user).json(by_alias=True),
+    )
 
-    if not user.download_ids:
-        user.download_ids = set()
+    return format_response(200, "Data export started")
 
-    user.download_ids = user.download_ids.add(downloadID)
+    # if not user.download_ids:
+    #     user.download_ids = set()
 
-    METADATA_TABLE.put_item(Item=user.table_item())
+    # METADATA_TABLE.put_item(Item=user.table_item())
 
-    date = datetime.utcnow().date()
-    file_path = f"data_{date.strftime('%Y_%m_%d')}"
-    s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{file_path}', '{REGION}')"
+    # date = datetime.utcnow().date()
+    # file_path = f"data_{date.strftime('%Y_%m_%d')}"
+    # s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{file_path}', '{REGION}')"
 
     # engine = get_engine()
     # engine.execution_options(isolation_level="AUTOCOMMIT")
