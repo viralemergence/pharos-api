@@ -1,18 +1,20 @@
-import json
 import os
 from datetime import datetime
-from typing import TypedDict
 
-import nanoid
 import boto3
-from pydantic import BaseModel
 from sqlalchemy import select, sql
 from sqlalchemy.orm import Session, load_only
+from data_downloads import (
+    CreateExportData,
+    DataDownloadMetadata,
+    DataDownloadProject,
+    DataDownloadResearcher,
+    generate_download_id,
+)
 
 from engine import get_engine
 from format import CORS_ALLOW
 from models import PublishedProject, Researcher
-from register import User
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -24,42 +26,8 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 SES_CLIENT = boto3.client("ses", region_name=REGION)
 
-# restrict alphabet and length, and add prefix
-def generate_download_id():
-    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-    return f"dwn{nanoid.generate(alphabet, 11)}"
-
-
-class CreateExportData(BaseModel):
-    """event payload to export a csv of published records"""
-
-    user: User
-
-
-class DataDownloadProject(TypedDict):
-    projectID: str
-    name: str
-
-
-class DataDownloadResearcher(TypedDict):
-    researcherID: str
-    name: str
-
-
-class DataDownloadMetadata(TypedDict):
-    pk: str
-    sk: str
-    downloadDate: str
-    projects: list[DataDownloadProject]
-    researchers: list[DataDownloadResearcher]
-    s3_uri: str
-
 
 def lambda_handler(event, _):
-
-    date = datetime.utcnow().date()
-    file_path = f"data_{date.strftime('%Y_%m_%d')}"
-    s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{file_path}', '{REGION}')"
 
     props = CreateExportData.parse_obj(event)
     user = props.user
@@ -70,21 +38,25 @@ def lambda_handler(event, _):
     download_id = generate_download_id()
     user.download_ids.add(download_id)
 
-    METADATA_TABLE.put_item(Item=user.table_item())
-
-    print("user to save in table")
-    print(user)
-
     engine = get_engine()
 
-    data_download_metadata: DataDownloadMetadata = {
-        "pk": download_id,
-        "sk": "_meta",
-        "downloadDate": datetime.utcnow().isoformat() + "Z",
-        "projects": [],
-        "researchers": [],
-        "s3_uri": s3_uri,
-    }
+    # In the future, we should check if any of the data
+    # is actually different from prior exports and only
+    # create a new s3 object if it is actually unique.
+
+    # The explicit separation here between the ID and
+    # the s3 key is to make it easier to add later.
+
+    # Or, you know, implement enough versioning in the
+    # database to do this correctly once publishing and
+    # unpublishing workflow requirements are stable.
+    s3_key = f"{download_id}/data.csv"
+
+    data_download_metadata = DataDownloadMetadata(
+        downloadID=download_id,
+        downloadDate=datetime.utcnow().isoformat() + "Z",
+        s3_key=s3_key,
+    )
 
     with Session(engine) as session:
         projects = session.scalars(
@@ -94,8 +66,11 @@ def lambda_handler(event, _):
         )
 
         for project in projects:
-            data_download_metadata["projects"].append(
-                {"name": project.name, "projectID": project.project_id}
+            data_download_metadata.projects.append(
+                DataDownloadProject(
+                    projectID=project.project_id,
+                    name=project.name,
+                )
             )
 
         researchers = session.scalars(
@@ -105,16 +80,14 @@ def lambda_handler(event, _):
         )
 
         for researcher in researchers:
-            data_download_metadata["researchers"].append(
-                {
-                    "name": researcher.name,
-                    "researcherID": researcher.researcher_id,
-                }
+            data_download_metadata.researchers.append(
+                DataDownloadResearcher(
+                    researcherID=researcher.researcher_id,
+                    name=researcher.name,
+                )
             )
 
-        print(json.dumps(data_download_metadata))
-
-        print("now query will execute")
+        s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
 
         session.execute(
             sql.text(
@@ -124,6 +97,9 @@ def lambda_handler(event, _):
                 + ");"
             )
         )
+
+        METADATA_TABLE.put_item(Item=data_download_metadata.table_item())
+        METADATA_TABLE.put_item(Item=user.table_item())
 
         email_response = SES_CLIENT.send_email(
             Source="no-reply@viralemergence.org",

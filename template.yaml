@@ -32,7 +32,7 @@ Parameters:
 
   DataDownloadBucketName:
     Type: String
-    Default: downloads-bucket
+    Default: exports
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -102,12 +102,25 @@ Resources:
         IgnorePublicAcls: false
         RestrictPublicBuckets: false
 
+  DataDownloadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataDownloadBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource:
+              - !Sub arn:aws:s3:::${DataDownloadBucket}/*
+
   RDSPutPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       Roles:
         - !ImportValue pharos-database-RDSInstanceRole
-      # PolicyName: !Join ["-", [!Ref AWS::StackName, "RDSPutPolicy"]]
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -963,6 +976,34 @@ Resources:
                 - ses:SendEmail
               Resource:
                 - "*"
+
+  DownloadMetadataFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - MetadataTable
+    Properties:
+      CodeUri: src/lambda/get_download_metadata/
+      Events:
+        Auth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /download-metadata
+            Method: GET
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          DATA_DOWNLOAD_BUCKET_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   # DownloadDataFunction:
   #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
