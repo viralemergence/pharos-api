@@ -46,7 +46,7 @@ class DataDownloadMetadata(BaseModel):
         item = self.dict(by_alias=True)
         item["pk"] = self.download_id
         item["sk"] = "_meta"
-        return self.dict(by_alias=True)
+        return item
 
     @classmethod
     def parse_table_item(cls, item):

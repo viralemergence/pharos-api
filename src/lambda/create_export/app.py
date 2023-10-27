@@ -115,7 +115,7 @@ def lambda_handler(event, _):
                         "Data": f"""
 Your data export is ready for download. Please visit the following link to download your data:
 
-{CORS_ALLOW}/d/?ref={download_id}
+{CORS_ALLOW}/d/?dwn={download_id}
 
 By downloading data from PHAROS, you are agreeing to properly credit researchers for their contributions by including the unique identifier for your download in the main text, data availability statement, or acknowledgements of your paper. Researchers who conduct work that benefits disproportionately from a small number of specific datasets should also consider engaging data data owners with an invitation to collaborate.
 
