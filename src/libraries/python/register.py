@@ -89,7 +89,7 @@ class ProjectAuthorRole(str, Enum):
 
 
 class Author(BaseModel):
-    researcher_id: str = Field(..., alias="researcherID")
+    researcher_id: str = Field(alias="researcherID")
     role: str
 
 
@@ -104,9 +104,9 @@ class ProjectPublishStatus(str, Enum):
 class Project(BaseModel):
     """The metadata object which describes a project."""
 
-    project_id: str = Field(..., alias="projectID")
+    project_id: str = Field(alias="projectID")
     name: str
-    dataset_ids: list[str] = Field(..., alias="datasetIDs")
+    dataset_ids: list[str] = Field(alias="datasetIDs")
     deleted_dataset_ids: Optional[list[str]] = Field(None, alias="deletedDatasetIDs")
     last_updated: Optional[str] = Field(None, alias="lastUpdated")
     description: Optional[str]
