@@ -1,31 +1,21 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
-from pydantic import BaseModel, Extra, Field, validator
-
-from sqlalchemy import and_, or_
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, Query, selectinload
 
 from column_alias import API_NAME_TO_UI_NAME_MAP, UI_NAME_TO_API_NAME_MAP
-from models import (
-    PublishedRecord,
-    PublishedDataset,
-    PublishedProject,
-    Researcher,
-)
-from register import COMPLEX_FIELDS
+from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
 from published_records_metadata import sortable_fields
+from pydantic import BaseModel, Extra, Field, validator
+from register import COMPLEX_FIELDS
+from sqlalchemy import and_, or_
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Query, Session, selectinload
 
 
 class FieldDoesNotExistException(Exception):
     pass
 
 
-class QueryStringParameters(BaseModel):
-    page: int = Field(ge=1, alias="page")
-    page_size: int = Field(ge=1, le=100, alias="pageSize")
-    sort: Optional[list[str]] = Field(alias="sort")
-
+class FiltersQueryStringParameters(BaseModel):
     # The following fields filter the set of published records. Each "filter
     # function" will be used as a parameter to SQLAlchemy's Query.filter()
     # method.
@@ -89,6 +79,15 @@ class QueryStringParameters(BaseModel):
             except ValueError as exc:
                 raise ValueError("Invalid date format. Should be YYYY-MM-DD") from exc
         return value
+
+    class Config:
+        extra = Extra.forbid
+
+
+class QueryStringParameters(FiltersQueryStringParameters):
+    page: int = Field(ge=1, alias="page")
+    page_size: int = Field(ge=1, le=100, alias="pageSize")
+    sort: Optional[list[str]] = Field(alias="sort")
 
     class Config:
         extra = Extra.forbid
@@ -180,8 +179,12 @@ def query_records(session: Session, params: QueryStringParameters) -> Tuple[Quer
 def get_multi_value_query_string_parameters(event):
     parameters_annotations = (
         # pylint: disable=no-member
-        QueryStringParameters.__annotations__
+        FiltersQueryStringParameters.__annotations__
     )
+
+    print("parameters_annotations")
+    print(parameters_annotations)
+
     # Some fields, such as project_id and collection_start_date, take a single
     # value. Others take multiple values. We can tell which fields take
     # multiple values based on their type. Single-value fields have type

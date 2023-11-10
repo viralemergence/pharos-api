@@ -1,17 +1,13 @@
-import json
 import os
-from datetime import datetime
-
-from pydantic import BaseModel, ValidationError
-from auth import check_auth
-
 
 import boto3
+from auth import check_auth
+from data_downloads import CreateExportDataEvent
 
 # from auth import check_auth
 from format import format_response
-from register import User
-
+from published_records import get_multi_value_query_string_parameters
+from pydantic import ValidationError
 
 LAMBDACLIENT = boto3.client("lambda")
 CREATE_CSV_EXPORT_LAMBDA = os.environ["CREATE_CSV_EXPORT_LAMBDA"]
@@ -28,12 +24,6 @@ CREATE_CSV_EXPORT_LAMBDA = os.environ["CREATE_CSV_EXPORT_LAMBDA"]
 # CREDENTIALS = json.loads(response["SecretString"])
 
 
-class CreateExportData(BaseModel):
-    """event payload to export a csv of published records"""
-
-    user: User
-
-
 def lambda_handler(event, _):
 
     try:
@@ -44,10 +34,23 @@ def lambda_handler(event, _):
     if not user:
         return format_response(403, "Not Authorized")
 
+    multivalue_params = get_multi_value_query_string_parameters(event)
+    event["queryStringParameters"].update(multivalue_params)
+
+    event["user"] = user
+
+    try:
+        validated = CreateExportDataEvent.parse_obj(event)
+    except ValidationError as e:
+        return format_response(400, e.json(), preformatted=True)
+
     LAMBDACLIENT.invoke(
         FunctionName=CREATE_CSV_EXPORT_LAMBDA,
         InvocationType="Event",
-        Payload=CreateExportData(user=user).json(by_alias=True),
+        Payload=validated.json(by_alias=True),
+        # CreateExportDataEvent(
+        #     user=user, queryStringParameters=validated.query_string_parameters
+        # ).json(by_alias=True),
     )
 
     return format_response(200, "Data export started")
@@ -110,7 +113,7 @@ def lambda_handler(event, _):
     # cursor.close()
     # connection.close()
 
-    return format_response(200, {"uri": s3_uri})
+    # return format_response(200, {"uri": s3_uri})
 
     # engine = get_engine()
     # with Session(engine) as session:
