@@ -29,18 +29,10 @@ Parameters:
   UserPoolName:
     Type: String
     Default: userpool
-  # RDSStackName:
-  #   Type: String
-  #   Default: pharos-database
-  # DatabaseName:
-  #   Type: String
-  #   Default: pharos
 
-  # DataDownloadBucket:
-  #   Type: String
-  #   Default: data-bucket
-
-# comment to force build
+  DataDownloadBucketName:
+    Type: String
+    Default: exports
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -51,10 +43,6 @@ Globals:
     Architectures:
       - x86_64
     Handler: app.lambda_handler
-
-  # Api:
-  #   Cors: !Join ["", ["'", !Ref CorsAllow, "'"]]
-  #   TracingEnabled: True
 
 Resources:
   Libraries:
@@ -103,15 +91,44 @@ Resources:
               NewerNoncurrentVersions: 2
               NoncurrentDays: 5
 
-  # DataDownload:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #     BucketName: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-  #     PublicAccessBlockConfiguration:
-  #       BlockPublicAcls: false
-  #       BlockPublicPolicy: false
-  #       IgnorePublicAcls: false
-  #       RestrictPublicBuckets: false
+  DataDownloadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  DataDownloadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataDownloadBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource:
+              - !Sub arn:aws:s3:::${DataDownloadBucket}/*
+
+  RDSPutPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles:
+        - !ImportValue pharos-database-RDSInstanceRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - S3:PutObject
+            Resource:
+              - !Sub arn:aws:s3:::${DataDownloadBucket}/*
 
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -449,6 +466,47 @@ Resources:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
 
+  CreateProjectFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - MetadataTable
+    Properties:
+      CodeUri: src/lambda/create_project/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /create-project
+            Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+
   ListProjectsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
@@ -691,7 +749,8 @@ Resources:
   GetPublishedRecordsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      MemorySize: 128
+      MemorySize: 256
+      Timeout: 10
       CodeUri: src/lambda/get_published_records/
       VpcConfig:
         SecurityGroupIds:
@@ -828,6 +887,124 @@ Resources:
               Resource:
                 # TODO: Fix this wildcard and replace with the ???? wildcard system
                 - "*"
+
+  DownloadDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/lambda/download_data/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+      Events:
+        Auth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /download
+            Method: GET
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          CREATE_CSV_EXPORT_LAMBDA: !GetAtt CreateCSVExportFunction.Arn
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !GetAtt CreateCSVExportFunction.Arn
+
+  CreateCSVExportFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      Timeout: 900
+      CodeUri: src/lambda/create_export/
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue pharos-database-VPCSG
+        SubnetIds:
+          - !ImportValue pharos-database-LambdaSubnet
+          # - subnet-8f7652ea
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          REGION: !Ref AWS::Region
+          CORS_ALLOW: !Ref CorsAllow
+          DATA_DOWNLOAD_BUCKET_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                # TODO: Fix this wildcard and replace with the ???? wildcard system
+                - "*"
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+              Resource:
+                - "*"
+
+  DownloadMetadataFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - MetadataTable
+    Properties:
+      CodeUri: src/lambda/get_download_metadata/
+      Events:
+        Auth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGatewayApi
+            Path: /download-metadata
+            Method: GET
+      Layers:
+        - !Ref Libraries
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          DATA_DOWNLOAD_BUCKET_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucketName]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
   # DownloadDataFunction:
   #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction

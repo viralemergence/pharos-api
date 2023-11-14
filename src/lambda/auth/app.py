@@ -1,3 +1,11 @@
+"""
+NOTE:
+
+    This function is significantly misnamed; this function
+    is used to load updated metadata about the user, and
+    is not part of authentication at all.
+
+"""
 from auth import check_auth
 from format import format_response
 
