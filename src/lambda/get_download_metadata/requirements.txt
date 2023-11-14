@@ -1,0 +1,2 @@
+nanoid
+pydantic==1.10.6
