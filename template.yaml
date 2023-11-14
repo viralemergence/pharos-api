@@ -749,7 +749,8 @@ Resources:
   GetPublishedRecordsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      MemorySize: 128
+      MemorySize: 256
+      Timeout: 10
       CodeUri: src/lambda/get_published_records/
       VpcConfig:
         SecurityGroupIds:
