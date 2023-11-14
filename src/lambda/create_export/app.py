@@ -2,18 +2,19 @@ import os
 from datetime import datetime
 
 import boto3
+from sqlalchemy import select, sql
+from sqlalchemy.orm import Session, load_only
 from data_downloads import (
-    CreateExportDataEvent,
+    CreateExportData,
     DataDownloadMetadata,
     DataDownloadProject,
     DataDownloadResearcher,
     generate_download_id,
 )
+
 from engine import get_engine
 from format import CORS_ALLOW
 from models import PublishedProject, Researcher
-from sqlalchemy import select, sql
-from sqlalchemy.orm import Session, load_only
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -28,9 +29,7 @@ SES_CLIENT = boto3.client("ses", region_name=REGION)
 
 def lambda_handler(event, _):
 
-    print(event)
-
-    props = CreateExportDataEvent.parse_obj(event)
+    props = CreateExportData.parse_obj(event)
     user = props.user
 
     if not user.download_ids:
