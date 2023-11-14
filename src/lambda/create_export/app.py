@@ -119,8 +119,6 @@ Your data export is ready for download. Please visit the following link to downl
 {CORS_ALLOW}/d/?dwn={download_id}
 
 By downloading data from PHAROS, you are agreeing to properly credit researchers for their contributions by including the unique identifier for your download in the main text, data availability statement, or acknowledgements of your paper. Researchers who conduct work that benefits disproportionately from a small number of specific datasets should also consider engaging data data owners with an invitation to collaborate.
-
-By participating in the community working with PHAROS, you are agreeing to conduct yourself with professionalism; to treat others without discrimination or disrespect; and to engage thoughtfully with issues around open science and data equity.
                         """
                     },
                 },
