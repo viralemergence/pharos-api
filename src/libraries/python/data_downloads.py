@@ -1,6 +1,6 @@
 import nanoid
-from published_records import FiltersQueryStringParameters
 from pydantic import BaseModel, Extra, Field
+
 from register import User
 
 
@@ -10,13 +10,10 @@ def generate_download_id():
     return f"dwn{nanoid.generate(alphabet, 11)}"
 
 
-class CreateExportDataEvent(BaseModel):
+class CreateExportData(BaseModel):
     """event payload to export a csv of published records"""
 
     user: User
-    query_string_parameters: FiltersQueryStringParameters = Field(
-        alias="queryStringParameters"
-    )
 
 
 class DataDownloadProject(BaseModel):
