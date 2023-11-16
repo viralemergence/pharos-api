@@ -179,7 +179,8 @@ def query_records(session: Session, params: QueryStringParameters) -> Tuple[Quer
 def get_multi_value_query_string_parameters(event):
     parameters_annotations = (
         # pylint: disable=no-member
-        QueryStringParameters.__annotations__
+        QueryStringParameters.__annotations__ | FiltersQueryStringParameters.__annotations__
+
     )
 
     print("parameters_annotations")
@@ -192,7 +193,7 @@ def get_multi_value_query_string_parameters(event):
     multivalue_fields = [
         field
         for field in parameters_annotations
-        if str(parameters_annotations[field]) == "typing.Optional[list[str]]"
+        if parameters_annotations.get(field) and str(parameters_annotations[field]) == "typing.Optional[list[str]]"
     ]
     multivalue_field_aliases = [
         QueryStringParameters.__fields__[field].alias for field in multivalue_fields
