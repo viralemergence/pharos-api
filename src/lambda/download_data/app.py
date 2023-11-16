@@ -1,17 +1,10 @@
-import json
 import os
-from datetime import datetime
-
-from pydantic import BaseModel, ValidationError
-from auth import check_auth
-
 
 import boto3
-
-# from auth import check_auth
+from auth import check_auth
 from format import format_response
+from pydantic import BaseModel, ValidationError
 from register import User
-
 
 LAMBDACLIENT = boto3.client("lambda")
 CREATE_CSV_EXPORT_LAMBDA = os.environ["CREATE_CSV_EXPORT_LAMBDA"]
