@@ -25,7 +25,6 @@ CREATE_CSV_EXPORT_LAMBDA = os.environ["CREATE_CSV_EXPORT_LAMBDA"]
 
 
 def lambda_handler(event, _):
-
     try:
         user = check_auth(event)
     except ValidationError:
