@@ -1,18 +1,21 @@
 import os
 from datetime import datetime
-from typing import Set
 
 import boto3
-from data_downloads import (CreateExportDataEvent, DataDownloadMetadata,
-                            DataDownloadProject, DataDownloadResearcher,
-                            generate_download_id)
+from data_downloads import (
+    CreateExportDataEvent,
+    DataDownloadMetadata,
+    DataDownloadProject,
+    DataDownloadResearcher,
+    generate_download_id,
+)
 from engine import get_engine
 from format import CORS_ALLOW
-from models import (PublishedDataset, PublishedProject, PublishedRecord,
-                    Researcher)
+from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
 from published_records import get_compound_filter
 from sqlalchemy import func, select, text
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.orm import Session
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -98,52 +101,37 @@ def lambda_handler(event, _):
                 )
             )
 
-        # s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
+        cursor = session.connection().connection.cursor()
 
-        # session.execute(
-        #     sql.text(
-        #         "SELECT * from aws_s3.query_export_to_s3("
-        #         + "'SELECT * FROM published_records', "
-        #         + f"{s3_uri}, options :='format csv, header'"
-        #         + ");"
-        #     )
-        # )
+        columns_to_skip = ["geom"]
+        columns_to_select = [
+            col
+            for col in PublishedRecord.__table__.columns
+            if col.key not in columns_to_skip
+        ]
 
-        # cursor = session.connection().connection.cursor()
+        compiled_data_query = (
+            select(
+                *columns_to_select,
+                PublishedRecord.geom.ST_Y().label("latitude"),
+                PublishedRecord.geom.ST_X().label("longitude"),
+                PublishedRecord.geom.ST_AsText().label("wkt"),
+            )
+            .where(compound_filter)
+            .compile(
+                dialect=postgresql.dialect(),
+            )
+        )
 
-        # params = select(PublishedRecord).where(compound_filter).params()
-        # params_tup = ()
-        # for param in params:
-        #     params_tup = (*params_tup, param)
-
-        # # print("params")
-        # print(str(select(PublishedRecord).where(compound_filter)))
-
-        # print("filter")
-        # print(
-        #     cursor.mogrify(
-        #         str(
-        #             select(PublishedRecord).where(compound_filter)
-        #             # .compile(dialect=postgresql.dialect())
-        #         ).replace(":name_1", "%S"),
-        #         ("Ryan Zimmerman+1")
-        #         # select(PublishedRecord).where(compound_filter).params(),
-        #     )
-        #     # .compile(compile_kwargs={"literal_binds": True})
-        # )
+        escaped_data_query = (
+            cursor.mogrify(str(compiled_data_query), compiled_data_query.params).decode(
+                "utf-8"
+            ),
+        )
 
         statement = select("*").select_from(
             func.aws_s3.query_export_to_s3(
-                str(
-                    select(
-                        PublishedRecord,
-                        PublishedRecord.geom.ST_Y().label("latitude"),
-                        PublishedRecord.geom.ST_X().label("longitude"),
-                        PublishedRecord.geom.ST_AsText().label("WKT"),
-                    )
-                    .where(compound_filter)
-                    .compile(compile_kwargs={"literal_binds": True})
-                ),
+                escaped_data_query,
                 func.aws_commons.create_s3_uri(
                     DATA_DOWNLOAD_BUCKET_NAME, s3_key, REGION
                 ),
