@@ -3,16 +3,13 @@ from datetime import datetime
 from typing import Set
 
 import boto3
-from data_downloads import (
-    CreateExportDataEvent,
-    DataDownloadMetadata,
-    DataDownloadProject,
-    DataDownloadResearcher,
-    generate_download_id,
-)
+from data_downloads import (CreateExportDataEvent, DataDownloadMetadata,
+                            DataDownloadProject, DataDownloadResearcher,
+                            generate_download_id)
 from engine import get_engine
 from format import CORS_ALLOW
-from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
+from models import (PublishedDataset, PublishedProject, PublishedRecord,
+                    Researcher)
 from published_records import get_compound_filter
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, load_only
@@ -147,10 +144,6 @@ def lambda_handler(event, _):
                 text("options := 'format csv, header'"),
             ).alias()
         )
-
-        # f"{s3_uri}, options :='format csv, header'"
-        print("statement")
-        print(statement)
 
         session.execute(statement)
 
