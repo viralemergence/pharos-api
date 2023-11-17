@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Set
 
 import boto3
 from data_downloads import (
@@ -11,7 +12,7 @@ from data_downloads import (
 )
 from engine import get_engine
 from format import CORS_ALLOW
-from models import PublishedProject, PublishedRecord, Researcher
+from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
 from published_records import get_compound_filter
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, load_only
@@ -28,8 +29,6 @@ SES_CLIENT = boto3.client("ses", region_name=REGION)
 
 
 def lambda_handler(event, _):
-
-    print(event)
 
     props = CreateExportDataEvent.parse_obj(event)
     user = props.user
@@ -61,13 +60,23 @@ def lambda_handler(event, _):
     )
 
     with Session(engine) as session:
-        projects = session.scalars(
-            select(PublishedProject).options(
-                load_only(PublishedProject.project_id, PublishedProject.name)
+        (compound_filter, _) = get_compound_filter(props.query_string_parameters)
+
+        projects = (
+            session.query(
+                PublishedProject.project_id,
+                PublishedProject.name,
             )
+            .join(PublishedDataset)
+            .join(PublishedRecord)
+            .where(compound_filter)
+            .distinct(PublishedProject.project_id)
         )
 
-        for project in projects:
+        project_ids = set()
+
+        for project in projects.all():
+            project_ids.add(project.project_id)
             data_download_metadata.projects.append(
                 DataDownloadProject(
                     projectID=project.project_id,
@@ -76,10 +85,12 @@ def lambda_handler(event, _):
             )
 
         researchers = session.scalars(
-            select(Researcher).options(
-                load_only(Researcher.name, Researcher.researcher_id)
+            select(Researcher)
+            .where(
+                Researcher.projects.any(PublishedProject.project_id.in_(project_ids))
             )
-        )
+            .distinct(Researcher.researcher_id)
+        ).all()
 
         for researcher in researchers:
             data_download_metadata.researchers.append(
@@ -99,10 +110,6 @@ def lambda_handler(event, _):
         #         + ");"
         #     )
         # )
-
-        # print(props.query_string_parameters)
-
-        (compound_filter, _) = get_compound_filter(props.query_string_parameters)
 
         # cursor = session.connection().connection.cursor()
 
