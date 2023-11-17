@@ -93,13 +93,13 @@ class QueryStringParameters(FiltersQueryStringParameters):
         extra = Extra.forbid
 
 
-def get_compound_filter(params: QueryStringParameters):
+def get_compound_filter(params: FiltersQueryStringParameters | QueryStringParameters):
     """Create a compound filter ('condition AND condition AND condition...')
     for the specified parameters. This function returns a tuple:
     (compound_filter, filter_count)
     """
     filters = []
-    for fieldname, field in QueryStringParameters.__fields__.items():
+    for fieldname, field in FiltersQueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
             continue
@@ -179,8 +179,8 @@ def query_records(session: Session, params: QueryStringParameters) -> Tuple[Quer
 def get_multi_value_query_string_parameters(event):
     parameters_annotations = (
         # pylint: disable=no-member
-        QueryStringParameters.__annotations__ | FiltersQueryStringParameters.__annotations__
-
+        QueryStringParameters.__annotations__
+        | FiltersQueryStringParameters.__annotations__
     )
 
     print("parameters_annotations")
@@ -193,7 +193,8 @@ def get_multi_value_query_string_parameters(event):
     multivalue_fields = [
         field
         for field in parameters_annotations
-        if parameters_annotations.get(field) and str(parameters_annotations[field]) == "typing.Optional[list[str]]"
+        if parameters_annotations.get(field)
+        and str(parameters_annotations[field]) == "typing.Optional[list[str]]"
     ]
     multivalue_field_aliases = [
         QueryStringParameters.__fields__[field].alias for field in multivalue_fields

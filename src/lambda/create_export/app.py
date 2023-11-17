@@ -12,7 +12,8 @@ from data_downloads import (
 from engine import get_engine
 from format import CORS_ALLOW
 from models import PublishedProject, PublishedRecord, Researcher
-from sqlalchemy import func, select
+from published_records import get_compound_filter
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, load_only
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -88,7 +89,7 @@ def lambda_handler(event, _):
                 )
             )
 
-        s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
+        # s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
 
         # session.execute(
         #     sql.text(
@@ -99,13 +100,44 @@ def lambda_handler(event, _):
         #     )
         # )
 
+        # print(props.query_string_parameters)
+
+        (compound_filter, _) = get_compound_filter(props.query_string_parameters)
+
+        # cursor = session.connection().connection.cursor()
+
+        # params = select(PublishedRecord).where(compound_filter).params()
+        # params_tup = ()
+        # for param in params:
+        #     params_tup = (*params_tup, param)
+
+        # # print("params")
+        # print(str(select(PublishedRecord).where(compound_filter)))
+
+        # print("filter")
+        # print(
+        #     cursor.mogrify(
+        #         str(
+        #             select(PublishedRecord).where(compound_filter)
+        #             # .compile(dialect=postgresql.dialect())
+        #         ).replace(":name_1", "%S"),
+        #         ("Ryan Zimmerman+1")
+        #         # select(PublishedRecord).where(compound_filter).params(),
+        #     )
+        #     # .compile(compile_kwargs={"literal_binds": True})
+        # )
+
         statement = select("*").select_from(
             func.aws_s3.query_export_to_s3(
-                str(select(PublishedRecord)),
+                str(
+                    select(PublishedRecord)
+                    .where(compound_filter)
+                    .compile(compile_kwargs={"literal_binds": True})
+                ),
                 func.aws_commons.create_s3_uri(
                     DATA_DOWNLOAD_BUCKET_NAME, s3_key, REGION
                 ),
-                # options = 'format csv, header'
+                text("options := 'format csv, header'"),
             ).alias()
         )
 
