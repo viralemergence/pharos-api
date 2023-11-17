@@ -151,12 +151,12 @@ def lambda_handler(event, _):
             },
             Message={
                 "Subject": {
-                    "Data": "Pharos Data Export ready for Download",
+                    "Data": "Pharos data extract ready for Download",
                 },
                 "Body": {
                     "Text": {
                         "Data": f"""
-Your data export is ready for download. Please visit the following link to download your data:
+Your data extract is ready for download. Please visit the following link to download your data:
 
 {CORS_ALLOW}/d/?dwn={download_id}
 
