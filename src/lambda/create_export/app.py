@@ -11,8 +11,8 @@ from data_downloads import (
 )
 from engine import get_engine
 from format import CORS_ALLOW
-from models import PublishedProject, Researcher
-from sqlalchemy import select, sql
+from models import PublishedProject, PublishedRecord, Researcher
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, load_only
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
@@ -90,14 +90,30 @@ def lambda_handler(event, _):
 
         s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
 
-        session.execute(
-            sql.text(
-                "SELECT * from aws_s3.query_export_to_s3("
-                + "'SELECT * FROM published_records', "
-                + f"{s3_uri}, options :='format csv, header'"
-                + ");"
-            )
+        # session.execute(
+        #     sql.text(
+        #         "SELECT * from aws_s3.query_export_to_s3("
+        #         + "'SELECT * FROM published_records', "
+        #         + f"{s3_uri}, options :='format csv, header'"
+        #         + ");"
+        #     )
+        # )
+
+        statement = select("*").select_from(
+            func.aws_s3.query_export_to_s3(
+                str(select(PublishedRecord)),
+                func.aws_commons.create_s3_uri(
+                    DATA_DOWNLOAD_BUCKET_NAME, s3_key, REGION
+                ),
+                # options = 'format csv, header'
+            ).alias()
         )
+
+        # f"{s3_uri}, options :='format csv, header'"
+        print("statement")
+        print(statement)
+
+        session.execute(statement)
 
         METADATA_TABLE.put_item(Item=data_download_metadata.table_item())
         METADATA_TABLE.put_item(Item=user.table_item())
