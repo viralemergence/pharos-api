@@ -139,8 +139,8 @@ def lambda_handler(event, _):
                 str(
                     select(
                         PublishedRecord,
-                        PublishedRecord.geom.ST_X().label("longitude"),
                         PublishedRecord.geom.ST_Y().label("latitude"),
+                        PublishedRecord.geom.ST_X().label("longitude"),
                         PublishedRecord.geom.ST_AsText().label("WKT"),
                     )
                     .where(compound_filter)
