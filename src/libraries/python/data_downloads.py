@@ -40,6 +40,9 @@ class DataDownloadMetadata(BaseModel):
     download_date: str = Field(alias="downloadDate")
     projects: list[DataDownloadProject] = Field(default_factory=list)
     researchers: list[DataDownloadResearcher] = Field(default_factory=list)
+    query_string_parameters: FiltersQueryStringParameters = Field(
+        alias="queryStringParameters"
+    )
     s3_key: str
 
     class Config:
