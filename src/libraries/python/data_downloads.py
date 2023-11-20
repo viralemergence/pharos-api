@@ -1,4 +1,5 @@
 import nanoid
+from column_alias import get_ui_name
 from published_records import FiltersQueryStringParameters
 from pydantic import BaseModel, Extra, Field
 from register import User
@@ -63,5 +64,14 @@ class DataDownloadMetadata(BaseModel):
 
     def format_response(self):
         response = self.dict(by_alias=True)
+        filters = response['queryStringParameters']
+
+        ui_filters = {}
+        for filter in filters:
+            if filters[filter]:
+                ui_filters[get_ui_name(filter)] = filters[filter]
+
+        response['queryStringParameters'] = ui_filters
+
         del response["s3_key"]
         return response
