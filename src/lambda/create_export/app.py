@@ -51,7 +51,7 @@ def lambda_handler(event, _):
     # Or, you know, implement enough versioning in the
     # database to do this correctly once publishing and
     # unpublishing workflow requirements are stable.
-    s3_key = f"{download_id}/data.csv"
+    s3_key = f"{download_id}/pharos_data.csv"
 
     data_download_metadata = DataDownloadMetadata(
         downloadID=download_id,
