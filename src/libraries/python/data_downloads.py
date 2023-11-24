@@ -43,7 +43,7 @@ class DataDownloadMetadata(BaseModel):
     download_date: str = Field(alias="downloadDate")
     projects: list[DataDownloadProject] = Field(default_factory=list)
     researchers: list[DataDownloadResearcher] = Field(default_factory=list)
-    query_string_parameters: FiltersQueryStringParameters = Field(
+    query_string_parameters: Optional[FiltersQueryStringParameters] = Field(
         alias="queryStringParameters"
     )
     s3_key: str
@@ -69,9 +69,10 @@ class DataDownloadMetadata(BaseModel):
         filters = response["queryStringParameters"]
 
         ui_filters = {}
-        for filter in filters:
-            if filters[filter]:
-                ui_filters[get_ui_name(filter)] = filters[filter]
+        if filters:
+            for filter in filters:
+                if filters[filter]:
+                    ui_filters[get_ui_name(filter)] = filters[filter]
 
         response["queryStringParameters"] = ui_filters
 
