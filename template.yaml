@@ -853,7 +853,7 @@ Resources:
             RestApiId:
               Ref: MappingApiGatewayAPI
               # Ref: JSONApiGatewayAPI
-            Path: /map/{mapPath+}
+            Path: /map/{tilePath+}
             Method: get
       Layers:
         - !Ref Libraries

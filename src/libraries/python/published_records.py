@@ -93,11 +93,17 @@ class QueryStringParameters(FiltersQueryStringParameters):
         extra = Extra.forbid
 
 
-def get_compound_filter(params: FiltersQueryStringParameters | QueryStringParameters):
+def get_compound_filter(
+    params: FiltersQueryStringParameters | QueryStringParameters | None,
+):
     """Create a compound filter ('condition AND condition AND condition...')
     for the specified parameters. This function returns a tuple:
     (compound_filter, filter_count)
     """
+
+    if params is None:
+        return (and_(True, *[]), len([]))
+
     filters = []
     for fieldname, field in FiltersQueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
@@ -199,6 +205,10 @@ def get_multi_value_query_string_parameters(event):
     multivalue_field_aliases = [
         QueryStringParameters.__fields__[field].alias for field in multivalue_fields
     ]
+
+    if not event.get("multiValueQueryStringParameters"):
+        return {}
+
     multivalue_params = {
         key: value
         for key, value in event["multiValueQueryStringParameters"].items()

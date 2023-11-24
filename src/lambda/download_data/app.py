@@ -34,7 +34,8 @@ def lambda_handler(event, _):
         return format_response(403, "Not Authorized")
 
     multivalue_params = get_multi_value_query_string_parameters(event)
-    event["queryStringParameters"].update(multivalue_params)
+    if multivalue_params:
+        event["queryStringParameters"].update(multivalue_params)
 
     event["user"] = user
 
