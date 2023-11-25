@@ -1,10 +1,9 @@
 import json
 from typing import TypedDict
 
-from sqlalchemy import Engine, select
+from models import PublishedDataset, PublishedProject, PublishedRecord
+from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
-
-from models import PublishedProject
 
 
 class DatasetFormatted(TypedDict):
@@ -37,6 +36,7 @@ class ProjectFormatted(TypedDict):
     othersCiting: list[str]
     authors: list[AuthorFormatted]
     datasets: list[DatasetFormatted]
+    boundingBox: str
 
 
 def get_published_project_data(
@@ -48,6 +48,13 @@ def get_published_project_data(
             select(
                 PublishedProject,
             ).where(PublishedProject.project_id == project_id)
+        )
+
+        bounding_box = session.scalar(
+            select(func.ST_Extent(PublishedRecord.geom))
+            .select_from(PublishedRecord)
+            .join(PublishedDataset)
+            .where(PublishedDataset.project_id == project_id)
         )
 
         if not project:
@@ -80,6 +87,7 @@ def get_published_project_data(
         "relatedMaterials": [],
         "projectPublications": [],
         "othersCiting": [],
+        "boundingBox": str(bounding_box),
     }
 
     if project.related_materials:
