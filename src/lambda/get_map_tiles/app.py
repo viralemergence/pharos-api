@@ -101,15 +101,18 @@ def lambda_handler(event, _):
         (compound_filter, _) = get_compound_filter(validated.query_string_parameters)
 
         layer_name = "pharos-points"
+
+        tile_bounds = func.ST_TileEnvelope(
+            validated.path_parameters.z,
+            validated.path_parameters.x,
+            validated.path_parameters.y,
+        )
+
         mvt_geom = (
             select(
                 func.ST_AsMVTGeom(
                     func.ST_Transform(PublishedRecord.geom, 3857),
-                    func.ST_TileEnvelope(
-                        validated.path_parameters.z,
-                        validated.path_parameters.x,
-                        validated.path_parameters.y,
-                    ),
+                    tile_bounds,
                 ),
                 PublishedRecord.pharos_id,
                 PublishedProject.name.label("project_name"),
@@ -118,6 +121,11 @@ def lambda_handler(event, _):
             .join(PublishedDataset)
             .join(PublishedProject)
             .where(compound_filter)
+            .where(
+                func.ST_Intersects(
+                    PublishedRecord.geom, func.ST_Transform(tile_bounds, 4326)
+                )
+            )
             .cte("mvt_geom")
         )
 
