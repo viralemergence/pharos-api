@@ -259,7 +259,7 @@ Resources:
             CachedMethods:
             - GET
             - HEAD
-            CachePolicyId: !Join ["-", [!Ref AWS::StackName, "ApiCloudFrontCachePolicy"]]
+            CachePolicyId: !Ref ApiCloudFrontCachePolicy
 
         DefaultCacheBehavior:
           AllowedMethods:
@@ -275,7 +275,7 @@ Resources:
           - GET
           TargetOriginId: JSONApiGatewayApi
           ViewerProtocolPolicy: redirect-to-https
-          CachePolicyId: !Join ["-", [!Ref AWS::StackName, "ApiCloudFrontCachePolicy"]]
+          CachePolicyId: !Ref ApiCloudFrontCachePolicy
 
 
   GetUserFunction:
