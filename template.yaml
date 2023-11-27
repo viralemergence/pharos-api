@@ -34,6 +34,7 @@ Parameters:
     Type: String
     Default: exports
 
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -167,11 +168,13 @@ Resources:
       Domain: !Join ["-", [!Ref AWS::StackName, !Ref UserPoolName]]
       UserPoolId: !Ref UserPool
 
-  JSONApiGatewayAPI:
+  JSONApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      StageName: prod
       Name: !Join ["-", [!Ref AWS::StackName, 'json']]
+      EndpointConfiguration:
+        Type: REGIONAL
 
       Cors:
         AllowMethods: "'POST, GET'"
@@ -185,11 +188,13 @@ Resources:
           ApiCognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
 
-  MappingApiGatewayAPI:
+  MappingApiGatewayApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: Prod
+      StageName: prod
       Name: !Join ["-", [!Ref AWS::StackName, 'mapping']]
+      EndpointConfiguration:
+        Type: REGIONAL
 
       BinaryMediaTypes:
         - '*~1*'
@@ -201,6 +206,78 @@ Resources:
         MaxAge: "'600'"
         AllowCredentials: false
 
+  ApiCloudFrontCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: ApiCloudFrontCachePolicy
+        DefaultTTL: 2630000
+        MaxTTL: 2630000
+        MinTTL: 3600
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: false
+          EnableAcceptEncodingGzip: false
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: all
+
+
+  ApiCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+        - Id: JSONApiGatewayApi
+          DomainName: !Sub "${JSONApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com"
+          CustomOriginConfig:
+            HTTPSPort: 443
+            OriginProtocolPolicy: https-only
+            OriginSSLProtocols: 
+              - "TLSv1.2"
+        - DomainName: !Sub "${MappingApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com"
+          Id: MappingApiGatewayApi
+          CustomOriginConfig:
+            HTTPPort: '80'
+            HTTPSPort: '443'
+            OriginProtocolPolicy: https-only
+            OriginSSLProtocols: 
+              - "TLSv1.2"
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_All
+        CacheBehaviors:
+          - PathPattern: "prod/map/*"
+            TargetOriginId: MappingApiGatewayApi
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            CachedMethods:
+            - GET
+            - HEAD
+            CachePolicyId: !Ref ApiCloudFrontCachePolicy
+
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          CachedMethods:
+          - HEAD
+          - GET
+          TargetOriginId: JSONApiGatewayApi
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: !Ref ApiCloudFrontCachePolicy
+
+
   GetUserFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn: MetadataTable
@@ -211,7 +288,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /auth
             Method: post
             Auth:
@@ -239,7 +316,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /create-user
             Method: post
             Auth:
@@ -267,7 +344,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /save-dataset
             Method: post
             Auth:
@@ -308,7 +385,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /delete-dataset
             Method: post
             Auth:
@@ -354,7 +431,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /list-datasets
             Method: post # Should be get but fails, maybe something with permissions
             Auth:
@@ -382,7 +459,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /save-register
             Method: post
             Auth:
@@ -418,7 +495,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /load-register
             Method: post
             Auth:
@@ -453,7 +530,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /save-project
             Method: post
             Auth:
@@ -494,7 +571,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /create-project
             Method: post
             Auth:
@@ -535,7 +612,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /list-projects
             Method: post
             Auth:
@@ -564,7 +641,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /release-dataset
             Method: post
             Auth:
@@ -606,6 +683,7 @@ Resources:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          # CF_DISTRIBUTION: !Ref ApiCloudFrontDistribution
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
@@ -643,7 +721,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /publish-project
             Method: post
             Auth:
@@ -697,7 +775,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /unpublish-project
             Method: post
             Auth:
@@ -707,6 +785,7 @@ Resources:
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          # CF_DISTRIBUTION: !Ref ApiCloudFrontDistribution
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
@@ -744,7 +823,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /published-project
             Method: get
       Layers:
@@ -780,7 +859,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /published-records
             Method: get
       Layers:
@@ -815,7 +894,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /metadata-for-published-records
             Method: get
       Layers:
@@ -851,8 +930,8 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: MappingApiGatewayAPI
-              # Ref: JSONApiGatewayAPI
+              Ref: MappingApiGatewayApi
+              # Ref: JSONApiGatewayApi
             Path: /map/{tilePath+}
             Method: get
       Layers:
@@ -887,7 +966,7 @@ Resources:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /researchers
             Method: get
       Layers:
@@ -920,7 +999,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /download
             Method: GET
             Auth:
@@ -1007,7 +1086,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId:
-              Ref: JSONApiGatewayAPI
+              Ref: JSONApiGatewayApi
             Path: /download-metadata
             Method: GET
       Layers:
@@ -1104,10 +1183,11 @@ Resources:
 Outputs:
   PharosApi:
     Description: "API Endpoint"
-    Value: !Sub "https://${JSONApiGatewayAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  PharosMappingApi:
-    Description: "Pharos Maps Tileserver API Endpoint"
-    Value: !Sub "https://${MappingApiGatewayAPI}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !GetAtt ApiCloudFrontDistribution.DomainName
+      # !Sub "https://${JSONApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  # PharosMappingApi:
+  #   Description: "Pharos Maps Tileserver API Endpoint"
+  #   Value: !Sub "https://${MappingApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
   UserPoolID:
     Description: "Cognito User Pool ID"
     Value: !Ref UserPool

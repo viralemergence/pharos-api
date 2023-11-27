@@ -20,6 +20,9 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
+# CF_CLIENT = boto3.client("cloudfront")
+# CF_DISTRIBUTION = os.environ["CF_DISTRIBUTION"]
+
 
 class UnpublishProjectData(BaseModel):
     project_id: str = Field(alias="projectID")
@@ -97,6 +100,21 @@ def lambda_handler(event, _):
 
     if not project:
         return format_response(403, "Project not found")
+
+    # invalidation = CF_CLIENT.create_invalidation(
+    #     DistributionID = CF_DISTRIBUTION,
+    #     InvalidationBatch = {
+    #         'Paths': {
+    #             'Quantity': 1,
+    #             'Items': [
+    #                 '/*'
+    #             ]
+    #         },
+    #         'CallerReference': f'{project.project_id}_{project.last_updated}'
+    #     }
+    # )
+
+    # print(invalidation)
 
     try:
         with METADATA_TABLE.batch_writer() as batch:

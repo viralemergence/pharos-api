@@ -26,6 +26,8 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
+# CF_CLIENT = boto3.client("cloudfront")
+# CF_DISTRIBUTION = os.environ["CF_DISTRIBUTION"]
 
 class PublishRegistersData(BaseModel):
     """Event data payload to publish the registers of the project."""
@@ -119,6 +121,23 @@ def lambda_handler(event: dict, _):
         metadata.project.last_updated = datetime.utcnow().isoformat() + "Z"
         metadata.project.publish_status = ProjectPublishStatus.PUBLISHED
         METADATA_TABLE.put_item(Item=metadata.project.table_item())
+
+
+        # invalidation = CF_CLIENT.create_invalidation(
+        #     DistributionID = CF_DISTRIBUTION,
+        #     InvalidationBatch = {
+        #         'Paths': {
+        #             'Quantity': 1,
+        #             'Items': [
+        #                 '/*'
+        #             ]
+        #         },
+        #         'CallerReference': f'{metadata.project.project_id}_{metadata.project.last_updated}'
+        #     }
+        # )
+
+        # print(invalidation)
+
 
     except Exception as e:  # pylint: disable=broad-except
         print(e)
