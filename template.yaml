@@ -210,7 +210,7 @@ Resources:
     Type: AWS::CloudFront::CachePolicy
     Properties:
       CachePolicyConfig:
-        Name: ApiCloudFrontCachePolicy
+        Name: !Join ["-", [!Ref AWS::StackName, "ApiCloudFrontCachePolicy"]]
         DefaultTTL: 2630000
         MaxTTL: 2630000
         MinTTL: 3600
@@ -259,7 +259,7 @@ Resources:
             CachedMethods:
             - GET
             - HEAD
-            CachePolicyId: !Ref ApiCloudFrontCachePolicy
+            CachePolicyId: !Join ["-", [!Ref AWS::StackName, "ApiCloudFrontCachePolicy"]]
 
         DefaultCacheBehavior:
           AllowedMethods:
@@ -275,7 +275,7 @@ Resources:
           - GET
           TargetOriginId: JSONApiGatewayApi
           ViewerProtocolPolicy: redirect-to-https
-          CachePolicyId: !Ref ApiCloudFrontCachePolicy
+          CachePolicyId: !Join ["-", [!Ref AWS::StackName, "ApiCloudFrontCachePolicy"]]
 
 
   GetUserFunction:
