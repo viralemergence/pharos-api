@@ -206,6 +206,13 @@ Resources:
         MaxAge: "'600'"
         AllowCredentials: false
 
+  # Stack-specific policy; This policy is also
+  # used to look up which CF distribution to
+  # invalidate as part of publishing, to avoid
+  # the circular dependency where the CF needs
+  # to know about the API domain, the API needs
+  # to know the functions, and the functions
+  # need to know the CF distribution ID.
   ApiCloudFrontCachePolicy:
     Type: AWS::CloudFront::CachePolicy
     Properties:
@@ -684,12 +691,21 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
           # CF_DISTRIBUTION: !Ref ApiCloudFrontDistribution
+          CF_CACHE_POLICY_ID: !Ref ApiCloudFrontCachePolicy
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:List*
+                - cloudfront:Get*
+                - cloudfront:CreateInvalidation
+              Resource:
+                - "*"
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
@@ -787,12 +803,21 @@ Resources:
           CORS_ALLOW: !Ref CorsAllow
           # CF_DISTRIBUTION: !Ref ApiCloudFrontDistribution
           DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
+          CF_CACHE_POLICY_ID: !Ref ApiCloudFrontCachePolicy
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation
             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
       Policies:
         - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cloudfront:List*
+                - cloudfront:Get*
+                - cloudfront:CreateInvalidation
+              Resource:
+                - "*"
         - DynamoDBCrudPolicy:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
