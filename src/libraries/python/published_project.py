@@ -44,11 +44,15 @@ def get_published_project_data(
     project_id: str,
 ) -> ProjectFormatted:
     with Session(engine) as session:
+
         project = session.scalar(
             select(
                 PublishedProject,
             ).where(PublishedProject.project_id == project_id)
         )
+
+        if not project:
+            raise ValueError(f'Project "{project_id}" not found')
 
         bounding_box = session.scalar(
             select(func.ST_Extent(PublishedRecord.geom))
@@ -56,9 +60,6 @@ def get_published_project_data(
             .join(PublishedDataset)
             .where(PublishedDataset.project_id == project_id)
         )
-
-        if not project:
-            raise ValueError(f'Project "{project_id}" not found')
 
         datasets_formatted: list[DatasetFormatted] = [
             {"datasetID": dataset.dataset_id, "name": dataset.name}
