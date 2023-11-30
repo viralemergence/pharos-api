@@ -79,7 +79,7 @@ def get_published_project_data(
         "projectID": project_id,
         "name": project.name,
         "description": project.description,
-        "datePublished": project.published_date.isoformat() + "Z",
+        "datePublished": project.published_date.isoformat() + "T00:00:00Z",
         "projectType": project.project_type,
         "surveillanceStatus": project.surveillance_status,
         "citation": project.citation,
