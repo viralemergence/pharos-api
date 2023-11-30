@@ -1,24 +1,26 @@
+import os
 from datetime import datetime
 from typing import Union
-import os
+
 import boto3
+from auth import check_auth
 from boto3.dynamodb.conditions import Key
 from botocore.client import ClientError
-from pydantic import BaseModel, Extra, Field, ValidationError
-from sqlalchemy.orm import Session
-
-from auth import check_auth
 from engine import get_engine
 from format import format_response
 from models import PublishedProject
+from pydantic import BaseModel, Extra, Field, ValidationError
 from register import Dataset, DatasetReleaseStatus, Project, ProjectPublishStatus
-
+from sqlalchemy.orm import Session
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
+
+CF_CLIENT = boto3.client("cloudfront")
+CF_CACHE_POLICY_ID = os.environ["CF_CACHE_POLICY_ID"]
 
 
 class UnpublishProjectData(BaseModel):
@@ -115,5 +117,22 @@ def lambda_handler(event, _):
     except ClientError as e:
         print(e)
         return format_response(403, "Error saving project and dataset metadata")
+
+    distributions = CF_CLIENT.list_distributions_by_cache_policy_id(
+        CachePolicyId=CF_CACHE_POLICY_ID
+    )
+
+    cf_id = distributions.get("DistributionIdList", {}).get("Items")[0]
+
+    if cf_id:
+        invalidation = CF_CLIENT.create_invalidation(
+            DistributionId=cf_id,
+            InvalidationBatch={
+                "Paths": {"Quantity": 1, "Items": ["/*"]},
+                "CallerReference": f"{project.project_id}_{project.last_updated}",
+            },
+        )
+
+        print(invalidation)
 
     return format_response(200, "Project records unpublished")

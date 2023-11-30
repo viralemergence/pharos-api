@@ -1,2 +1,7 @@
-nanoid
+SQLAlchemy
+GeoAlchemy2
+psycopg2-binary
+asyncpg
 pydantic==1.10.6
+devtools
+nanoid

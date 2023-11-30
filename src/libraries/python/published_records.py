@@ -1,37 +1,31 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
-from pydantic import BaseModel, Extra, Field, validator
-
-from sqlalchemy import and_, or_
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, Query, selectinload
 
 from column_alias import API_NAME_TO_UI_NAME_MAP, UI_NAME_TO_API_NAME_MAP
-from models import (
-    PublishedRecord,
-    PublishedDataset,
-    PublishedProject,
-    Researcher,
-)
-from register import COMPLEX_FIELDS
+from models import (PublishedDataset, PublishedProject, PublishedRecord,
+                    Researcher)
 from published_records_metadata import sortable_fields
+from pydantic import BaseModel, Extra, Field, validator
+from register import COMPLEX_FIELDS
+from sqlalchemy import and_, or_
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Query, Session, selectinload
 
 
 class FieldDoesNotExistException(Exception):
     pass
 
 
-class QueryStringParameters(BaseModel):
-    page: int = Field(ge=1, alias="page")
-    page_size: int = Field(ge=1, le=100, alias="pageSize")
-    sort: Optional[list[str]] = Field(alias="sort")
-
+class FiltersQueryStringParameters(BaseModel):
     # The following fields filter the set of published records. Each "filter
     # function" will be used as a parameter to SQLAlchemy's Query.filter()
     # method.
 
     pharos_id: Optional[list[str]] = Field(
         None, filter_function=lambda value: PublishedRecord.pharos_id == value
+    )
+    project_id: Optional[list[str]] = Field(
+        None, filter_function=lambda value: PublishedProject.project_id == value
     )
     dataset_id: Optional[str] = Field(
         None,
@@ -94,13 +88,28 @@ class QueryStringParameters(BaseModel):
         extra = Extra.forbid
 
 
-def get_compound_filter(params: QueryStringParameters):
+class QueryStringParameters(FiltersQueryStringParameters):
+    page: int = Field(ge=1, alias="page")
+    page_size: int = Field(ge=1, le=100, alias="pageSize")
+    sort: Optional[list[str]] = Field(alias="sort")
+
+    class Config:
+        extra = Extra.forbid
+
+
+def get_compound_filter(
+    params: FiltersQueryStringParameters | QueryStringParameters | None,
+):
     """Create a compound filter ('condition AND condition AND condition...')
     for the specified parameters. This function returns a tuple:
     (compound_filter, filter_count)
     """
+
+    if params is None:
+        return (and_(True, *[]), len([]))
+
     filters = []
-    for fieldname, field in QueryStringParameters.__fields__.items():
+    for fieldname, field in FiltersQueryStringParameters.__fields__.items():
         filter_function = field.field_info.extra.get("filter_function")
         if filter_function is None:
             continue
@@ -181,7 +190,12 @@ def get_multi_value_query_string_parameters(event):
     parameters_annotations = (
         # pylint: disable=no-member
         QueryStringParameters.__annotations__
+        | FiltersQueryStringParameters.__annotations__
     )
+
+    print("parameters_annotations")
+    print(parameters_annotations)
+
     # Some fields, such as project_id and collection_start_date, take a single
     # value. Others take multiple values. We can tell which fields take
     # multiple values based on their type. Single-value fields have type
@@ -189,11 +203,16 @@ def get_multi_value_query_string_parameters(event):
     multivalue_fields = [
         field
         for field in parameters_annotations
-        if str(parameters_annotations[field]) == "typing.Optional[list[str]]"
+        if parameters_annotations.get(field)
+        and str(parameters_annotations[field]) == "typing.Optional[list[str]]"
     ]
     multivalue_field_aliases = [
         QueryStringParameters.__fields__[field].alias for field in multivalue_fields
     ]
+
+    if not event.get("multiValueQueryStringParameters"):
+        return {}
+
     multivalue_params = {
         key: value
         for key, value in event["multiValueQueryStringParameters"].items()
