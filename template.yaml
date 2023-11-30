@@ -1208,7 +1208,7 @@ Resources:
 Outputs:
   PharosApi:
     Description: "API Endpoint"
-    Value: !GetAtt ApiCloudFrontDistribution.DomainName
+    Value: !Join ["", ["https://", !GetAtt ApiCloudFrontDistribution.DomainName, "/prod"]]
       # !Sub "https://${JSONApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
   # PharosMappingApi:
   #   Description: "Pharos Maps Tileserver API Endpoint"
