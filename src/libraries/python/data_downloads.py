@@ -1,3 +1,5 @@
+from typing import Optional
+
 import nanoid
 from column_alias import get_ui_name
 from published_records import FiltersQueryStringParameters
@@ -15,7 +17,7 @@ class CreateExportDataEvent(BaseModel):
     """event payload to export a csv of published records"""
 
     user: User
-    query_string_parameters: FiltersQueryStringParameters = Field(
+    query_string_parameters: Optional[FiltersQueryStringParameters] = Field(
         alias="queryStringParameters"
     )
 
@@ -41,7 +43,7 @@ class DataDownloadMetadata(BaseModel):
     download_date: str = Field(alias="downloadDate")
     projects: list[DataDownloadProject] = Field(default_factory=list)
     researchers: list[DataDownloadResearcher] = Field(default_factory=list)
-    query_string_parameters: FiltersQueryStringParameters = Field(
+    query_string_parameters: Optional[FiltersQueryStringParameters] = Field(
         alias="queryStringParameters"
     )
     s3_key: str
@@ -64,14 +66,15 @@ class DataDownloadMetadata(BaseModel):
 
     def format_response(self):
         response = self.dict(by_alias=True)
-        filters = response['queryStringParameters']
+        filters = response["queryStringParameters"]
 
         ui_filters = {}
-        for filter in filters:
-            if filters[filter]:
-                ui_filters[get_ui_name(filter)] = filters[filter]
+        if filters:
+            for filter in filters:
+                if filters[filter]:
+                    ui_filters[get_ui_name(filter)] = filters[filter]
 
-        response['queryStringParameters'] = ui_filters
+        response["queryStringParameters"] = ui_filters
 
         del response["s3_key"]
         return response

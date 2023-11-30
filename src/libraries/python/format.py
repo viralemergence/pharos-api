@@ -14,7 +14,7 @@ class SetEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def format_response(code, body, preformatted=False):
+def format_response(code, body, preformatted=False, log_response=False):
     if not preformatted:
         try:
             body_string = json.dumps(body, cls=SetEncoder)
@@ -24,15 +24,25 @@ def format_response(code, body, preformatted=False):
     else:
         body_string = body
 
-    print(
-        {
-            "statusCode": code,
-            "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
-            "body": body_string,
-        }
-    )
+    if log_response:
+        print(
+            {
+                "statusCode": code,
+                "headers": {
+                    "Access-Control-Allow-Origin": CORS_ALLOW,
+                    "Content-Type": "application/json",
+                },
+                "body": body_string,
+                "isBase64Encoded": False,
+            }
+        )
+
     return {
         "statusCode": code,
-        "headers": {"Access-Control-Allow-Origin": CORS_ALLOW},
+        "headers": {
+            "Access-Control-Allow-Origin": CORS_ALLOW,
+            "Content-Type": "application/json",
+        },
         "body": body_string,
+        "isBase64Encoded": False,
     }
