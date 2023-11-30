@@ -1,25 +1,18 @@
 from datetime import date
 from typing import Optional
+
 from geoalchemy2 import WKTElement
 from geoalchemy2.types import Geometry
-from sqlalchemy import (
-    BigInteger,
-    Column,
-    ForeignKey,
-    Numeric,
-    Table,
-)
+from sqlalchemy import BigInteger, Column, ForeignKey, Numeric, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import String, TypeDecorator
-
-
 from value_alias import (
-    DeadOrAlive,
-    DetectionOutcome,
-    OrganismSex,
     DEAD_OR_ALIVE_VALUES_MAP,
     DETECTION_OUTCOME_VALUES_MAP,
     ORGANISM_SEX_VALUES_MAP,
+    DeadOrAlive,
+    DetectionOutcome,
+    OrganismSex,
 )
 
 
