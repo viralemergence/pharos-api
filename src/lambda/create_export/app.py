@@ -2,19 +2,20 @@ import os
 from datetime import datetime
 
 import boto3
-from sqlalchemy import select, sql
-from sqlalchemy.orm import Session, load_only
 from data_downloads import (
-    CreateExportData,
+    CreateExportDataEvent,
     DataDownloadMetadata,
     DataDownloadProject,
     DataDownloadResearcher,
     generate_download_id,
 )
-
 from engine import get_engine
 from format import CORS_ALLOW
-from models import PublishedProject, Researcher
+from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
+from published_records import get_compound_filter
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.orm import Session
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -29,7 +30,7 @@ SES_CLIENT = boto3.client("ses", region_name=REGION)
 
 def lambda_handler(event, _):
 
-    props = CreateExportData.parse_obj(event)
+    props = CreateExportDataEvent.parse_obj(event)
     user = props.user
 
     if not user.download_ids:
@@ -50,22 +51,33 @@ def lambda_handler(event, _):
     # Or, you know, implement enough versioning in the
     # database to do this correctly once publishing and
     # unpublishing workflow requirements are stable.
-    s3_key = f"{download_id}/data.csv"
+    s3_key = f"{download_id}/pharos_data.csv"
 
     data_download_metadata = DataDownloadMetadata(
         downloadID=download_id,
         downloadDate=datetime.utcnow().isoformat() + "Z",
+        queryStringParameters=props.query_string_parameters,
         s3_key=s3_key,
     )
 
     with Session(engine) as session:
-        projects = session.scalars(
-            select(PublishedProject).options(
-                load_only(PublishedProject.project_id, PublishedProject.name)
+        (compound_filter, _) = get_compound_filter(props.query_string_parameters)
+
+        projects = (
+            session.query(
+                PublishedProject.project_id,
+                PublishedProject.name,
             )
+            .join(PublishedDataset)
+            .join(PublishedRecord)
+            .where(compound_filter)
+            .distinct(PublishedProject.project_id)
         )
 
-        for project in projects:
+        project_ids = set()
+
+        for project in projects.all():
+            project_ids.add(project.project_id)
             data_download_metadata.projects.append(
                 DataDownloadProject(
                     projectID=project.project_id,
@@ -74,10 +86,12 @@ def lambda_handler(event, _):
             )
 
         researchers = session.scalars(
-            select(Researcher).options(
-                load_only(Researcher.name, Researcher.researcher_id)
+            select(Researcher)
+            .where(
+                Researcher.projects.any(PublishedProject.project_id.in_(project_ids))
             )
-        )
+            .distinct(Researcher.researcher_id)
+        ).all()
 
         for researcher in researchers:
             data_download_metadata.researchers.append(
@@ -87,16 +101,45 @@ def lambda_handler(event, _):
                 )
             )
 
-        s3_uri = f"aws_commons.create_s3_uri('{DATA_DOWNLOAD_BUCKET_NAME}', '{s3_key}', '{REGION}')"
+        cursor = session.connection().connection.cursor()
 
-        session.execute(
-            sql.text(
-                "SELECT * from aws_s3.query_export_to_s3("
-                + "'SELECT * FROM published_records', "
-                + f"{s3_uri}, options :='format csv, header'"
-                + ");"
+        columns_to_skip = ["geom"]
+        columns_to_select = [
+            col
+            for col in PublishedRecord.__table__.columns
+            if col.key not in columns_to_skip
+        ]
+
+        compiled_data_query = (
+            select(
+                *columns_to_select,
+                PublishedRecord.geom.ST_Y().label("latitude"),
+                PublishedRecord.geom.ST_X().label("longitude"),
+                PublishedRecord.geom.ST_AsText().label("wkt"),
+            )
+            .where(compound_filter)
+            .compile(
+                dialect=postgresql.dialect(),
             )
         )
+
+        escaped_data_query = (
+            cursor.mogrify(str(compiled_data_query), compiled_data_query.params).decode(
+                "utf-8"
+            ),
+        )
+
+        statement = select("*").select_from(
+            func.aws_s3.query_export_to_s3(
+                escaped_data_query,
+                func.aws_commons.create_s3_uri(
+                    DATA_DOWNLOAD_BUCKET_NAME, s3_key, REGION
+                ),
+                text("options := 'format csv, header'"),
+            ).alias()
+        )
+
+        session.execute(statement)
 
         METADATA_TABLE.put_item(Item=data_download_metadata.table_item())
         METADATA_TABLE.put_item(Item=user.table_item())
@@ -108,12 +151,12 @@ def lambda_handler(event, _):
             },
             Message={
                 "Subject": {
-                    "Data": "Pharos Data Export ready for Download",
+                    "Data": "Pharos data extract ready for Download",
                 },
                 "Body": {
                     "Text": {
                         "Data": f"""
-Your data export is ready for download. Please visit the following link to download your data:
+Your data extract is ready for download. Please visit the following link to download your data:
 
 {CORS_ALLOW}/d/?dwn={download_id}
 
