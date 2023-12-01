@@ -68,6 +68,6 @@ interactive coverage report can be viewed in a browser on port 8080
 
 ```sh
 source env/bin/activate
-pytest -v --cov=src/libraries/python/ --cov=src/lambda/
+pytest -v --cov=src/libraries/python/ --cov=src/lambda/ --cov-report=html
 cd htmlcov; python -m http.server 8080
 ```
