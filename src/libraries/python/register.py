@@ -21,18 +21,14 @@ and records.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
-from functools import wraps
 from enum import Enum
-
-from pydantic import BaseModel, Extra, Field, validator
+from functools import wraps
+from typing import Any, Dict, Optional
 
 from column_alias import get_ui_name
-from value_alias import (
-    DEAD_OR_ALIVE_VALUES_MAP,
-    DETECTION_OUTCOME_VALUES_MAP,
-    ORGANISM_SEX_VALUES_MAP,
-)
+from pydantic import BaseModel, Extra, Field, validator
+from value_alias import (DEAD_OR_ALIVE_VALUES_MAP,
+                         DETECTION_OUTCOME_VALUES_MAP, ORGANISM_SEX_VALUES_MAP)
 
 
 class User(BaseModel):
@@ -342,6 +338,33 @@ class Datapoint(BaseModel):
     def isnumeric(self):
         """Check if data_value is numeric."""
         return self.data_value.isnumeric()
+
+    @classmethod
+    def merge(cls, left: 'Datapoint | None', right: 'Datapoint | None'):
+        """Given two versions of the same datapoint with differing histories,
+        return a merged single datapoint with one chronological history."""
+        if not left: return right
+        if not right: return left
+
+        # If version is a perfect match, keep 
+        # the datapoint which has a report
+        if left.version == right.version:
+            if left.report: 
+                left.previous = Datapoint.merge(left.previous, right.previous)
+                return left
+            if right.report:
+                right.previous = Datapoint.merge(left.previous, right.previous)
+                return right
+            # if there is no report to preserve, they are considered
+            # identical so it doesn't matter which we keep.
+            return left
+
+        if left.version > right.version:
+            left.previous = Datapoint.merge(left.previous, right)
+            return left
+
+        right.previous = Datapoint.merge(left, right.previous)
+        return right
 
     class Config:
         extra = Extra.forbid

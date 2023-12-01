@@ -1,10 +1,11 @@
 """Tests for the register parsing and validation classes"""
 
 import datetime
+
 import pytest
-
-from register import DatasetReleaseStatus, Record, Register, ReportScore
-
+from cfnresponse import json
+from devtools import debug
+from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
 {
@@ -584,3 +585,50 @@ def test_fail_release_report():
     assert set(report.missing_fields["rec12345"]) == {
         "Collection day",
     }
+
+
+LEFT_DATAPOINT = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "previous": {
+            "dataValue": "Oldest",
+            "modifiedBy": "dev",
+            "version": "1"
+        }
+    }
+}
+"""
+
+RIGHT_DATAPOINT = """
+{
+    "Host species": {
+        "dataValue": "Second most recent",
+        "modifiedBy": "dev",
+        "version": "3",
+        "previous": {
+            "dataValue": "Second oldest",
+            "modifiedBy": "dev",
+            "version": "2"
+        }
+    }
+}
+"""
+
+
+def test_basic_merge_datapoint():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous
+    assert result.previous.previous.data_value == "Second oldest"
+    assert result.previous.previous.previous
+    assert result.previous.previous.previous.data_value == "Oldest"
