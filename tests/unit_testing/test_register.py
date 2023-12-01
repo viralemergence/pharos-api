@@ -5,7 +5,8 @@ import datetime
 import pytest
 from cfnresponse import json
 from devtools import debug
-from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
+from register import (Datapoint, DatasetReleaseStatus, Record, Register,
+                      ReportScore)
 
 VALID_RECORD = """
 {
@@ -632,3 +633,87 @@ def test_basic_merge_datapoint():
     assert result.previous.previous.data_value == "Second oldest"
     assert result.previous.previous.previous
     assert result.previous.previous.previous.data_value == "Oldest"
+
+
+def test_merge_with_none():
+    """Merging with none should result in an unchanged datapoint"""
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.construct()
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.previous
+    assert result.previous.data_value == "Oldest"
+
+
+def test_merge_no_previous():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    assert left.host_species
+    left.host_species.previous = None
+
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+    assert right.host_species
+    right.host_species.previous = None
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous == None
+
+
+DATAPOINT_WITH_FAIL = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "report": {
+            "status": "FAIL",
+            "message": "Datapoint is not ready to release",
+            "data": null
+        }
+    }
+}
+"""
+
+CONFLICTING_DATAPOINT_NO_REPORT = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "previous": {
+            "dataValue": "Older value",
+            "modifiedBy": "dev",
+            "version": "1",
+            "report": {
+                "status": "SUCCESS",
+                "message": "Ready to release",
+                "data": null
+            }
+        }
+    }
+}
+"""
+
+
+def test_merge_with_reports():
+    """When merging two datapoints with the same version number,
+    preserve the datapoint with a report, without modifying the
+    report, duplicating the datapoint, or losing the history."""
+    fail = Record.parse_raw(DATAPOINT_WITH_FAIL)
+    conflict = Record.parse_raw(CONFLICTING_DATAPOINT_NO_REPORT)
+
+    result = Datapoint.merge(fail.host_species, conflict.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.report
+    assert result.report.status == ReportScore.FAIL
+    assert result.previous
+    assert result.previous.report
+    assert result.previous.report.status == ReportScore.SUCCESS
