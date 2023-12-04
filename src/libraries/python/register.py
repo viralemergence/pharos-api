@@ -340,16 +340,18 @@ class Datapoint(BaseModel):
         return self.data_value.isnumeric()
 
     @classmethod
-    def merge(cls, left: 'Datapoint | None', right: 'Datapoint | None'):
+    def merge(cls, left: "Datapoint | None", right: "Datapoint | None"):
         """Given two versions of the same datapoint with differing histories,
         return a merged single datapoint with one chronological history."""
-        if not left: return right
-        if not right: return left
+        if left is None:
+            return right
+        if right is None:
+            return left
 
-        # If version is a perfect match, keep 
+        # If version is a perfect match, keep
         # the datapoint which has a report
         if left.version == right.version:
-            if left.report: 
+            if left.report:
                 left.previous = Datapoint.merge(left.previous, right.previous)
                 return left
             if right.report:

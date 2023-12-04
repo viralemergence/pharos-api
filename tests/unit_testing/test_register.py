@@ -662,6 +662,31 @@ def test_merge_no_previous():
     assert result.previous.previous == None
 
 
+def test_merge_with_empty_string():
+    """Datapoint merges must preserve datapoints where
+    data_value == "" because this means the user has
+    intentionally removed the value."""
+
+    left = Record.parse_raw(LEFT_DATAPOINT)
+
+    assert left.host_species
+    left.host_species.data_value = ""
+
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    assert right.host_species
+    assert right.host_species.previous
+    right.host_species.previous.data_value = ""
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+    assert result
+    assert result.data_value
+    assert result.data_value == ""
+    assert result.previous
+    assert result.previous.previous
+    assert result.previous.previous.data_value == ""
+
+
 DATAPOINT_WITH_FAIL = """
 {
     "Host species": {
