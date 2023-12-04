@@ -3,6 +3,7 @@
 import datetime
 
 import pytest
+from devtools import debug
 from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
@@ -679,11 +680,12 @@ def test_merge_with_empty_string():
     right.host_species.previous.data_value = ""
 
     result = Datapoint.merge(left.host_species, right.host_species)
-    assert result
-    assert result.data_value
+
+    assert result is not None
+    assert result.data_value is not None
     assert result.data_value == ""
-    assert result.previous
-    assert result.previous.previous
+    assert result.previous is not None
+    assert result.previous.previous is not None
     assert result.previous.previous.data_value == ""
 
 
@@ -739,3 +741,136 @@ def test_merge_with_reports():
     assert result.previous
     assert result.previous.report
     assert result.previous.report.status == ReportScore.SUCCESS
+
+
+LEFT_REGISTER = """
+{
+    "register": {
+        "rec12345": {
+            "Host species": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Host species NCBI tax ID": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Latitude": {
+                "dataValue": "40.0150",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Longitude": {
+                "dataValue": "105.2705",
+                "modifiedBy": "dev",
+                "version": "1679692223"
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Pathogen": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Detection outcome": {
+                "dataValue": "",
+                "modifiedBy": "dev",
+                "version": "2679692123"
+            },
+            "Random column": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            }
+        }
+    }
+}
+"""
+
+RIGHT_REGISTER = """
+{
+    "register": {
+        "rec12345": {
+            "Host species": {
+                "dataValue": "Old host species",
+                "modifiedBy": "dev",
+                "version": "1"
+            },
+            "Host species NCBI tax ID": {
+                "dataValue": "Vulpes vulpes",
+                "modifiedBy": "dev",
+                "version": "2"
+            },
+            "Latitude": {
+                "dataValue": "40.0150",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Longitude": {
+                "dataValue": "105.2705",
+                "modifiedBy": "dev",
+                "version": "1679692223"
+            },
+            "Collection month": {
+                "dataValue": "1",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Collection year": {
+                "dataValue": "2019",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Pathogen": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            },
+            "Detection outcome": {
+                "dataValue": "Old detection outcome",
+                "modifiedBy": "dev",
+                "version": "1676692123"
+            },
+            "Random column": {
+                "dataValue": "SARS-CoV-2",
+                "modifiedBy": "dev",
+                "version": "1679692123"
+            }
+        }
+    }
+}
+"""
+
+
+def test_merge_register():
+    left = Register.parse_raw(LEFT_REGISTER)
+    right = Register.parse_raw(RIGHT_REGISTER)
+
+    merge = Record.merge(
+        left.register_data["rec12345"], right.register_data["rec12345"]
+    )
+
+    assert merge
+    assert merge.host_species
+    assert str(merge.host_species) == "Vulpes vulpes"
+    assert merge.host_species.previous
+    assert merge.host_species.previous.data_value == "Old host species"
+    assert merge.host_species.previous.previous == None
+
+    assert merge.detection_outcome is not None
+    assert str(merge.detection_outcome) == ""
+    assert merge.detection_outcome.previous
+    assert str(merge.detection_outcome.previous) == "Old detection outcome"
+
+    assert merge.detection_outcome.previous.report
+    assert merge.detection_outcome.previous.report.status == ReportScore.FAIL

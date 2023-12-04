@@ -27,8 +27,11 @@ from typing import Any, Dict, Optional
 
 from column_alias import get_ui_name
 from pydantic import BaseModel, Extra, Field, validator
-from value_alias import (DEAD_OR_ALIVE_VALUES_MAP,
-                         DETECTION_OUTCOME_VALUES_MAP, ORGANISM_SEX_VALUES_MAP)
+from value_alias import (
+    DEAD_OR_ALIVE_VALUES_MAP,
+    DETECTION_OUTCOME_VALUES_MAP,
+    ORGANISM_SEX_VALUES_MAP,
+)
 
 
 class User(BaseModel):
@@ -675,6 +678,26 @@ class Record(BaseModel):
     def __iter__(self):
         iterable: Dict[str, Datapoint] = self.__dict__
         return iter(iterable.items())
+
+    @classmethod
+    def merge(cls, left: "Record | None", right: "Record | None"):
+        """Given two versions of the same record, iterate all fields and
+        merge all datapoints in both records. If both are None return None"""
+        if not left:
+            return right
+        if not right:
+            return left
+
+        next = Record()
+
+        for field in left.__fields__:
+            setattr(
+                next,
+                field,
+                Datapoint.merge(getattr(left, field), getattr(right, field)),
+            )
+
+        return next
 
 
 class ReleaseReport(BaseModel):
