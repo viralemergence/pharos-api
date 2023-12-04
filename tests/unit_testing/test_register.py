@@ -3,10 +3,7 @@
 import datetime
 
 import pytest
-from cfnresponse import json
-from devtools import debug
-from register import (Datapoint, DatasetReleaseStatus, Record, Register,
-                      ReportScore)
+from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
 {
