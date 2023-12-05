@@ -342,68 +342,38 @@ class Datapoint(BaseModel):
         """Check if data_value is numeric."""
         return self.data_value.isnumeric()
 
-    def merge(self, other: "Datapoint | None"):
+    @classmethod
+    def merge(cls, left: "Datapoint | None", right: "Datapoint | None"):
         """Given two versions of the same datapoint with differing histories,
         return a merged single datapoint with one chronological history."""
-        if other is None:
-            return self
+        if left is None:
+            return right
+        if right is None:
+            return left
 
         # If version is a perfect match, keep
         # the datapoint which has a report
-        if self.version == other.version:
-            if self.report:
-                if self.previous:
-                    self.previous = self.previous.merge(other.previous)
-                else:
-                    self.previous = other.previous
-                return self
-            if other.report:
-                if other.previous:
-                    other.previous = other.previous.merge(self.previous)
-                return other
+        if left.version == right.version:
+            if left.report:
+                next = left.copy()
+                next.previous = Datapoint.merge(left.previous, right.previous)
+                return next
+            if right.report:
+                next = right.copy()
+                next.previous = Datapoint.merge(left.previous, right.previous)
+                return next
             # if there is no report to preserve, they are considered
             # identical so it doesn't matter which we keep.
-            return self
+            return left
 
-        if self.version > other.version:
-            if self.previous:
-                self.previous = self.previous.merge(other)
-            else:
-                self.previous = other
-            return self
+        if left.version > right.version:
+            next = left.copy()
+            next.previous = Datapoint.merge(left.previous, right)
+            return next
 
-        if other.previous:
-            other.previous = other.previous.merge(self)
-        return other
-
-    # @classmethod
-    # def merge(cls, left: "Datapoint | None", right: "Datapoint | None"):
-    #     """Given two versions of the same datapoint with differing histories,
-    #     return a merged single datapoint with one chronological history."""
-    #     if left is None:
-    #         return right
-    #     if right is None:
-    #         return left
-
-    #     # If version is a perfect match, keep
-    #     # the datapoint which has a report
-    #     if left.version == right.version:
-    #         if left.report:
-    #             left.previous = Datapoint.merge(left.previous, right.previous)
-    #             return left
-    #         if right.report:
-    #             right.previous = Datapoint.merge(left.previous, right.previous)
-    #             return right
-    #         # if there is no report to preserve, they are considered
-    #         # identical so it doesn't matter which we keep.
-    #         return left
-
-    #     if left.version > right.version:
-    #         left.previous = Datapoint.merge(left.previous, right)
-    #         return left
-
-    #     right.previous = Datapoint.merge(left, right.previous)
-    #     return right
+        next = right.copy()
+        next.previous = Datapoint.merge(left, right.previous)
+        return next
 
     class Config:
         extra = Extra.forbid
@@ -713,18 +683,25 @@ class Record(BaseModel):
         iterable: Dict[str, Datapoint] = self.__dict__
         return iter(iterable.items())
 
-    def merge(self, other: "Record | None"):
+    @classmethod
+    def merge(cls, left: "Record | None", right: "Record | None"):
         """Given two versions of the same record, iterate all fields and
         merge all datapoints in both records. If both are None return None"""
-        if other is None:
-            return self
+        if right is None:
+            return left
+        if left is None:
+            return right
 
-        for field in self.__fields__:
+        next = Record()
+
+        for field in cls.__fields__:
             setattr(
-                self,
+                next,
                 field,
-                Datapoint.merge(getattr(self, field), getattr(other, field)),
+                Datapoint.merge(getattr(left, field), getattr(right, field)),
             )
+
+        return next
 
 
 class ReleaseReport(BaseModel):

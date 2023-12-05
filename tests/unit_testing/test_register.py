@@ -3,7 +3,8 @@
 import datetime
 
 import pytest
-from register import DatasetReleaseStatus, Record, Register, ReportScore
+from devtools import debug
+from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
 {
@@ -620,17 +621,32 @@ def test_basic_merge_datapoint():
     left = Record.parse_raw(LEFT_DATAPOINT)
     right = Record.parse_raw(RIGHT_DATAPOINT)
 
-    assert left.host_species is not None
-    left.host_species.merge(right.host_species)
+    result = Datapoint.merge(left.host_species, right.host_species)
 
-    assert left.host_species
-    assert left.host_species.data_value == "Most recent"
-    assert left.host_species.previous
-    assert left.host_species.previous.data_value == "Second most recent"
-    assert left.host_species.previous.previous
-    assert left.host_species.previous.previous.data_value == "Second oldest"
-    assert left.host_species.previous.previous.previous
-    assert left.host_species.previous.previous.previous.data_value == "Oldest"
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous
+    assert result.previous.previous.data_value == "Second oldest"
+    assert result.previous.previous.previous
+    assert result.previous.previous.previous.data_value == "Oldest"
+
+
+def test_merge_datapoint_symmetry():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    result = Datapoint.merge(right.host_species, left.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous
+    assert result.previous.previous.data_value == "Second oldest"
+    assert result.previous.previous.previous
+    assert result.previous.previous.previous.data_value == "Oldest"
 
 
 def test_merge_with_none():
@@ -638,12 +654,11 @@ def test_merge_with_none():
     left = Record.parse_raw(LEFT_DATAPOINT)
     right = Record.construct()
 
-    assert left.host_species is not None
-    left.host_species.merge(right.host_species)
+    result = Datapoint.merge(left.host_species, right.host_species)
 
-    assert left.host_species
-    assert left.host_species.previous
-    assert left.host_species.previous.data_value == "Oldest"
+    assert result
+    assert result.previous
+    assert result.previous.data_value == "Oldest"
 
 
 def test_merge_no_previous():
@@ -655,13 +670,13 @@ def test_merge_no_previous():
     assert right.host_species
     right.host_species.previous = None
 
-    left.host_species.merge(right.host_species)
+    result = Datapoint.merge(left.host_species, right.host_species)
 
-    assert left.host_species
-    assert left.host_species.data_value == "Most recent"
-    assert left.host_species.previous
-    assert left.host_species.previous.data_value == "Second most recent"
-    assert left.host_species.previous.previous == None
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous == None
 
 
 def test_merge_with_empty_string():
@@ -680,14 +695,14 @@ def test_merge_with_empty_string():
     assert right.host_species.previous
     right.host_species.previous.data_value = ""
 
-    left.host_species.merge(right.host_species)
+    result = Datapoint.merge(left.host_species, right.host_species)
 
-    assert left.host_species is not None
-    assert left.host_species.data_value is not None
-    assert left.host_species.data_value == ""
-    assert left.host_species.previous is not None
-    assert left.host_species.previous.previous is not None
-    assert left.host_species.previous.previous.data_value == ""
+    assert result is not None
+    assert result.data_value is not None
+    assert result.data_value == ""
+    assert result.previous is not None
+    assert result.previous.previous is not None
+    assert result.previous.previous.data_value == ""
 
 
 DATAPOINT_WITH_FAIL = """
@@ -733,16 +748,15 @@ def test_merge_with_reports():
     fail = Record.parse_raw(DATAPOINT_WITH_FAIL)
     conflict = Record.parse_raw(CONFLICTING_DATAPOINT_NO_REPORT)
 
-    assert fail.host_species
-    fail.host_species.merge(conflict.host_species)
+    result = Datapoint.merge(fail.host_species, conflict.host_species)
 
-    assert fail.host_species
-    assert fail.host_species.data_value == "Most recent"
-    assert fail.host_species.report
-    assert fail.host_species.report.status == ReportScore.FAIL
-    assert fail.host_species.previous
-    assert fail.host_species.previous.report
-    assert fail.host_species.previous.report.status == ReportScore.SUCCESS
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.report
+    assert result.report.status == ReportScore.FAIL
+    assert result.previous
+    assert result.previous.report
+    assert result.previous.report.status == ReportScore.SUCCESS
 
 
 LEFT_REGISTER = """
@@ -850,19 +864,47 @@ def test_merge_register():
     left = Record.parse_raw(LEFT_REGISTER)
     right = Record.parse_raw(RIGHT_REGISTER)
 
-    left.merge(right)
+    merged = Record.merge(left, right)
 
-    assert left
-    assert left.host_species
-    assert str(left.host_species) == "Vulpes vulpes"
-    assert left.host_species.previous
-    assert left.host_species.previous.data_value == "Old host species"
-    assert left.host_species.previous.previous == None
+    print("\nLEFT\n")
+    debug(left)
 
-    assert left.detection_outcome is not None
-    assert str(left.detection_outcome) == ""
-    assert left.detection_outcome.previous
-    assert str(left.detection_outcome.previous) == "Old detection outcome"
+    print("\nRIGHT\n")
+    debug(right)
 
-    assert left.detection_outcome.previous.report
-    assert left.detection_outcome.previous.report.status == ReportScore.FAIL
+    assert merged
+    assert merged.host_species
+    assert str(merged.host_species) == "Vulpes vulpes"
+    assert merged.host_species.previous
+    assert merged.host_species.previous.data_value == "Old host species"
+    assert merged.host_species.previous.previous == None
+
+    assert merged.detection_outcome is not None
+    assert str(merged.detection_outcome) == ""
+    assert merged.detection_outcome.previous
+    assert str(merged.detection_outcome.previous) == "Old detection outcome"
+
+    assert merged.detection_outcome.previous.report
+    assert merged.detection_outcome.previous.report.status == ReportScore.FAIL
+
+
+def test_merge_register_symmetry():
+    left = Record.parse_raw(LEFT_REGISTER)
+    right = Record.parse_raw(RIGHT_REGISTER)
+
+    merged = Record.merge(right, left)
+
+    assert merged
+    assert merged.host_species
+    assert str(merged.host_species) == "Vulpes vulpes"
+    assert merged.host_species.previous
+    assert merged.host_species.previous.data_value == "Old host species"
+    assert merged.host_species.previous.previous == None
+
+    assert merged.detection_outcome is not None
+    assert str(merged.detection_outcome) == ""
+    assert merged.detection_outcome.previous
+    assert str(merged.detection_outcome.previous) == "Old detection outcome"
+
+    assert merged.detection_outcome.previous.report
+    assert merged.detection_outcome.previous.report.status == ReportScore.FAIL
