@@ -723,7 +723,7 @@ class Register(BaseModel):
     the dictionary of all the records.
     """
 
-    register_data: Dict[str, Record] = Field(..., alias="register")
+    register_data: Dict[str, Record] = Field(alias="register")
 
     def get_release_report(self) -> ReleaseReport:
         """The release report summarizes all errors and

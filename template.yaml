@@ -491,6 +491,42 @@ Resources:
             BucketName:
               !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
 
+  SaveRecordsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - MetadataTable
+    Properties:
+      CodeUri: src/lambda/save_records/
+      Events:
+        Auth:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId:
+              Ref: JSONApiGatewayApi
+            Path: /save-records
+            Method: post
+            Auth:
+              Authorizer: ApiCognitoAuthorizer
+      Layers:
+        - !Ref Libraries
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          CORS_ALLOW: !Ref CorsAllow
+          N_VERSIONS: !Ref NVersions # S3 implmentation
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+
   LoadRegisterFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     DependsOn:
