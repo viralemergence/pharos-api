@@ -3,7 +3,6 @@
 import datetime
 
 import pytest
-from devtools import debug
 from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
@@ -865,12 +864,6 @@ def test_merge_register():
     right = Record.parse_raw(RIGHT_REGISTER)
 
     merged = Record.merge(left, right)
-
-    print("\nLEFT\n")
-    debug(left)
-
-    print("\nRIGHT\n")
-    debug(right)
 
     assert merged
     assert merged.host_species
