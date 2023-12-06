@@ -59,9 +59,8 @@ def lambda_handler(event, _):
         return format_response(500, e)
 
     previous = json.loads(register_json)
+    previous_register = Register.construct(**previous)
     response_register = Register.parse_obj({"register": validated.records})
-
-    print(response_register.json(by_alias=True, exclude_none=True, indent=2))
 
     for record_id, record in validated.records.items():
         if previous["register"].get(record_id):
@@ -72,7 +71,27 @@ def lambda_handler(event, _):
                 return format_response(400, "Record merge failed")
 
             response_register.register_data[record_id] = merge_result
+            previous_register.register_data[record_id] = merge_result
 
-    return format_response(
-        200, response_register.json(by_alias=True, exclude_none=True), preformatted=True
-    )
+        else:
+            previous_register.register_data[record_id] = validated.records[record_id]
+
+    try:
+        # Dump the modified register to JSON
+        register_json = previous_register.json(by_alias=True, exclude_none=True)
+        # Create a unique key by combining the datasetID and the register hash
+        encoded_data = bytes(register_json.encode("utf-8"))
+
+        key = f"{validated.dataset_id}/data.json"
+
+        # Save new register object to S3 bucket
+        S3CLIENT.put_object(Bucket=DATASETS_S3_BUCKET, Body=(encoded_data), Key=key)
+
+        return format_response(
+            200,
+            response_register.json(by_alias=True, exclude_none=True),
+            preformatted=True,
+        )
+
+    except Exception as e:  # pylint: disable=broad-except
+        return format_response(403, e)
