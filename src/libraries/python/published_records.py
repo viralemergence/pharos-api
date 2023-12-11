@@ -90,7 +90,7 @@ class FiltersQueryStringParameters(BaseModel):
 
 class QueryStringParameters(FiltersQueryStringParameters):
     page: int = Field(ge=1, alias="page")
-    page_size: int = Field(ge=1, le=100, alias="pageSize")
+    page_size: int = Field(ge=1, le=10000, alias="pageSize")
     sort: Optional[list[str]] = Field(alias="sort")
 
     class Config:

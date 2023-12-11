@@ -27,11 +27,8 @@ from typing import Any, Dict, Optional
 
 from column_alias import get_ui_name
 from pydantic import BaseModel, Extra, Field, validator
-from value_alias import (
-    DEAD_OR_ALIVE_VALUES_MAP,
-    DETECTION_OUTCOME_VALUES_MAP,
-    ORGANISM_SEX_VALUES_MAP,
-)
+from value_alias import (DEAD_OR_ALIVE_VALUES_MAP,
+                         DETECTION_OUTCOME_VALUES_MAP, ORGANISM_SEX_VALUES_MAP)
 
 
 class User(BaseModel):
@@ -425,6 +422,13 @@ def validator_skip_empty_string(func):
 
     return wrapper
 
+class RecordMeta(BaseModel):
+    """An object for storing metadata about a 
+    record, such as the user's desired default
+    order of the records."""
+
+    order: int
+
 
 class Record(BaseModel):
     """The record object is displayed as a "row"
@@ -437,6 +441,7 @@ class Record(BaseModel):
     display in the user interface.
     """
 
+    _meta: Optional[RecordMeta] = None
     sample_id: Optional[DefaultPassDatapoint] = None
     animal_id: Optional[DefaultPassDatapoint] = None
     host_species: Optional[DefaultPassDatapoint] = None
