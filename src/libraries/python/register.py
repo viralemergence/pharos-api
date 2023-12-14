@@ -422,8 +422,9 @@ def validator_skip_empty_string(func):
 
     return wrapper
 
+
 class RecordMeta(BaseModel):
-    """An object for storing metadata about a 
+    """An object for storing metadata about a
     record, such as the user's desired default
     order of the records."""
 
@@ -441,7 +442,7 @@ class Record(BaseModel):
     display in the user interface.
     """
 
-    _meta: Optional[RecordMeta] = None
+    meta: Optional[RecordMeta] = Field(alias="_meta")
     sample_id: Optional[DefaultPassDatapoint] = None
     animal_id: Optional[DefaultPassDatapoint] = None
     host_species: Optional[DefaultPassDatapoint] = None
@@ -685,7 +686,7 @@ class Record(BaseModel):
             self.__dict__[key] = dat
 
     def __iter__(self):
-        iterable: Dict[str, Datapoint] = self.__dict__
+        iterable: Dict[str, Datapoint | RecordMeta] = self.__dict__
         return iter(iterable.items())
 
     @classmethod
@@ -700,11 +701,12 @@ class Record(BaseModel):
         next = Record()
 
         for field in cls.__fields__:
-            setattr(
-                next,
-                field,
-                Datapoint.merge(getattr(left, field), getattr(right, field)),
-            )
+            if field is not "meta":
+                setattr(
+                    next,
+                    field,
+                    Datapoint.merge(getattr(left, field), getattr(right, field)),
+                )
 
         return next
 

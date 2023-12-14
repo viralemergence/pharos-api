@@ -39,6 +39,7 @@ def lambda_handler(event, _):
     try:
         validated = SaveRecordsData.parse_raw(event["body"])
     except ValidationError as e:
+        print(e.json())
         return format_response(400, e.json())
 
     if validated.project_id not in user.project_ids:
