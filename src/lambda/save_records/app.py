@@ -39,7 +39,6 @@ def lambda_handler(event, _):
     try:
         validated = SaveRecordsData.parse_raw(event["body"])
     except ValidationError as e:
-        print(e.json())
         return format_response(400, e.json())
 
     if validated.project_id not in user.project_ids:
@@ -60,7 +59,6 @@ def lambda_handler(event, _):
         return format_response(500, e)
 
     previous = json.loads(register_json)
-    previous_register = Register.construct(**previous)
     response_register = Register.parse_obj({"register": validated.records})
 
     for record_id, record in validated.records.items():
@@ -72,14 +70,18 @@ def lambda_handler(event, _):
                 return format_response(400, "Record merge failed")
 
             response_register.register_data[record_id] = merge_result
-            previous_register.register_data[record_id] = merge_result
+            previous["register"][record_id] = json.loads(merge_result.json(by_alias=True, exclude_none=True))
 
         else:
-            previous_register.register_data[record_id] = validated.records[record_id]
+            previous["register"][record_id] = json.loads(
+                validated.records[record_id].json(
+                    by_alias=True, exclude_none=True
+                    )
+                )
 
     try:
         # Dump the modified register to JSON
-        register_json = previous_register.json(by_alias=True, exclude_none=True)
+        register_json = json.dumps(previous)
         # Create a unique key by combining the datasetID and the register hash
         encoded_data = bytes(register_json.encode("utf-8"))
 
