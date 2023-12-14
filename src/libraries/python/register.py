@@ -23,12 +23,15 @@ and records.
 from datetime import datetime
 from enum import Enum
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from column_alias import get_ui_name
 from pydantic import BaseModel, Extra, Field, validator
-from value_alias import (DEAD_OR_ALIVE_VALUES_MAP,
-                         DETECTION_OUTCOME_VALUES_MAP, ORGANISM_SEX_VALUES_MAP)
+from value_alias import (
+    DEAD_OR_ALIVE_VALUES_MAP,
+    DETECTION_OUTCOME_VALUES_MAP,
+    ORGANISM_SEX_VALUES_MAP,
+)
 
 
 class User(BaseModel):
@@ -755,6 +758,11 @@ class Register(BaseModel):
                     report.missing_fields[record_id].append(get_ui_name(field))
 
             for field, datapoint in record:
+                if field is "meta":
+                    continue
+
+                datapoint = cast(Datapoint, datapoint)
+
                 if (
                     datapoint is None
                     or datapoint.report is None
