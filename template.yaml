@@ -50,11 +50,15 @@ Resources:
     Type: AWS::Serverless::LayerVersion
     Properties:
       ContentUri: src/libraries/
+      CompatibleArchitectures:
+        - x86_64
       CompatibleRuntimes:
         - python3.10
       RetentionPolicy: Delete
       Description: Provides the base backend shared library and dependencies
       LayerName: !Join ["-", [!Ref AWS::StackName, !Ref LayerName]]
+    Metadata:
+      BuildArchitecture: x86_64
 
   MetadataTable:
     Type: AWS::DynamoDB::Table
