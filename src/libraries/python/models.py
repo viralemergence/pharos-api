@@ -51,7 +51,7 @@ class CoerceFloat(TypeDecorator):
     impl = Numeric
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         try:
@@ -66,7 +66,7 @@ class CoerceStr(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         try:
@@ -81,7 +81,7 @@ class CoerceInt(TypeDecorator):
     impl = BigInteger
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         try:
@@ -96,7 +96,7 @@ class AliasOrganismSex(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         return ORGANISM_SEX_VALUES_MAP[str(value).lower()]
@@ -108,7 +108,7 @@ class AliasDetectionOutcome(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         return DETECTION_OUTCOME_VALUES_MAP[str(value).lower()]
@@ -120,7 +120,7 @@ class AliasDeadOrAlive(TypeDecorator):
     impl = String
     cache_ok = True
 
-    def process_bind_param(self, value, _):
+    def process_bind_param(self, value, dialect):
         if value is None:
             return None
         return DEAD_OR_ALIVE_VALUES_MAP[str(value).lower()]

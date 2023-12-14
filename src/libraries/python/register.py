@@ -688,7 +688,7 @@ class Record(BaseModel):
             )
             self.__dict__[key] = dat
 
-    def __iter__(self):
+    def __iter__(self):  # pyright: ignore [reportIncompatibleMethodOverride]
         iterable: Dict[str, Datapoint | RecordMeta] = self.__dict__
         return iter(iterable.items())
 
