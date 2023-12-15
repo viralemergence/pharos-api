@@ -704,7 +704,7 @@ class Record(BaseModel):
         next = Record()
 
         for field in cls.__fields__:
-            if field is not "meta":
+            if field != "meta":
                 setattr(
                     next,
                     field,
@@ -758,7 +758,7 @@ class Register(BaseModel):
                     report.missing_fields[record_id].append(get_ui_name(field))
 
             for field, datapoint in record:
-                if field is "meta":
+                if field == "meta":
                     continue
 
                 datapoint = cast(Datapoint, datapoint)
