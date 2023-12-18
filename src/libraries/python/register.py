@@ -181,16 +181,23 @@ class Version(BaseModel):
     name: str
 
 
+class RegisterPage(BaseModel):
+    """Object for tracking pages of datasets, used for
+    paginated storage and processing."""
+
+    last_updated: str = Field(None, alias="lastUpdated")
+
+
 class Dataset(BaseModel):
     """The dataset object which contains
     metadata about the dataset.
     """
 
-    project_id: str = Field(..., alias="projectID")
+    project_id: str = Field(alias="projectID")
     """The projectID of the project to which this dataset
     belongs; used as the partition key in dynamodb."""
 
-    dataset_id: str = Field(..., alias="datasetID")
+    dataset_id: str = Field(alias="datasetID")
     """Unique identifier for the dataset; used as the sort key."""
 
     name: str
@@ -210,6 +217,11 @@ class Dataset(BaseModel):
 
     release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
+
+    register_pages: Optional[Dict[str, RegisterPage]] = Field(
+        None, alias="registerPages"
+    )
+    """Dictionary of metadata for paginated register storage and processing"""
 
     age: Optional[str]
     """The user-selected units for the age field"""

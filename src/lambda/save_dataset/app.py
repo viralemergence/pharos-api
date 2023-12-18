@@ -1,17 +1,16 @@
-from datetime import datetime
 import os
+from datetime import datetime
 
 import boto3
-from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, ValidationError
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from auth import check_auth
+from botocore.exceptions import ClientError
 from engine import get_engine
 from format import format_response
 from models import PublishedDataset
+from pydantic import BaseModel, Extra, ValidationError
 from register import Dataset, DatasetReleaseStatus
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
