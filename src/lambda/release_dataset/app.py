@@ -2,14 +2,12 @@
 import os
 
 import boto3
+from auth import check_auth
 from botocore.exceptions import ClientError
-
+from format import format_response
 from pydantic import BaseModel, Field
 from pydantic.error_wrappers import ValidationError
-
-from auth import check_auth
-from format import format_response
-from register import DatasetReleaseStatus, Register
+from register import Dataset, DatasetReleaseStatus
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -46,37 +44,45 @@ def lambda_handler(event, _):
         return format_response(403, "Researcher is not authorized for this project")
 
     try:
-        key_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{validated.dataset_id}/"
-        )["Contents"]
-
-        key_list.sort(key=lambda item: item["LastModified"], reverse=True)
-        key = key_list[0]["Key"]
-
-        register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
-        register_json = register_response["Body"].read().decode("UTF-8")
-
-    except (ValueError, ClientError):
-        return format_response(500, "Dataset not found")
-
-    try:
-        register = Register.parse_raw(register_json)
-        release_report = register.get_release_report()
-
-        # need to actually set released value in the dataset metadata object in dynamodb
-        if release_report.release_status == DatasetReleaseStatus.RELEASED:
-            METADATA_TABLE.update_item(
-                Key={"pk": validated.project_id, "sk": validated.dataset_id},
-                UpdateExpression="set releaseStatus = :r",
-                ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASED.value},
-            )
-
-        return format_response(
-            200, release_report.json(by_alias=True), preformatted=True
+        dataset_response = METADATA_TABLE.get_item(
+            Key={"pk": validated.project_id, "sk": validated.dataset_id},
         )
 
+    except ClientError as e:
+        return format_response(
+            500,
+            {
+                "statusCode": 400,
+                "body": f'{{"message":"Couldn\'t release dataset.", "error":{e}}}',
+            },
+            preformatted=True,
+        )
+
+    try:
+        dataset = Dataset.parse_table_item(dataset_response.get("Item", None))
+
     except ValidationError as e:
-        return {
-            "statusCode": 400,
-            "body": f'{{"message":"Couldn\'t release dataset.", "error":"{e.json()}}}',
-        }
+        return format_response(
+            500,
+            {"body": f'{{"message":"Couldn\'t release dataset.", "error":{e.json()}}}'},
+            preformatted=True,
+        )
+
+    if dataset.release_status != DatasetReleaseStatus.UNRELEASED:
+        return format_response(
+            500,
+            {
+                "message": "Couldn't release dataset.",
+                "error": f"Dataset is in an unreleaseable state ({dataset.release_status})",
+            },
+        )
+
+    # METADATA_TABLE.update_item(
+    #     Key={"pk": validated.project_id, "sk": validated.dataset_id},
+    #     UpdateExpression="set releaseStatus = :r",
+    #     ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASING.value},
+    # )
+
+    ## INVOKE RELEASE FUNCTION HERE
+
+    return format_response(200, {"message": "Dataset is being validated for release."})
