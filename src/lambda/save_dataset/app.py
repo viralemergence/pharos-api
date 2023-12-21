@@ -68,12 +68,12 @@ def lambda_handler(event, _):
     next_dataset = validated.dataset
 
     try:
-        project_response = METADATA_TABLE.get_item(
+        dataset_response = METADATA_TABLE.get_item(
             Key={"pk": validated.dataset.project_id, "sk": validated.dataset.dataset_id}
         )
 
-        if project_response.get("Item"):
-            prev_dataset = Dataset.parse_table_item(project_response["Item"])
+        if dataset_response.get("Item"):
+            prev_dataset = Dataset.parse_table_item(dataset_response["Item"])
 
             if prev_dataset.last_updated and validated.dataset.last_updated:
                 prev_updated = datetime.strptime(
