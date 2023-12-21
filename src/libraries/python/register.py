@@ -166,6 +166,7 @@ class DatasetReleaseStatus(str, Enum):
     """The state the dataset in the release process"""
 
     UNRELEASED = "Unreleased"
+    RELEASING = "Releasing"
     RELEASED = "Released"
     PUBLISHED = "Published"
     PUBLISHING = "Publishing"
@@ -737,6 +738,30 @@ class ReleaseReport(BaseModel):
     warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
     fail_fields: dict[str, list] = Field(default={}, alias="failFields")
     missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
+
+    @classmethod
+    def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
+        next = ReleaseReport()
+
+        # Default to unreleased status
+        next.release_status = DatasetReleaseStatus.UNRELEASED
+        if (
+            # Only set RELEASED if both reports agree
+            left.release_status == DatasetReleaseStatus.RELEASED
+            and right.release_status == DatasetReleaseStatus.RELEASED
+        ):
+            next.release_status = DatasetReleaseStatus.RELEASED
+
+        next.success_count = left.success_count + right.success_count
+        next.warning_count = left.warning_count + right.warning_count
+        next.fail_count = left.fail_count + right.fail_count
+        next.missing_count = left.missing_count + right.missing_count
+
+        next.warning_fields = left.warning_fields | right.warning_fields
+        next.fail_fields = left.fail_fields | right.fail_fields
+        next.missing_fields = left.missing_fields | right.missing_fields
+
+        return next
 
 
 class Register(BaseModel):
