@@ -256,7 +256,7 @@ class Dataset(BaseModel):
     release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
 
-    release_report: Optional[ReleaseReport] = Field(alias="relaseReport")
+    release_report: Optional[ReleaseReport] = Field(alias="releaseReport")
 
     register_pages: Optional[Dict[str, RegisterPage]] = Field(
         None, alias="registerPages"
