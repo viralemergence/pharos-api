@@ -205,10 +205,8 @@ class ReleaseReport(BaseModel):
     def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
         next = ReleaseReport()
 
-        # Default to unreleased status
-        next.release_status = DatasetReleaseStatus.UNRELEASED
         if (
-            # Only set RELEASED if both reports agree
+            # set RELEASED if both reports agree
             left.release_status == DatasetReleaseStatus.RELEASED
             and right.release_status == DatasetReleaseStatus.RELEASED
         ):

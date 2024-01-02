@@ -41,6 +41,10 @@ def lambda_handler(event, _):
         )["Contents"]
 
         release_report = ReleaseReport()
+        # start the release report as "released" so that the merge
+        # of a successful report with the blank report will return
+        # released status.
+        release_report.release_status = DatasetReleaseStatus.RELEASED
 
         for item in item_list:
             start = time()
