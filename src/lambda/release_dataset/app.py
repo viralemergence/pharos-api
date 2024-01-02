@@ -81,7 +81,6 @@ def lambda_handler(event, _):
         )
 
     try:
-        print("INVOKE RELEASE FUNCTION HERE")
         LAMBDACLIENT.invoke(
             FunctionName=RELEASE_REGISTERS_LAMBDA,
             InvocationType="Event",
