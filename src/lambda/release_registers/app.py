@@ -1,5 +1,6 @@
 import os
 from time import time
+from datetime import datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -22,6 +23,11 @@ class ReleaseRegistersData(BaseModel):
 
 def lambda_handler(event, _):
     validated = ReleaseRegistersData.parse_obj(event)
+
+    dataset_response = METADATA_TABLE.get_item(
+        Key={"pk": validated.project_id, "sk": validated.dataset_id},
+    )
+    dataset = Dataset.parse_table_item(dataset_response.get("Item", None))
 
     METADATA_TABLE.update_item(
         Key={"pk": validated.project_id, "sk": validated.dataset_id},
@@ -50,16 +56,20 @@ def lambda_handler(event, _):
 
             print(f"Validate {key}: {time() - start}")
 
-        dataset_response = METADATA_TABLE.get_item(
+        # re-load the dataset to make sure this report will still be valid
+        post_validation_dataset_response = METADATA_TABLE.get_item(
             Key={"pk": validated.project_id, "sk": validated.dataset_id},
         )
-        dataset = Dataset.parse_table_item(dataset_response.get("Item", None))
+        post_validation_dataset = Dataset.parse_table_item(post_validation_dataset_response.get("Item", None))
 
-        dataset.release_report = release_report
-        dataset.release_status = release_report.release_status
+        # Only add the release report if there are no changes since the validation started
+        if dataset.last_updated == post_validation_dataset.last_updated:
+            post_validation_dataset.release_report = release_report
+            post_validation_dataset.release_status = release_report.release_status
+            post_validation_dataset.last_updated = datetime.utcnow().isoformat() + "Z"
 
-        METADATA_TABLE.put_item(Item=dataset.table_item())
-
+            METADATA_TABLE.put_item(Item=post_validation_dataset.table_item())
+    
     except ValidationError or ClientError:
         METADATA_TABLE.update_item(
             Key={"pk": validated.project_id, "sk": validated.dataset_id},
