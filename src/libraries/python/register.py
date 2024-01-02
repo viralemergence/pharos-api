@@ -189,6 +189,43 @@ class RegisterPage(BaseModel):
     last_updated: str = Field(None, alias="lastUpdated")
 
 
+class ReleaseReport(BaseModel):
+    release_status: DatasetReleaseStatus = Field(
+        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
+    )
+    success_count: int = Field(default=0, alias="successCount")
+    warning_count: int = Field(default=0, alias="warningCount")
+    fail_count: int = Field(default=0, alias="failCount")
+    missing_count: int = Field(default=0, alias="missingCount")
+    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
+    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
+    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
+
+    @classmethod
+    def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
+        next = ReleaseReport()
+
+        # Default to unreleased status
+        next.release_status = DatasetReleaseStatus.UNRELEASED
+        if (
+            # Only set RELEASED if both reports agree
+            left.release_status == DatasetReleaseStatus.RELEASED
+            and right.release_status == DatasetReleaseStatus.RELEASED
+        ):
+            next.release_status = DatasetReleaseStatus.RELEASED
+
+        next.success_count = left.success_count + right.success_count
+        next.warning_count = left.warning_count + right.warning_count
+        next.fail_count = left.fail_count + right.fail_count
+        next.missing_count = left.missing_count + right.missing_count
+
+        next.warning_fields = left.warning_fields | right.warning_fields
+        next.fail_fields = left.fail_fields | right.fail_fields
+        next.missing_fields = left.missing_fields | right.missing_fields
+
+        return next
+
+
 class Dataset(BaseModel):
     """The dataset object which contains
     metadata about the dataset.
@@ -218,6 +255,8 @@ class Dataset(BaseModel):
 
     release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
+
+    release_report: Optional[ReleaseReport] = Field(alias="relaseReport")
 
     register_pages: Optional[Dict[str, RegisterPage]] = Field(
         None, alias="registerPages"
@@ -723,43 +762,6 @@ class Record(BaseModel):
                     field,
                     Datapoint.merge(getattr(left, field), getattr(right, field)),
                 )
-
-        return next
-
-
-class ReleaseReport(BaseModel):
-    release_status: DatasetReleaseStatus = Field(
-        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
-    )
-    success_count: int = Field(default=0, alias="successCount")
-    warning_count: int = Field(default=0, alias="warningCount")
-    fail_count: int = Field(default=0, alias="failCount")
-    missing_count: int = Field(default=0, alias="missingCount")
-    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
-    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
-    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
-
-    @classmethod
-    def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
-        next = ReleaseReport()
-
-        # Default to unreleased status
-        next.release_status = DatasetReleaseStatus.UNRELEASED
-        if (
-            # Only set RELEASED if both reports agree
-            left.release_status == DatasetReleaseStatus.RELEASED
-            and right.release_status == DatasetReleaseStatus.RELEASED
-        ):
-            next.release_status = DatasetReleaseStatus.RELEASED
-
-        next.success_count = left.success_count + right.success_count
-        next.warning_count = left.warning_count + right.warning_count
-        next.fail_count = left.fail_count + right.fail_count
-        next.missing_count = left.missing_count + right.missing_count
-
-        next.warning_fields = left.warning_fields | right.warning_fields
-        next.fail_fields = left.fail_fields | right.fail_fields
-        next.missing_fields = left.missing_fields | right.missing_fields
 
         return next
 

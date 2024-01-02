@@ -730,11 +730,36 @@ Resources:
               Authorizer: ApiCognitoAuthorizer
       Layers:
         - !Ref Libraries
-      Timeout: 300
       MemorySize: 256
       Environment:
         Variables:
           CORS_ALLOW: !Ref CorsAllow
+          RELEASE_REGISTERS_LAMBDA: !GetAtt ReleaseRegistersFunction.Arn
+          METADATA_TABLE_NAME:
+            !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+          DATASETS_S3_BUCKET: # S3 implementation
+            !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName:
+              !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
+        - S3CrudPolicy: # S3 implementation
+            BucketName:
+              !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
+
+  ReleaseRegistersFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    DependsOn:
+      - MetadataTable
+      - DatasetsS3
+    Properties:
+      CodeUri: src/lambda/release_registers/
+      Layers:
+        - !Ref Libraries
+      Timeout: 900
+      MemorySize: 1769
+      Environment:
+        Variables:
           METADATA_TABLE_NAME:
             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
           DATASETS_S3_BUCKET: # S3 implementation

@@ -3,9 +3,8 @@ from time import time
 
 import boto3
 from botocore.exceptions import ClientError
-from format import format_response
 from pydantic import BaseModel, Field, ValidationError
-from register import DatasetReleaseStatus, Register, ReleaseReport
+from register import Dataset, DatasetReleaseStatus, Register, ReleaseReport
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -23,6 +22,12 @@ class ReleaseRegistersData(BaseModel):
 
 def lambda_handler(event, _):
     validated = ReleaseRegistersData.parse_obj(event)
+
+    METADATA_TABLE.update_item(
+        Key={"pk": validated.project_id, "sk": validated.dataset_id},
+        UpdateExpression="set releaseStatus = :r",
+        ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASING.value},
+    )
 
     try:
         item_list = S3CLIENT.list_objects_v2(
@@ -45,20 +50,20 @@ def lambda_handler(event, _):
 
             print(f"Validate {key}: {time() - start}")
 
-        # need to actually set released value in the dataset metadata object in dynamodb
-        if release_report.release_status == DatasetReleaseStatus.RELEASED:
-            METADATA_TABLE.update_item(
-                Key={"pk": validated.project_id, "sk": validated.dataset_id},
-                UpdateExpression="set releaseStatus = :r",
-                ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASED.value},
-            )
-
-        return format_response(
-            200, release_report.json(by_alias=True), preformatted=True
+        dataset_response = METADATA_TABLE.get_item(
+            Key={"pk": validated.project_id, "sk": validated.dataset_id},
         )
+        dataset = Dataset.parse_table_item(dataset_response.get("Item", None))
 
-    except ValidationError or ClientError as e:
-        return {
-            "statusCode": 400,
-            "body": f'{{"message":"Couldn\'t release dataset.", "error":"{e.json()}}}',
-        }
+        dataset.release_report = release_report
+        dataset.release_status = release_report.release_status
+
+        METADATA_TABLE.put_item(Item=dataset.table_item())
+
+    except ValidationError or ClientError:
+        METADATA_TABLE.update_item(
+            Key={"pk": validated.project_id, "sk": validated.dataset_id},
+            UpdateExpression="set releaseStatus = :r",
+            ExpressionAttributeValues={":r": DatasetReleaseStatus.UNRELEASED.value},
+        )
+        raise

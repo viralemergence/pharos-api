@@ -15,6 +15,9 @@ METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
 S3CLIENT = boto3.client("s3")
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
+LAMBDACLIENT = boto3.client("lambda")
+RELEASE_REGISTERS_LAMBDA = os.environ["RELEASE_REGISTERS_LAMBDA"]
+
 
 class ReleaseDatasetBody(BaseModel):
     """Event data payload to release a dataset."""
@@ -77,12 +80,26 @@ def lambda_handler(event, _):
             },
         )
 
-    # METADATA_TABLE.update_item(
-    #     Key={"pk": validated.project_id, "sk": validated.dataset_id},
-    #     UpdateExpression="set releaseStatus = :r",
-    #     ExpressionAttributeValues={":r": DatasetReleaseStatus.RELEASING.value},
-    # )
+    try:
+        print("INVOKE RELEASE FUNCTION HERE")
+        LAMBDACLIENT.invoke(
+            FunctionName=RELEASE_REGISTERS_LAMBDA,
+            InvocationType="Event",
+            Payload=ReleaseDatasetBody(
+                projectID=dataset.project_id, datasetID=dataset.dataset_id
+            ).json(by_alias=True),
+        )
 
-    ## INVOKE RELEASE FUNCTION HERE
+        return format_response(
+            200, {"message": "Dataset is being validated for release."}
+        )
 
-    return format_response(200, {"message": "Dataset is being validated for release."})
+    except ClientError as e:
+        return format_response(
+            500,
+            {
+                "statusCode": 400,
+                "body": f'{{"message":"Couldn\'t release dataset.", "error":{e}}}',
+            },
+            preformatted=True,
+        )
