@@ -3,6 +3,7 @@ import time
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 from engine import get_engine
 from models import Base, PublishedDataset, PublishedProject, PublishedRecord
 from publish_register import (
@@ -42,29 +43,44 @@ def download_and_create_published_records(
 ) -> list[PublishedRecord]:
 
     start = time.time()
-    key = f"{dataset.dataset_id}/data.json"
-    register_json = (
-        S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
-        .read()
-        .decode("utf-8")
-    )
+    try:
+        item_list = S3CLIENT.list_objects_v2(
+            Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset.dataset_id}/"
+        )["Contents"]
 
-    print("Load register", time.time() - start)
-    start = time.time()
+        records = []
+        for item in item_list:
+            key = item["Key"]
+            print(f"Dataset page {key}")
 
-    records = create_published_records(
-        register_json=register_json,
-        project_id=published_dataset.project_id,
-        dataset_id=dataset.dataset_id,
-    )
+            register_json = (
+                S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
+                .read()
+                .decode("utf-8")
+            )
 
-    dataset.release_status = DatasetReleaseStatus.PUBLISHED
-    dataset.last_updated = datetime.utcnow().isoformat() + "Z"
-    METADATA_TABLE.put_item(Item=dataset.table_item())
+            print("Load register", time.time() - start)
+            start = time.time()
 
-    print("Add dataset to project", time.time() - start)
+            records.extend(create_published_records(
+                register_json=register_json,
+                project_id=published_dataset.project_id,
+                dataset_id=dataset.dataset_id,
+            ))
 
-    return records
+        dataset.release_status = DatasetReleaseStatus.PUBLISHED
+        dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+        METADATA_TABLE.put_item(Item=dataset.table_item())
+
+        print("Add dataset to project", time.time() - start)
+
+        return records
+
+    except ClientError as e:
+        dataset.release_status = DatasetReleaseStatus.UNRELEASED
+        dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+        METADATA_TABLE.put_item(Item=dataset.table_item())
+        raise e
 
 
 def lambda_handler(event: dict, _):
