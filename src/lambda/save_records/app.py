@@ -62,7 +62,7 @@ def lambda_handler(event, _):
 
         # simply skip legacy (pre-pagination)
         # record_ids and leave 'page' as None
-        if len(parts) != 0:
+        if len(parts) >= 2:
             record_page = int(parts[0].replace("rec", ""))
             if page is None:
                 page = record_page

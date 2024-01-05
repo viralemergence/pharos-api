@@ -734,7 +734,7 @@ class Record(BaseModel):
         for key in extra_fields:
             dat = Datapoint(**self.__dict__[key])
             dat.report = Report(
-                status=ReportScore.WARNING, message="Datapoint is not recognized."
+                status=ReportScore.FAIL, message="Datapoint is not recognized."
             )
             self.__dict__[key] = dat
 
