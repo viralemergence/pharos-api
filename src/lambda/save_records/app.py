@@ -62,16 +62,14 @@ def lambda_handler(event, _):
 
         # simply skip legacy (pre-pagination)
         # record_ids and leave 'page' as None
-        if len(parts) == 0:
-            continue
-
-        record_page = int(parts[0].replace("rec", ""))
-        if page is None:
-            page = record_page
-        elif page != record_page:
-            return format_response(
-                400, "All records in each request must be stored in the same page"
-            )
+        if len(parts) != 0:
+            record_page = int(parts[0].replace("rec", ""))
+            if page is None:
+                page = record_page
+            elif page != record_page:
+                return format_response(
+                    400, "All records in each request must be stored in the same page"
+                )
 
     if page is None:
         key = f"{validated.dataset_id}/data.json"
