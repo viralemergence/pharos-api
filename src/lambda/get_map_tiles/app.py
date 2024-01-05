@@ -126,6 +126,7 @@ def lambda_handler(event, _):
                     PublishedRecord.geom, func.ST_Transform(tile_bounds, 4326)
                 )
             )
+            .limit(50000)
             .cte("mvt_geom")
         )
 
