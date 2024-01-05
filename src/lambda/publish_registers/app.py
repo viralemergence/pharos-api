@@ -39,40 +39,26 @@ class PublishRegistersData(BaseModel):
 
 
 def download_and_create_published_records(
-    published_dataset: PublishedDataset, dataset: Dataset
+    published_dataset: PublishedDataset, dataset: Dataset, key: str
 ) -> list[PublishedRecord]:
 
     start = time.time()
     try:
-        item_list = S3CLIENT.list_objects_v2(
-            Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset.dataset_id}/"
-        )["Contents"]
+        register_json = (
+            S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
+            .read()
+            .decode("utf-8")
+        )
 
-        records = []
-        for item in item_list:
-            key = item["Key"]
-            print(f"Dataset page {key}")
+        start = time.time()
 
-            register_json = (
-                S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]
-                .read()
-                .decode("utf-8")
-            )
+        records = create_published_records(
+            register_json=register_json,
+            project_id=published_dataset.project_id,
+            dataset_id=dataset.dataset_id,
+        )
 
-            print("Load register", time.time() - start)
-            start = time.time()
-
-            records.extend(create_published_records(
-                register_json=register_json,
-                project_id=published_dataset.project_id,
-                dataset_id=dataset.dataset_id,
-            ))
-
-        dataset.release_status = DatasetReleaseStatus.PUBLISHED
-        dataset.last_updated = datetime.utcnow().isoformat() + "Z"
-        METADATA_TABLE.put_item(Item=dataset.table_item())
-
-        print("Add dataset to project", time.time() - start)
+        print("Load register and create records", time.time() - start)
 
         return records
 
@@ -109,6 +95,7 @@ def lambda_handler(event: dict, _):
         for dataset in metadata.released_datasets:
             print("Publishing Dataset", dataset.dataset_id)
             start = time.time()
+
             with Session(engine) as session:
                 published_project = session.scalar(
                     select(PublishedProject).where(
@@ -120,17 +107,37 @@ def lambda_handler(event: dict, _):
                     raise Exception("Project not found")
 
                 published_dataset = create_published_dataset(dataset=dataset)
-
-                published_dataset.records = download_and_create_published_records(
-                    published_dataset=published_dataset,
-                    dataset=dataset,
-                )
-
                 published_project.datasets.append(published_dataset)
 
-                session.commit()
+                try:
+                    item_list = S3CLIENT.list_objects_v2(
+                        Bucket=DATASETS_S3_BUCKET, Prefix=f"{dataset.dataset_id}/"
+                    )["Contents"]
+
+                except ClientError as e:
+                    dataset.release_status = DatasetReleaseStatus.UNRELEASED
+                    dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+                    METADATA_TABLE.put_item(Item=dataset.table_item())
+                    raise e
+
+                for item in item_list:
+                    published_dataset.records.extend(
+                        download_and_create_published_records(
+                            published_dataset=published_dataset,
+                            dataset=dataset,
+                            key=item['Key']
+                        )
+                    )
+
+                    session.commit()
+
                 print(f"Published dataset {dataset.name}", time.time() - start)
 
+            dataset.release_status = DatasetReleaseStatus.PUBLISHED
+            dataset.last_updated = datetime.utcnow().isoformat() + "Z"
+            METADATA_TABLE.put_item(Item=dataset.table_item())
+
+        print("Add dataset to project", time.time() - start)
         metadata.project.last_updated = datetime.utcnow().isoformat() + "Z"
         metadata.project.publish_status = ProjectPublishStatus.PUBLISHED
         METADATA_TABLE.put_item(Item=metadata.project.table_item())
