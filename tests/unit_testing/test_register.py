@@ -98,12 +98,12 @@ UNKNOWN_DATAPOINT = """
 
 
 def test_unknown_datapoint():
-    """Testing unknown datapoint warning"""
+    """Testing unknown datapoint failure"""
     record = Record.parse_raw(UNKNOWN_DATAPOINT)
     datapoint = getattr(record, "Unknown datapoint")
     assert datapoint is not None
     assert datapoint.report is not None
-    assert datapoint.report.status == ReportScore.WARNING
+    assert datapoint.report.status == ReportScore.FAIL
 
 
 DATAPOINT_ILLEGAL_KEYS = """
@@ -567,10 +567,10 @@ def test_fail_release_report():
     assert report is not None
     assert report.release_status is DatasetReleaseStatus.UNRELEASED
     assert report.success_count == 4
-    assert report.fail_count == 1
-    assert report.warning_count == 1
+    assert report.fail_count == 2
+    assert report.warning_count == 0
     assert report.missing_count == 1
-    assert report.warning_fields["rec12345"][0] == "Random column"
+    assert report.fail_fields["rec12345"][1] == "Random column"
     assert report.fail_fields["rec12345"][0] == "Host species NCBI tax ID"
 
     # detection_outcome has a data_value of "" so but it is
