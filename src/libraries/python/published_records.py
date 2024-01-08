@@ -2,8 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
 from column_alias import API_NAME_TO_UI_NAME_MAP, UI_NAME_TO_API_NAME_MAP
-from models import (PublishedDataset, PublishedProject, PublishedRecord,
-                    Researcher)
+from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
 from published_records_metadata import sortable_fields
 from pydantic import BaseModel, Extra, Field, validator
 from register import COMPLEX_FIELDS
@@ -90,11 +89,8 @@ class FiltersQueryStringParameters(BaseModel):
 
 class QueryStringParameters(FiltersQueryStringParameters):
     page: int = Field(ge=1, alias="page")
-    page_size: int = Field(ge=1, le=100, alias="pageSize")
+    page_size: int = Field(ge=1, le=10000, alias="pageSize")
     sort: Optional[list[str]] = Field(alias="sort")
-
-    class Config:
-        extra = Extra.forbid
 
 
 def get_compound_filter(

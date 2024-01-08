@@ -1,10 +1,10 @@
 import os
-import boto3
-from botocore.utils import ClientError
-from pydantic import BaseModel, Extra, Field, ValidationError
 
+import boto3
 from auth import check_auth
+from botocore.utils import ClientError
 from format import format_response
+from pydantic import BaseModel, Extra, Field, ValidationError
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -16,8 +16,8 @@ DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 class LoadRegisterBody(BaseModel):
     """Event data payload to load a dataset register."""
 
-    project_id: str = Field(..., alias="projectID")
-    dataset_id: str = Field(..., alias="datasetID")
+    project_id: str = Field(alias="projectID")
+    dataset_id: str = Field(alias="datasetID")
 
     class Config:
         extra = Extra.forbid
@@ -45,7 +45,6 @@ def lambda_handler(event, _):
         return format_response(403, "Researcher does not have access to this project")
 
     try:
-
         key = f"{validated.dataset_id}/data.json"
         register_json = (
             S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)["Body"]

@@ -1,10 +1,9 @@
 """Tests for the register parsing and validation classes"""
 
 import datetime
+
 import pytest
-
-from register import DatasetReleaseStatus, Record, Register, ReportScore
-
+from register import Datapoint, DatasetReleaseStatus, Record, Register, ReportScore
 
 VALID_RECORD = """
 {
@@ -99,12 +98,12 @@ UNKNOWN_DATAPOINT = """
 
 
 def test_unknown_datapoint():
-    """Testing unknown datapoint warning"""
+    """Testing unknown datapoint failure"""
     record = Record.parse_raw(UNKNOWN_DATAPOINT)
     datapoint = getattr(record, "Unknown datapoint")
     assert datapoint is not None
     assert datapoint.report is not None
-    assert datapoint.report.status == ReportScore.WARNING
+    assert datapoint.report.status == ReportScore.FAIL
 
 
 DATAPOINT_ILLEGAL_KEYS = """
@@ -568,10 +567,10 @@ def test_fail_release_report():
     assert report is not None
     assert report.release_status is DatasetReleaseStatus.UNRELEASED
     assert report.success_count == 4
-    assert report.fail_count == 1
-    assert report.warning_count == 1
+    assert report.fail_count == 2
+    assert report.warning_count == 0
     assert report.missing_count == 1
-    assert report.warning_fields["rec12345"][0] == "Random column"
+    assert report.fail_fields["rec12345"][1] == "Random column"
     assert report.fail_fields["rec12345"][0] == "Host species NCBI tax ID"
 
     # detection_outcome has a data_value of "" so but it is
@@ -584,3 +583,321 @@ def test_fail_release_report():
     assert set(report.missing_fields["rec12345"]) == {
         "Collection day",
     }
+
+
+LEFT_DATAPOINT = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "previous": {
+            "dataValue": "Oldest",
+            "modifiedBy": "dev",
+            "version": "1"
+        }
+    }
+}
+"""
+
+RIGHT_DATAPOINT = """
+{
+    "Host species": {
+        "dataValue": "Second most recent",
+        "modifiedBy": "dev",
+        "version": "3",
+        "previous": {
+            "dataValue": "Second oldest",
+            "modifiedBy": "dev",
+            "version": "2"
+        }
+    }
+}
+"""
+
+
+def test_basic_merge_datapoint():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous
+    assert result.previous.previous.data_value == "Second oldest"
+    assert result.previous.previous.previous
+    assert result.previous.previous.previous.data_value == "Oldest"
+
+
+def test_merge_datapoint_symmetry():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    result = Datapoint.merge(right.host_species, left.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous
+    assert result.previous.previous.data_value == "Second oldest"
+    assert result.previous.previous.previous
+    assert result.previous.previous.previous.data_value == "Oldest"
+
+
+def test_merge_with_none():
+    """Merging with none should result in an unchanged datapoint"""
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    right = Record.construct()
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.previous
+    assert result.previous.data_value == "Oldest"
+
+
+def test_merge_no_previous():
+    left = Record.parse_raw(LEFT_DATAPOINT)
+    assert left.host_species
+    left.host_species.previous = None
+
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+    assert right.host_species
+    right.host_species.previous = None
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.previous
+    assert result.previous.data_value == "Second most recent"
+    assert result.previous.previous == None
+
+
+def test_merge_with_empty_string():
+    """Datapoint merges must preserve datapoints where
+    data_value == "" because this means the user has
+    intentionally removed the value."""
+
+    left = Record.parse_raw(LEFT_DATAPOINT)
+
+    assert left.host_species
+    left.host_species.data_value = ""
+
+    right = Record.parse_raw(RIGHT_DATAPOINT)
+
+    assert right.host_species
+    assert right.host_species.previous
+    right.host_species.previous.data_value = ""
+
+    result = Datapoint.merge(left.host_species, right.host_species)
+
+    assert result is not None
+    assert result.data_value is not None
+    assert result.data_value == ""
+    assert result.previous is not None
+    assert result.previous.previous is not None
+    assert result.previous.previous.data_value == ""
+
+
+DATAPOINT_WITH_FAIL = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "report": {
+            "status": "FAIL",
+            "message": "Datapoint is not ready to release",
+            "data": null
+        }
+    }
+}
+"""
+
+CONFLICTING_DATAPOINT_NO_REPORT = """
+{
+    "Host species": {
+        "dataValue": "Most recent",
+        "modifiedBy": "dev",
+        "version": "4",
+        "previous": {
+            "dataValue": "Older value",
+            "modifiedBy": "dev",
+            "version": "1",
+            "report": {
+                "status": "SUCCESS",
+                "message": "Ready to release",
+                "data": null
+            }
+        }
+    }
+}
+"""
+
+
+def test_merge_with_reports():
+    """When merging two datapoints with the same version number,
+    preserve the datapoint with a report, without modifying the
+    report, duplicating the datapoint, or losing the history."""
+    fail = Record.parse_raw(DATAPOINT_WITH_FAIL)
+    conflict = Record.parse_raw(CONFLICTING_DATAPOINT_NO_REPORT)
+
+    result = Datapoint.merge(fail.host_species, conflict.host_species)
+
+    assert result
+    assert result.data_value == "Most recent"
+    assert result.report
+    assert result.report.status == ReportScore.FAIL
+    assert result.previous
+    assert result.previous.report
+    assert result.previous.report.status == ReportScore.SUCCESS
+
+
+LEFT_REGISTER = """
+{
+    "Host species": {
+        "dataValue": "Vulpes vulpes",
+        "modifiedBy": "dev",
+        "version": "2"
+    },
+    "Host species NCBI tax ID": {
+        "dataValue": "Vulpes vulpes",
+        "modifiedBy": "dev",
+        "version": "2"
+    },
+    "Latitude": {
+        "dataValue": "40.0150",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Longitude": {
+        "dataValue": "105.2705",
+        "modifiedBy": "dev",
+        "version": "1679692223"
+    },
+    "Collection month": {
+        "dataValue": "1",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Collection year": {
+        "dataValue": "2019",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Pathogen": {
+        "dataValue": "SARS-CoV-2",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Detection outcome": {
+        "dataValue": "",
+        "modifiedBy": "dev",
+        "version": "2679692123"
+    },
+    "Random column": {
+        "dataValue": "SARS-CoV-2",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+}
+}
+"""
+
+RIGHT_REGISTER = """
+{
+    "Host species": {
+        "dataValue": "Old host species",
+        "modifiedBy": "dev",
+        "version": "1"
+    },
+    "Host species NCBI tax ID": {
+        "dataValue": "Vulpes vulpes",
+        "modifiedBy": "dev",
+        "version": "2"
+    },
+    "Latitude": {
+        "dataValue": "40.0150",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Longitude": {
+        "dataValue": "105.2705",
+        "modifiedBy": "dev",
+        "version": "1679692223"
+    },
+    "Collection month": {
+        "dataValue": "1",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Collection year": {
+        "dataValue": "2019",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Pathogen": {
+        "dataValue": "SARS-CoV-2",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    },
+    "Detection outcome": {
+        "dataValue": "Old detection outcome",
+        "modifiedBy": "dev",
+        "version": "1676692123"
+    },
+    "Random column": {
+        "dataValue": "SARS-CoV-2",
+        "modifiedBy": "dev",
+        "version": "1679692123"
+    }
+}
+"""
+
+
+def test_merge_register():
+    left = Record.parse_raw(LEFT_REGISTER)
+    right = Record.parse_raw(RIGHT_REGISTER)
+
+    merged = Record.merge(left, right)
+
+    assert merged
+    assert merged.host_species
+    assert str(merged.host_species) == "Vulpes vulpes"
+    assert merged.host_species.previous
+    assert merged.host_species.previous.data_value == "Old host species"
+    assert merged.host_species.previous.previous == None
+
+    assert merged.detection_outcome is not None
+    assert str(merged.detection_outcome) == ""
+    assert merged.detection_outcome.previous
+    assert str(merged.detection_outcome.previous) == "Old detection outcome"
+
+    assert merged.detection_outcome.previous.report
+    assert merged.detection_outcome.previous.report.status == ReportScore.FAIL
+
+
+def test_merge_register_symmetry():
+    left = Record.parse_raw(LEFT_REGISTER)
+    right = Record.parse_raw(RIGHT_REGISTER)
+
+    merged = Record.merge(right, left)
+
+    assert merged
+    assert merged.host_species
+    assert str(merged.host_species) == "Vulpes vulpes"
+    assert merged.host_species.previous
+    assert merged.host_species.previous.data_value == "Old host species"
+    assert merged.host_species.previous.previous == None
+
+    assert merged.detection_outcome is not None
+    assert str(merged.detection_outcome) == ""
+    assert merged.detection_outcome.previous
+    assert str(merged.detection_outcome.previous) == "Old detection outcome"
+
+    assert merged.detection_outcome.previous.report
+    assert merged.detection_outcome.previous.report.status == ReportScore.FAIL

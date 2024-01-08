@@ -4,15 +4,12 @@ import os
 from typing import Dict
 
 import boto3
-from pydantic import BaseModel, Extra, Field, ValidationError
-
 from auth import check_auth
 from format import format_response
+from pydantic import BaseModel, Extra, Field, ValidationError
 from register import Record
 
-
 S3CLIENT = boto3.client("s3")
-N_VERSIONS = os.environ["N_VERSIONS"]
 DATASETS_S3_BUCKET = os.environ["DATASETS_S3_BUCKET"]
 
 
