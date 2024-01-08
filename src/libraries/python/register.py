@@ -21,13 +21,12 @@ and records.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
-from functools import wraps
 from enum import Enum
-
-from pydantic import BaseModel, Extra, Field, validator
+from functools import wraps
+from typing import Any, Dict, Optional, cast
 
 from column_alias import get_ui_name
+from pydantic import BaseModel, Extra, Field, validator
 from value_alias import (
     DEAD_OR_ALIVE_VALUES_MAP,
     DETECTION_OUTCOME_VALUES_MAP,
@@ -167,6 +166,7 @@ class DatasetReleaseStatus(str, Enum):
     """The state the dataset in the release process"""
 
     UNRELEASED = "Unreleased"
+    RELEASING = "Releasing"
     RELEASED = "Released"
     PUBLISHED = "Published"
     PUBLISHING = "Publishing"
@@ -182,16 +182,58 @@ class Version(BaseModel):
     name: str
 
 
+class RegisterPage(BaseModel):
+    """Object for tracking pages of datasets, used for
+    paginated storage and processing."""
+
+    last_updated: str = Field(None, alias="lastUpdated")
+
+
+class ReleaseReport(BaseModel):
+    release_status: DatasetReleaseStatus = Field(
+        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
+    )
+    success_count: int = Field(default=0, alias="successCount")
+    warning_count: int = Field(default=0, alias="warningCount")
+    fail_count: int = Field(default=0, alias="failCount")
+    missing_count: int = Field(default=0, alias="missingCount")
+    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
+    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
+    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
+
+    @classmethod
+    def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
+        next = ReleaseReport()
+
+        if (
+            # set RELEASED if both reports agree
+            left.release_status == DatasetReleaseStatus.RELEASED
+            and right.release_status == DatasetReleaseStatus.RELEASED
+        ):
+            next.release_status = DatasetReleaseStatus.RELEASED
+
+        next.success_count = left.success_count + right.success_count
+        next.warning_count = left.warning_count + right.warning_count
+        next.fail_count = left.fail_count + right.fail_count
+        next.missing_count = left.missing_count + right.missing_count
+
+        next.warning_fields = left.warning_fields | right.warning_fields
+        next.fail_fields = left.fail_fields | right.fail_fields
+        next.missing_fields = left.missing_fields | right.missing_fields
+
+        return next
+
+
 class Dataset(BaseModel):
     """The dataset object which contains
     metadata about the dataset.
     """
 
-    project_id: str = Field(..., alias="projectID")
+    project_id: str = Field(alias="projectID")
     """The projectID of the project to which this dataset
     belongs; used as the partition key in dynamodb."""
 
-    dataset_id: str = Field(..., alias="datasetID")
+    dataset_id: str = Field(alias="datasetID")
     """Unique identifier for the dataset; used as the sort key."""
 
     name: str
@@ -211,6 +253,13 @@ class Dataset(BaseModel):
 
     release_status: Optional[DatasetReleaseStatus] = Field(None, alias="releaseStatus")
     """Whether the dataset is unreleased, released, or published."""
+
+    release_report: Optional[ReleaseReport] = Field(alias="releaseReport")
+
+    register_pages: Optional[Dict[str, RegisterPage]] = Field(
+        None, alias="registerPages"
+    )
+    """Dictionary of metadata for paginated register storage and processing"""
 
     age: Optional[str]
     """The user-selected units for the age field"""
@@ -343,6 +392,39 @@ class Datapoint(BaseModel):
         """Check if data_value is numeric."""
         return self.data_value.isnumeric()
 
+    @classmethod
+    def merge(cls, left: "Datapoint | None", right: "Datapoint | None"):
+        """Given two versions of the same datapoint with differing histories,
+        return a merged single datapoint with one chronological history."""
+        if left is None:
+            return right
+        if right is None:
+            return left
+
+        # If version is a perfect match, keep
+        # the datapoint which has a report
+        if left.version == right.version:
+            if left.report:
+                next = left.copy()
+                next.previous = Datapoint.merge(left.previous, right.previous)
+                return next
+            if right.report:
+                next = right.copy()
+                next.previous = Datapoint.merge(left.previous, right.previous)
+                return next
+            # if there is no report to preserve, they are considered
+            # identical so it doesn't matter which we keep.
+            return left
+
+        if left.version > right.version:
+            next = left.copy()
+            next.previous = Datapoint.merge(left.previous, right)
+            return next
+
+        next = right.copy()
+        next.previous = Datapoint.merge(left, right.previous)
+        return next
+
     class Config:
         extra = Extra.forbid
 
@@ -394,6 +476,14 @@ def validator_skip_empty_string(func):
     return wrapper
 
 
+class RecordMeta(BaseModel):
+    """An object for storing metadata about a
+    record, such as the user's desired default
+    order of the records."""
+
+    order: int
+
+
 class Record(BaseModel):
     """The record object is displayed as a "row"
     to the user in the user interface, and closely
@@ -405,6 +495,7 @@ class Record(BaseModel):
     display in the user interface.
     """
 
+    meta: Optional[RecordMeta] = Field(alias="_meta")
     sample_id: Optional[DefaultPassDatapoint] = None
     animal_id: Optional[DefaultPassDatapoint] = None
     host_species: Optional[DefaultPassDatapoint] = None
@@ -643,26 +734,34 @@ class Record(BaseModel):
         for key in extra_fields:
             dat = Datapoint(**self.__dict__[key])
             dat.report = Report(
-                status=ReportScore.WARNING, message="Datapoint is not recognized."
+                status=ReportScore.FAIL, message="Column is not recognized."
             )
             self.__dict__[key] = dat
 
-    def __iter__(self):
-        iterable: Dict[str, Datapoint] = self.__dict__
+    def __iter__(self):  # pyright: ignore [reportIncompatibleMethodOverride]
+        iterable: Dict[str, Datapoint | RecordMeta] = self.__dict__
         return iter(iterable.items())
 
+    @classmethod
+    def merge(cls, left: "Record | None", right: "Record | None"):
+        """Given two versions of the same record, iterate all fields and
+        merge all datapoints in both records. If both are None return None"""
+        if right is None:
+            return left
+        if left is None:
+            return right
 
-class ReleaseReport(BaseModel):
-    release_status: DatasetReleaseStatus = Field(
-        default=DatasetReleaseStatus.UNRELEASED, alias="releaseStatus"
-    )
-    success_count: int = Field(default=0, alias="successCount")
-    warning_count: int = Field(default=0, alias="warningCount")
-    fail_count: int = Field(default=0, alias="failCount")
-    missing_count: int = Field(default=0, alias="missingCount")
-    warning_fields: dict[str, list] = Field(default={}, alias="warningFields")
-    fail_fields: dict[str, list] = Field(default={}, alias="failFields")
-    missing_fields: dict[str, list] = Field(default={}, alias="missingFields")
+        next = Record()
+
+        for field in cls.__fields__:
+            if field != "meta":
+                setattr(
+                    next,
+                    field,
+                    Datapoint.merge(getattr(left, field), getattr(right, field)),
+                )
+
+        return next
 
 
 class Register(BaseModel):
@@ -671,7 +770,7 @@ class Register(BaseModel):
     the dictionary of all the records.
     """
 
-    register_data: Dict[str, Record] = Field(..., alias="register")
+    register_data: Dict[str, Record] = Field(alias="register")
 
     def get_release_report(self) -> ReleaseReport:
         """The release report summarizes all errors and
@@ -696,6 +795,11 @@ class Register(BaseModel):
                     report.missing_fields[record_id].append(get_ui_name(field))
 
             for field, datapoint in record:
+                if field == "meta":
+                    continue
+
+                datapoint = cast(Datapoint, datapoint)
+
                 if (
                     datapoint is None
                     or datapoint.report is None

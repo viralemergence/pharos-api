@@ -1,4 +1,5 @@
 import base64
+import os
 from typing import Optional
 
 from engine import get_engine
@@ -10,10 +11,9 @@ from published_records import (
     get_multi_value_query_string_parameters,
 )
 from pydantic import BaseModel, Field, ValidationError, validator
-from sqlalchemy import ColumnElement, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from urllib3.filepost import os
 
 CORS_ALLOW = os.environ["CORS_ALLOW"]
 
@@ -126,6 +126,7 @@ def lambda_handler(event, _):
                     PublishedRecord.geom, func.ST_Transform(tile_bounds, 4326)
                 )
             )
+            .limit(50000)
             .cte("mvt_geom")
         )
 

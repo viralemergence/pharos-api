@@ -1,11 +1,12 @@
-from datetime import datetime, date
 import json
 import time
-from geoalchemy2 import WKTElement
-from sqlalchemy.orm import Session
+from datetime import date, datetime
+
 from column_alias import get_api_name
+from geoalchemy2 import WKTElement
 from models import PublishedDataset, PublishedProject, PublishedRecord, Researcher
 from register import COMPLEX_FIELDS, Datapoint, Dataset, Project, Record, User
+from sqlalchemy.orm import Session
 
 
 def create_published_project(project: Project) -> PublishedProject:
@@ -99,6 +100,9 @@ def create_published_records(
 
         # construct a blank record with no fields or validation
         record = Record.construct()
+
+        # remove metadata object from record if present
+        record_dict.pop("_meta", None)
 
         for field, datapoint_dict in record_dict.items():
             # translate the column name to the record field name
