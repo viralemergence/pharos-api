@@ -125,7 +125,7 @@ def lambda_handler(event: dict, _):
                         download_and_create_published_records(
                             published_dataset=published_dataset,
                             dataset=dataset,
-                            key=item['Key']
+                            key=item["Key"],
                         )
                     )
 
@@ -153,7 +153,8 @@ def lambda_handler(event: dict, _):
                 DistributionId=cf_id,
                 InvalidationBatch={
                     "Paths": {"Quantity": 1, "Items": ["/*"]},
-                    "CallerReference": f"{metadata.project.project_id}_{metadata.project.last_updated}",
+                    "CallerReference": f"{metadata.project.project_id}"
+                    f"_{metadata.project.last_updated}",
                 },
             )
 
