@@ -2,7 +2,7 @@ version: 2.1
 
 credentials: &credentials
   - DockerHub Credentials
-  - Verena AWS Credentials
+  - AWS Credentials
 
 orbs:
   sam: circleci/aws-sam-serverless@4.0
@@ -95,12 +95,11 @@ jobs:
             # source env/bin/activate
             pyright
 
-      # temporarily removing style checks
-      # - run:
-      #     name: Run Style Checks
-      #     command: |
-      #       # source env/bin/activate
-      #       pylint -j 4 src/ tests/
+      - run:
+          name: Run Style Checks
+          command: |
+            # source env/bin/activate
+            pylint -j 4 src/ tests/
 
       - run:
           name: Add PostGIS to database
