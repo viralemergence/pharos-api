@@ -29,6 +29,7 @@ SES_CLIENT = boto3.client("ses", region_name=REGION)
 
 
 def lambda_handler(event, _):
+    # pylint: disable=too-many-locals
 
     props = CreateExportDataEvent.parse_obj(event)
     user = props.user
