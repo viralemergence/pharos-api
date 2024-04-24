@@ -48,7 +48,7 @@ def lambda_handler(event, _):
 
         for item in item_list:
             start = time()
-            key = item["Key"]
+            key = item["Key"]  # type: ignore
 
             register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
             register_json = register_response["Body"].read().decode("UTF-8")

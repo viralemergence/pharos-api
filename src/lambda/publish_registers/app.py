@@ -125,7 +125,7 @@ def lambda_handler(event: dict, _):
                         download_and_create_published_records(
                             published_dataset=published_dataset,
                             dataset=dataset,
-                            key=item["Key"],
+                            key=item["Key"],  # type: ignore
                         )
                     )
 
