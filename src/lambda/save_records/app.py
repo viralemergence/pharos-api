@@ -27,7 +27,7 @@ class SaveRecordsData(BaseModel):
 def lambda_handler(event, _):
     try:
         user = check_auth(event)
-    except ValidationError as e:
+    except ValidationError:
         return format_response(400, "Not Authorized")
 
     if not user:

@@ -203,25 +203,25 @@ class ReleaseReport(BaseModel):
 
     @classmethod
     def merge(cls, left: "ReleaseReport", right: "ReleaseReport"):
-        next = ReleaseReport()
+        next_report = ReleaseReport()
 
         if (
             # set RELEASED if both reports agree
             left.release_status == DatasetReleaseStatus.RELEASED
             and right.release_status == DatasetReleaseStatus.RELEASED
         ):
-            next.release_status = DatasetReleaseStatus.RELEASED
+            next_report.release_status = DatasetReleaseStatus.RELEASED
 
-        next.success_count = left.success_count + right.success_count
-        next.warning_count = left.warning_count + right.warning_count
-        next.fail_count = left.fail_count + right.fail_count
-        next.missing_count = left.missing_count + right.missing_count
+        next_report.success_count = left.success_count + right.success_count
+        next_report.warning_count = left.warning_count + right.warning_count
+        next_report.fail_count = left.fail_count + right.fail_count
+        next_report.missing_count = left.missing_count + right.missing_count
 
-        next.warning_fields = left.warning_fields | right.warning_fields
-        next.fail_fields = left.fail_fields | right.fail_fields
-        next.missing_fields = left.missing_fields | right.missing_fields
+        next_report.warning_fields = left.warning_fields | right.warning_fields
+        next_report.fail_fields = left.fail_fields | right.fail_fields
+        next_report.missing_fields = left.missing_fields | right.missing_fields
 
-        return next
+        return next_report
 
 
 class Dataset(BaseModel):
@@ -405,25 +405,25 @@ class Datapoint(BaseModel):
         # the datapoint which has a report
         if left.version == right.version:
             if left.report:
-                next = left.copy()
-                next.previous = Datapoint.merge(left.previous, right.previous)
-                return next
+                next_datapoint = left.copy()
+                next_datapoint.previous = Datapoint.merge(left.previous, right.previous)
+                return next_datapoint
             if right.report:
-                next = right.copy()
-                next.previous = Datapoint.merge(left.previous, right.previous)
-                return next
+                next_datapoint = right.copy()
+                next_datapoint.previous = Datapoint.merge(left.previous, right.previous)
+                return next_datapoint
             # if there is no report to preserve, they are considered
             # identical so it doesn't matter which we keep.
             return left
 
         if left.version > right.version:
-            next = left.copy()
-            next.previous = Datapoint.merge(left.previous, right)
-            return next
+            next_datapoint = left.copy()
+            next_datapoint.previous = Datapoint.merge(left.previous, right)
+            return next_datapoint
 
-        next = right.copy()
-        next.previous = Datapoint.merge(left, right.previous)
-        return next
+        next_datapoint = right.copy()
+        next_datapoint.previous = Datapoint.merge(left, right.previous)
+        return next_datapoint
 
     class Config:
         extra = Extra.forbid
@@ -751,17 +751,17 @@ class Record(BaseModel):
         if left is None:
             return right
 
-        next = Record()
+        next_record = Record()
 
         for field in cls.__fields__:
             if field != "meta":
                 setattr(
-                    next,
+                    next_record,
                     field,
                     Datapoint.merge(getattr(left, field), getattr(right, field)),
                 )
 
-        return next
+        return next_record
 
 
 class Register(BaseModel):

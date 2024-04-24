@@ -1,6 +1,6 @@
 import os
-from time import time
 from datetime import datetime
+from time import time
 
 import boto3
 from botocore.exceptions import ClientError
@@ -48,7 +48,7 @@ def lambda_handler(event, _):
 
         for item in item_list:
             start = time()
-            key = item["Key"]
+            key = item["Key"]  # type: ignore
 
             register_response = S3CLIENT.get_object(Bucket=DATASETS_S3_BUCKET, Key=key)
             register_json = register_response["Body"].read().decode("UTF-8")
@@ -64,7 +64,9 @@ def lambda_handler(event, _):
         post_validation_dataset_response = METADATA_TABLE.get_item(
             Key={"pk": validated.project_id, "sk": validated.dataset_id},
         )
-        post_validation_dataset = Dataset.parse_table_item(post_validation_dataset_response.get("Item", None))
+        post_validation_dataset = Dataset.parse_table_item(
+            post_validation_dataset_response.get("Item", None)
+        )
 
         # Only add the release report if there are no changes since the validation started
         if dataset.last_updated == post_validation_dataset.last_updated:
@@ -73,8 +75,8 @@ def lambda_handler(event, _):
             post_validation_dataset.last_updated = datetime.utcnow().isoformat() + "Z"
 
             METADATA_TABLE.put_item(Item=post_validation_dataset.table_item())
-    
-    except ValidationError or ClientError:
+
+    except (ValidationError, ClientError):
         METADATA_TABLE.update_item(
             Key={"pk": validated.project_id, "sk": validated.dataset_id},
             UpdateExpression="set releaseStatus = :r",

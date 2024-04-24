@@ -1,12 +1,12 @@
 import json
 import os
-import boto3
-from botocore.exceptions import ClientError
-from pydantic import BaseModel, Extra, ValidationError
-from auth import check_auth
-from format import format_response
-from register import Project
 
+import boto3
+from auth import check_auth
+from botocore.exceptions import ClientError
+from format import format_response
+from pydantic import BaseModel, Extra, ValidationError
+from register import Project
 
 DYNAMODB = boto3.resource("dynamodb")
 METADATA_TABLE = DYNAMODB.Table(os.environ["METADATA_TABLE_NAME"])
@@ -48,7 +48,7 @@ def lambda_handler(event, _):
 
     except ClientError as e:
         try:
-            if e.response["Error"]["Code"] == "ResourceNotFoundException":
+            if e.response["Error"]["Code"] == "ResourceNotFoundException":  # type: ignore
                 pass
             else:
                 return format_response(500, e)
