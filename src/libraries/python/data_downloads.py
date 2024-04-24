@@ -70,9 +70,9 @@ class DataDownloadMetadata(BaseModel):
 
         ui_filters = {}
         if filters:
-            for filter in filters:
-                if filters[filter]:
-                    ui_filters[get_ui_name(filter)] = filters[filter]
+            for ui_filter in filters:
+                if filters[ui_filter]:
+                    ui_filters[get_ui_name(ui_filter)] = filters[ui_filter]
 
         response["queryStringParameters"] = ui_filters
 

@@ -675,7 +675,7 @@ def test_merge_no_previous():
     assert result.data_value == "Most recent"
     assert result.previous
     assert result.previous.data_value == "Second most recent"
-    assert result.previous.previous == None
+    assert result.previous.previous is None
 
 
 def test_merge_with_empty_string():
@@ -870,7 +870,7 @@ def test_merge_register():
     assert str(merged.host_species) == "Vulpes vulpes"
     assert merged.host_species.previous
     assert merged.host_species.previous.data_value == "Old host species"
-    assert merged.host_species.previous.previous == None
+    assert merged.host_species.previous.previous is None
 
     assert merged.detection_outcome is not None
     assert str(merged.detection_outcome) == ""
@@ -892,7 +892,7 @@ def test_merge_register_symmetry():
     assert str(merged.host_species) == "Vulpes vulpes"
     assert merged.host_species.previous
     assert merged.host_species.previous.data_value == "Old host species"
-    assert merged.host_species.previous.previous == None
+    assert merged.host_species.previous.previous is None
 
     assert merged.detection_outcome is not None
     assert str(merged.detection_outcome) == ""

@@ -81,7 +81,7 @@ def lambda_handler(event, _):
             print("SERVER LAST UPDATED")
             print(server_last_updated)
 
-        except ClientError as e:
+        except ClientError:
             pass
 
         # If the client's last_updated timestamp matches or is
