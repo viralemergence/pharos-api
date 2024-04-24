@@ -1,8 +1,24 @@
+## 🌎 Pharos
+
+This repository is part of the [Pharos project](https://pharos.viralemergence.org/)
+which is split into three repositories:
+
+| Repository                                                             | Purpose                                            |
+| ---------------------------------------------------------------------- | -------------------------------------------------- |
+| [`pharos-frontend`](https://github.com/viralemergence/pharos-frontend) | Frontend application and deployment infrastructure |
+| [`pharos-api`](https://github.com/viralemergence/pharos-api)           | API and deployment infrastructure                  |
+| [`pharos-database`](https://github.com/viralemergence/pharos-database) | SQL database and deployment infrastructure         |
+
+<br>
+<br>
+<br>
 <h1 align="center">
   Pharos API
 </h1>
 
 ## 🚀 Deployment Status
+
+Click the badges below to view more information about builds on that branch.
 
 | Branch  | CI/CD Status                                                                                                                                                                                                                                                             | Url                                                                                                                          |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -11,13 +27,12 @@
 | Review  | [![CircleCI](https://dl.circleci.com/status-badge/img/gh/talus-analytics-bus/pharos-api/tree/review.svg?style=svg&circle-token=7494d111c827ff38804cb27ec3e149092ea67b69)](https://dl.circleci.com/status-badge/redirect/gh/talus-analytics-bus/pharos-api/tree/review)   | [https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/](https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/) |
 | Dev     | [![CircleCI](https://dl.circleci.com/status-badge/img/gh/talus-analytics-bus/pharos-api/tree/dev.svg?style=svg&circle-token=7494d111c827ff38804cb27ec3e149092ea67b69)](https://dl.circleci.com/status-badge/redirect/gh/talus-analytics-bus/pharos-api/tree/dev)         | [https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/](https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/) |
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
-
 ## 👩‍💻 Development Quick start
 
 1. Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-2. Install [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
-3. Create a development stack using the following command:
+1. Configure AWS SSO using the [Pharos AWS Access Portal](https://viralemergence.awsapps.com/start/)
+1. Install [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+1. Create a development stack using the following command:
 
 ```sh
 sam sync --stack-name pharos-api-[DEVELOPER_NAME]-dev-rds --region us-west-1 --template-file ./template.yaml
@@ -25,12 +40,7 @@ sam sync --stack-name pharos-api-[DEVELOPER_NAME]-dev-rds --region us-west-1 --t
 
 This will output the API url, which can be passed to the pharos-frontend develop command.
 
-## 🖥 Deployment Infrastructure
-
-All infrastructure is managed in `template.yaml`, and all changes to that template
-should be deployed by committing to a CCI tracking branch.
-
-## Run Tests Locally
+## Run Database & Tests Locally
 
 ### 1. Start local testing database using Docker:
 
@@ -71,3 +81,25 @@ source env/bin/activate
 pytest -v --cov=src/libraries/python/ --cov=src/lambda/ --cov-report=html
 cd htmlcov; python -m http.server 8080
 ```
+
+## 🏙️ Deployment Infrastructure
+
+All infrastructure is managed in `template.yaml`, and all changes to that template
+should be deployed by committing to a CCI tracking branch.
+
+Pharos is a hybrid serverless application, so multiple deployments of `pharos-api`
+will create multiple independent stacks with separate serverless resources, but
+the deployments will share the database server and networking resources deployed
+by the `pharos-database` stack. This means there is no marginal cost to deploying
+additional instances of `pharos-api`, because these resources are billed only
+according to usage.
+
+In general, `pharos-api` consists of two api gateways, one for binary output for
+map tiles, and one for JSON output, which serves all other API routes. Each API
+route is served by a lambda function, with permissions to access stateful resources
+(DynamoDB and S3) or the database server (deployed as
+[`pharos-database`](https://github.com/viralemergence/pharos-database)) as necessary.
+
+### Simplified Infrastructure Diagram
+
+![Overview diagram](https://github.com/viralemergence/pharos-api/blob/dev/img/pharos-api-highlevel.png)
