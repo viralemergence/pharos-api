@@ -1,4 +1,4 @@
-## 🌎 Pharos
+[![Pharos](https://github.com/viralemergence/pharos-database/blob/prod/img/pharos-banner.png)](https://pharos.viralemergence.org/)
 
 This repository is part of the [Pharos project](https://pharos.viralemergence.org/)
 which is split into three repositories:
@@ -22,12 +22,12 @@ Click the badges below to view more information about builds on that branch.
 Changes pushed to any CI/CD branch will automatically be deployed to the
 corresponding environment.
 
-| Branch    | CI/CD Status                                                                                                                                                                                                                                             | Url                                                                                                                          |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `prod`    | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/prod)    | [https://rt036ira4i.execute-api.us-west-1.amazonaws.com/Prod/](https://rt036ira4i.execute-api.us-west-1.amazonaws.com/Prod/) |
-| `staging` | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/staging) | [https://x77ethnbni.execute-api.us-west-1.amazonaws.com/Prod/](https://x77ethnbni.execute-api.us-west-1.amazonaws.com/Prod/) |
-| `review`  | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/review)  | [https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/](https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/) |
-| `dev`     | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev)     | [https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/](https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/) |
+| Branch    | CI/CD Status                                                                                                                                                                                                                                                               | Url                                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `prod`    | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/prod.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/baac8a1b-cc90-4da0-b42c-9141f8340dab/tree/prod)       | [https://rt036ira4i.execute-api.us-west-1.amazonaws.com/Prod/](https://rt036ira4i.execute-api.us-west-1.amazonaws.com/Prod/) |
+| `staging` | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/staging.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/baac8a1b-cc90-4da0-b42c-9141f8340dab/tree/staging) | [https://x77ethnbni.execute-api.us-west-1.amazonaws.com/Prod/](https://x77ethnbni.execute-api.us-west-1.amazonaws.com/Prod/) |
+| `review`  | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/review.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/baac8a1b-cc90-4da0-b42c-9141f8340dab/tree/review)   | [https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/](https://wc85irdg5d.execute-api.us-west-1.amazonaws.com/Prod/) |
+| `dev`     | [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/39PL8myokkHY7obZPJeFEC/Q3ya5vyUY8Lq4TTPcxM7Sz/tree/dev.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/39PL8myokkHY7obZPJeFEC/baac8a1b-cc90-4da0-b42c-9141f8340dab/tree/main)        | [https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/](https://9itsn2ewjb.execute-api.us-west-1.amazonaws.com/Prod/) |
 
 ## 👩‍💻 Development Quick start
 
@@ -49,6 +49,8 @@ This will output the API url, which can be passed to the pharos-frontend develop
 This command will start a docker container called `pharos-pytest-database` which
 is intended to be a completely throwaway database (will not persist data on shutdown)
 only for running local tests using pytest.
+
+The database will be populated with records during the course of running tests as necessary.
 
 ```sh
 docker run --rm \
