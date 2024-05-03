@@ -3,11 +3,12 @@
 This repository is part of the [Pharos project](https://pharos.viralemergence.org/)
 which is split into three repositories:
 
-| Repository                                                             | Purpose                                            |
-| ---------------------------------------------------------------------- | -------------------------------------------------- |
-| [`pharos-frontend`](https://github.com/viralemergence/pharos-frontend) | Frontend application and deployment infrastructure |
-| [`pharos-api`](https://github.com/viralemergence/pharos-api)           | API and deployment infrastructure                  |
-| [`pharos-database`](https://github.com/viralemergence/pharos-database) | SQL database and deployment infrastructure         |
+| Repository                                                                       | Purpose                                               |
+| ---------------------------------------------------------------------------------| ------------------------------------------------------|
+| [`pharos-frontend`](https://github.com/viralemergence/pharos-frontend)           | Frontend application and deployment infrastructure    |
+| [`pharos-api`](https://github.com/viralemergence/pharos-api)                     | API and deployment infrastructure                     |
+| [`pharos-database`](https://github.com/viralemergence/pharos-database)           | SQL database and deployment infrastructure            |
+| [`pharos-documentation`](https://github.com/viralemergence/pharos-documentation) | Markdown files used to generate about pages |
 
 <br>
 <br>
