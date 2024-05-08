@@ -41,7 +41,6 @@ corresponding environment.
 sam sync \
   --stack-name pharos-api-[DEVELOPER_NAME]-dev \
   --region us-east-2 \
-  --profile verena-prod-dev
 ```
 
 | Argument       | Source                                                                                                                                           |
@@ -50,7 +49,9 @@ sam sync \
 | `--region`     | `us-east-2` because the API and [pharos-database](https://github.com/viralemergence/pharos-api) should be in the same region                     |
 | `--profile`    | Optional, if `[default]` profile is set. </br> Configure AWS SSO using the [Pharos AWS Access Portal](https://viralemergence.awsapps.com/start/) |
 
-This will output the API url, which can be passed to the pharos-frontend develop command.
+This will deploy a new `pharos` stack, and output the Api url, ClientId, and UserPoolId which should be passed to the pharos-frontend develop command.
+
+Additional arguments for the `sam sync` command [can be found here.](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-sync.html)
 
 ## Run Database & Tests Locally
 
