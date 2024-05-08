@@ -1271,16 +1271,12 @@ Resources:
       ServiceToken: !GetAtt PermissionsFunction.Arn
 
 Outputs:
-  PharosApi:
-    Description: "API Endpoint"
+  Api:
+    Description: "API Endpoint for --api argument"
     Value: !Join ["", ["https://", !GetAtt ApiCloudFrontDistribution.DomainName, "/prod"]]
-      # !Sub "https://${JSONApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
-  # PharosMappingApi:
-  #   Description: "Pharos Maps Tileserver API Endpoint"
-  #   Value: !Sub "https://${MappingApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
-  UserPoolID:
-    Description: "Cognito User Pool ID"
+  UserPoolId:
+    Description: "Cognito User Pool ID for --user_pool_id argument"
     Value: !Ref UserPool
-  ClientID:
-    Description: "Pharos Frontend Client ID"
+  ClientId:
+    Description: "Pharos Frontend Client ID for --client_id argument"
     Value: !Ref UserPoolClient
