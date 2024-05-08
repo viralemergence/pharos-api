@@ -40,7 +40,7 @@ corresponding environment.
 ```sh
 sam sync \
   --stack-name pharos-api-[DEVELOPER_NAME]-dev \
-  --region us-east-2 \
+  --region us-east-2
 ```
 
 | Argument       | Source                                                                                                                                           |
