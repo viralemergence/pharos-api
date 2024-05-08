@@ -1235,48 +1235,6 @@ Resources:
             TableName:
               !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
 
-  # DownloadDataFunction:
-  #   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-  #   Properties:
-  #     CodeUri: src/lambda/download_data/
-  #     VpcConfig:
-  #       SecurityGroupIds:
-  #         - !ImportValue pharos-database-VPCSG
-  #       SubnetIds:
-  #         - !ImportValue pharos-database-DatabaseSubnetA
-  #         - !ImportValue pharos-database-DatabaseSubnetB
-  #         # - subnet-8f7652ea
-  #     Events:
-  #       Auth:
-  #         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-  #         Properties:
-  #           Path: /download-data
-  #           Method: post
-  #     Layers:
-  #       - !Ref Libraries
-  #     Environment:
-  #       Variables:
-  #         CORS_ALLOW: !Ref CorsAllow
-  #         HOST: !ImportValue pharos-database-RDSProxyEndpoint
-  #         PORT: "5432"
-  #         DATABASE: !Join ["-", [!Ref AWS::StackName, database]]
-  #         USERNAME: !Join ["-", [!Ref AWS::StackName, user]]
-  #         PASSWORD: testingrds
-  #         REGION: !Ref AWS::Region
-  #         BUCKET: !Join ["-", [!Ref AWS::StackName, !Ref DataDownloadBucket]]
-  #         METADATA_TABLE_NAME:
-  #           !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-  #         DATASETS_S3_BUCKET: # S3 implementation
-  #           !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-  #     Policies:
-  #       - AWSLambdaVPCAccessExecutionRole
-  #       - DynamoDBCrudPolicy:
-  #           TableName:
-  #             !Join ["-", [!Ref AWS::StackName, !Ref MetadataTableName]]
-  #       - S3CrudPolicy: # S3 implementation
-  #           BucketName:
-  #             !Join ["-", [!Ref AWS::StackName, !Ref DatasetsS3Bucket]]
-
   PermissionsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
