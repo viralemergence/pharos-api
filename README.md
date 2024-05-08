@@ -3,11 +3,12 @@
 This repository is part of the [Pharos project](https://pharos.viralemergence.org/)
 which is split into three repositories:
 
-| Repository                                                             | Purpose                                            |
-| ---------------------------------------------------------------------- | -------------------------------------------------- |
-| [`pharos-frontend`](https://github.com/viralemergence/pharos-frontend) | Frontend application and deployment infrastructure |
-| [`pharos-api`](https://github.com/viralemergence/pharos-api)           | API and deployment infrastructure                  |
-| [`pharos-database`](https://github.com/viralemergence/pharos-database) | SQL database and deployment infrastructure         |
+| Repository                                                                       | Purpose                                            |
+| -------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [`pharos-frontend`](https://github.com/viralemergence/pharos-frontend)           | Frontend application and deployment infrastructure |
+| [`pharos-api`](https://github.com/viralemergence/pharos-api)                     | API and deployment infrastructure                  |
+| [`pharos-database`](https://github.com/viralemergence/pharos-database)           | SQL database and deployment infrastructure         |
+| [`pharos-documentation`](https://github.com/viralemergence/pharos-documentation) | Markdown files used to generate about pages        |
 
 <br>
 <br>
@@ -37,10 +38,20 @@ corresponding environment.
 1. Create a development stack using the following command:
 
 ```sh
-sam sync --stack-name pharos-api-[DEVELOPER_NAME]-dev-rds --region us-west-1 --template-file ./template.yaml
+sam sync \
+  --stack-name pharos-api-[DEVELOPER_NAME]-dev \
+  --region us-east-2
 ```
 
-This will output the API url, which can be passed to the pharos-frontend develop command.
+| Argument       | Source                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--stack-name` | Naming convention: `pharos-api-[DEVELOPER_NAME]-dev`                                                                                             |
+| `--region`     | `us-east-2` because the API and [pharos-database](https://github.com/viralemergence/pharos-api) should be in the same region                     |
+| `--profile`    | Optional, if `[default]` profile is set. </br> Configure AWS SSO using the [Pharos AWS Access Portal](https://viralemergence.awsapps.com/start/) |
+
+This will deploy a new `pharos` stack, and output the Api url, ClientId, and UserPoolId which should be passed to the pharos-frontend develop command.
+
+Additional arguments for the `sam sync` command [can be found here.](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-sync.html)
 
 ## Run Database & Tests Locally
 
