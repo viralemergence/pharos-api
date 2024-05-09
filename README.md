@@ -1,4 +1,4 @@
-[![Pharos](https://github.com/viralemergence/pharos-database/blob/prod/img/pharos-banner.png)](https://pharos.viralemergence.org/)
+[![Pharos](https://github.com/viralemergence/pharos-api/blob/prod/img/pharos-banner.png)](https://pharos.viralemergence.org/)
 
 This repository is part of the [Pharos project](https://pharos.viralemergence.org/)
 which is split into three repositories:
